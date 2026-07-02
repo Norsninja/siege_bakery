@@ -72,3 +72,12 @@ box; the world is flat.
 The visionary's verdict after Step 4: does the loop generate tension and
 comedy solo? Record the verdict + tuning notes here, then decide Step 5 vs
 feel iteration.
+
+**VERDICT (2026-07-02): SUCCESS.** The visionary playtested the full loop
+and landed 2 of 3 cherries inside the 90s clock — order technically lost,
+fun won. Earlier note from the Step 3 feel-check stands: "it's hard to
+determine how far the projectile will go (could be perfect, or we might
+need a gauge)" — the 2/3 result suggests the difficulty is the fun kind;
+kept pure (no prediction UI) for now. Step 5 (two tabs, one cake) is
+UNFENCED. Remaining open decision from the handoff: room-server approach +
+hosting for playtests.
