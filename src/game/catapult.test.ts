@@ -9,9 +9,14 @@ import {
   crankTension,
   loadTopping,
   fire,
+  tickMachine,
   TRAVERSE_MIN_DEG,
   TRAVERSE_MAX_DEG,
   TENSION_MAX_CLICKS,
+  CRANK_TICKS_PER_CLICK,
+  TRAVERSE_DEG_PER_TICK,
+  IDLE_INTENT,
+  type CatapultState,
 } from "./catapult";
 
 describe("catapult machine state", () => {
@@ -81,6 +86,68 @@ describe("catapult machine state", () => {
     const s = loadTopping(createCatapult(), "cherry");
     const { shot } = fire(s);
     expect(shot).toEqual({ topping: "cherry", traverseDeg: 0, tensionClicks: 0 });
+  });
+
+  it("holding the winch for CRANK_TICKS_PER_CLICK yields exactly one click", () => {
+    let s = createCatapult();
+    let progress = 0;
+    const crank = { ...IDLE_INTENT, crank: true };
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK - 1; i++) {
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
+      expect(s.tensionClicks).toBe(0); // not yet
+    }
+    ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
+    expect(s.tensionClicks).toBe(1);
+    expect(progress).toBe(0);
+  });
+
+  it("letting go of the winch loses partial crank progress", () => {
+    let s = createCatapult();
+    let progress = 0;
+    const crank = { ...IDLE_INTENT, crank: true };
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK - 5; i++)
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
+    // Walk away for one tick — the pawl drops, progress is gone.
+    ({ state: s, crankTicks: progress } = tickMachine(s, progress, IDLE_INTENT));
+    expect(progress).toBe(0);
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK - 1; i++) {
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
+    }
+    expect(s.tensionClicks).toBe(0); // still needs the full hold again
+  });
+
+  it("a fully-wound machine stops accumulating crank progress", () => {
+    let s: CatapultState = {
+      traverseDeg: 0,
+      tensionClicks: TENSION_MAX_CLICKS,
+      loaded: null,
+    };
+    let progress = 0;
+    const crank = { ...IDLE_INTENT, crank: true };
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK * 2; i++)
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
+    expect(s.tensionClicks).toBe(TENSION_MAX_CLICKS);
+    expect(progress).toBe(0);
+  });
+
+  it("holding the traverse wheel integrates the turn rate and clamps", () => {
+    let s = createCatapult();
+    const left = { ...IDLE_INTENT, turn: 1 as const };
+    for (let i = 0; i < 60; i++) ({ state: s } = tickMachine(s, 0, left));
+    expect(s.traverseDeg).toBeCloseTo(60 * TRAVERSE_DEG_PER_TICK, 5);
+    for (let i = 0; i < 600; i++) ({ state: s } = tickMachine(s, 0, left));
+    expect(s.traverseDeg).toBe(TRAVERSE_MAX_DEG);
+  });
+
+  it("load + lever in one tick loads first, then fires that topping", () => {
+    const r = tickMachine(createCatapult(), 0, {
+      turn: 0,
+      crank: false,
+      pullLever: true,
+      load: "cherry",
+    });
+    expect(r.shot?.topping).toBe("cherry");
+    expect(r.state.loaded).toBeNull();
   });
 
   it("transitions never mutate their input state", () => {

@@ -25,11 +25,25 @@
         font: 14px/1.4 system-ui, sans-serif;
         text-shadow: 0 1px 2px #000;
         user-select: none;
+        white-space: pre-line;
+      }
+      #crosshair {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        margin: -3px 0 0 -3px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 0 2px #000;
+        pointer-events: none;
       }
     </style>
   </head>
   <body>
     <canvas id="app"></canvas>
+    <div id="crosshair"></div>
     <div id="hud">Siege Bakery 3D — loading…</div>
     <script type="module" src="/src/client/main.ts"></script>
   </body>

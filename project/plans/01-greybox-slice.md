@@ -1,11 +1,15 @@
 # Slice 1 — The Greybox (v1)
 
-*Status as of 2026-07-02: Step 0 done + render browser-verified. Step 1
-(baker) DONE: core/baker.ts, tested + browser-verified + human feel-check
-passed (mouse-look/WASD/sprint feel good at sensitivity 0.0022). Step 2 half
-done: machine state is pure tested data in game/catapult.ts; the three
-in-world interactables (raycast + E) are not wired yet — that's the
-remaining Step 2 work, then Step 3, the lob.*
+*Status as of 2026-07-02: Steps 0–3 DONE. Step 1 (baker) feel-check passed
+(sensitivity 0.0022). Step 2 complete: machine state + tickMachine operator
+law in game/catapult.ts, interactables wired (crosshair raycast, hold-E
+winch at 0.75s/click, E+A/D traverse at 30°/s, E lever). Step 3 complete:
+core/ballistics.ts (fixed 55° elevation, speed 4+1.5/click, SPLAT at
+13 m/s) + core/projectiles.ts (first-impact events); click ladder pinned by
+headless test: 3 clicks places short, 7 clicks splats on the cake top.
+TEMP: E on the bucket loads a cherry until Step 4's shelf-and-carry.
+Step 3 human check pending: land three in a row on the cake top (dead
+reckoning). Then Step 4 — the loop, and the first formal playtest.*
 
 ## The one question this slice answers
 

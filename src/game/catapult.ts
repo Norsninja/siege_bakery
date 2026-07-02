@@ -14,6 +14,8 @@
  * even at zero tension. Wrong topping loads and fires like any other.
  */
 
+import { FIXED_DT } from "../core/constants";
+
 /** Traverse (yaw) limits, degrees, relative to the machine's base facing. */
 export const TRAVERSE_MIN_DEG = -60;
 export const TRAVERSE_MAX_DEG = 60;
@@ -103,4 +105,85 @@ export function fire(state: CatapultState): {
     state: { ...state, tensionClicks: 0, loaded: null },
     shot,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Operating the machine, one fixed tick at a time.
+//
+// The transitions above say what a click legally does; tickMachine says how
+// held intent BECOMES clicks. This is the whole "operated machine" feel in
+// data form: cranking takes real held ticks, turning integrates a rate.
+// The client (and later, the server applying remote intents) calls this once
+// per fixed tick and renders whatever comes back.
+// ---------------------------------------------------------------------------
+
+/** Held ticks of winching per tension click (45 at 60Hz / 0.75s). */
+export const CRANK_TICKS_PER_CLICK = Math.round(
+  CRANK_SECONDS_PER_CLICK / FIXED_DT,
+);
+/** Traverse degrees per held tick (0.5° at 60Hz / 30° per second). */
+export const TRAVERSE_DEG_PER_TICK = TRAVERSE_DEG_PER_SECOND * FIXED_DT;
+
+/**
+ * One tick of operator intent. Plain flat data — the future wire format for
+ * "what this player is doing to the machine right now".
+ */
+export interface MachineIntent {
+  /** Traverse wheel: -1 (right), 0, +1 (left), while engaged. */
+  turn: -1 | 0 | 1;
+  /** Winch engaged this tick (hold-to-crank). */
+  crank: boolean;
+  /** Release lever pulled this tick (edge, not hold). */
+  pullLever: boolean;
+  /** Topping shoved into the bucket this tick (edge), or null. */
+  load: string | null;
+}
+
+export const IDLE_INTENT: MachineIntent = {
+  turn: 0,
+  crank: false,
+  pullLever: false,
+  load: null,
+};
+
+export interface MachineTickResult {
+  state: CatapultState;
+  /** Progress toward the next tension click, 0..CRANK_TICKS_PER_CLICK-1.
+   * Thread this back into the next tick; render it as winch motion. */
+  crankTicks: number;
+  /** Non-null exactly when the lever released a loaded bucket this tick. */
+  shot: Shot | null;
+}
+
+/**
+ * Advance the machine by one fixed tick of operator intent.
+ *
+ * Crank law: letting go of the winch mid-click LOSES the partial progress —
+ * winching is committed work, not a resumable meter. A full machine stops
+ * accumulating (the ratchet just clacks).
+ */
+export function tickMachine(
+  state: CatapultState,
+  crankTicks: number,
+  intent: MachineIntent,
+): MachineTickResult {
+  let s = state;
+  if (intent.load !== null) s = loadTopping(s, intent.load);
+  if (intent.turn !== 0)
+    s = turnTraverse(s, intent.turn * TRAVERSE_DEG_PER_TICK);
+
+  let progress = 0;
+  if (intent.crank && s.tensionClicks < TENSION_MAX_CLICKS) {
+    progress = crankTicks + 1;
+    if (progress >= CRANK_TICKS_PER_CLICK) {
+      s = crankTension(s);
+      progress = 0;
+    }
+  }
+
+  if (intent.pullLever) {
+    const released = fire(s);
+    return { state: released.state, crankTicks: progress, shot: released.shot };
+  }
+  return { state: s, crankTicks: progress, shot: null };
 }
