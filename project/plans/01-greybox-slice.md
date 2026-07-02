@@ -1,6 +1,11 @@
 # Slice 1 — The Greybox (v1)
 
-*Status: planned 2026-07-02. Step 0 (stack proof) ships with the scaffold.*
+*Status as of 2026-07-02: Step 0 done + render browser-verified. Step 1
+(baker) DONE: core/baker.ts, tested + browser-verified + human feel-check
+passed (mouse-look/WASD/sprint feel good at sensitivity 0.0022). Step 2 half
+done: machine state is pure tested data in game/catapult.ts; the three
+in-world interactables (raycast + E) are not wired yet — that's the
+remaining Step 2 work, then Step 3, the lob.*
 
 ## The one question this slice answers
 
