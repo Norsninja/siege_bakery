@@ -37,6 +37,7 @@ import {
   type CatapultState,
   type MachineIntent,
 } from "../game/catapult";
+import { createOrder, tickOrder, deliverTopping } from "../game/order";
 
 // Arena layout, all in meters. Pantry and plinth sit ARENA_CROSSING_M apart.
 const CROSS_HALF = ARENA_CROSSING_M / 2; // 12
@@ -51,13 +52,20 @@ const MOUSE_SENSITIVITY = 0.0022;
 const MAX_PITCH = (85 * Math.PI) / 180;
 const REACH_M = 2.8; // how far the baker can reach an interactable
 
-type InteractableKind = "wheel" | "winch" | "lever" | "bucket";
-const PROMPTS: Record<InteractableKind, string> = {
-  wheel: "hold E + A/D — traverse wheel",
-  winch: "hold E — crank the winch",
-  lever: "E — pull the release lever!",
-  bucket: "E — load a cherry (temp until the Step 4 shelf)",
+type InteractableKind =
+  | "wheel"
+  | "winch"
+  | "lever"
+  | "bucket"
+  | "shelf-cherry"
+  | "shelf-lime";
+
+const TOPPING_COLORS: Record<string, number> = {
+  cherry: 0xc23b4e,
+  lime: 0x77c34f,
 };
+
+const ORDER_SECONDS = 90;
 
 async function main(): Promise<void> {
   await RAPIER.init();
@@ -102,10 +110,14 @@ async function main(): Promise<void> {
   const baker = new Baker(physics, { x: 0, y: 1.2, z: CROSS_HALF - 2 });
   const shots = new ProjectileManager();
 
-  // --- Machine state (game/) ---
+  // --- Match state (game/) ---
   let machineState: CatapultState = createCatapult();
   let crankTicks = 0;
   let totalCrankSpins = 0; // visual-only: winch drum angle
+  let order = createOrder("cherry", 3, ORDER_SECONDS * 60);
+  // What the baker holds. Client-local for the greybox; becomes shared
+  // player state at Step 5 (it's inventory, and inventory syncs).
+  let carrying: string | null = null;
 
   // --- Three.js scene ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
@@ -209,11 +221,40 @@ async function main(): Promise<void> {
   leverKnob.position.set(0, 0.58, 0);
   leverGroup.add(leverKnob);
 
+  // --- Pantry crates: the ammo. E takes ONE; you carry it by hand. ---
+  const sphere = (
+    r: number,
+    color: number,
+    x: number,
+    y: number,
+    z: number,
+    parent: THREE.Object3D = scene,
+  ): THREE.Mesh => {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 16, 12),
+      new THREE.MeshStandardMaterial({ color }),
+    );
+    m.position.set(x, y, z);
+    parent.add(m);
+    return m;
+  };
+  const cherryCrate = box(0.9, 0.5, 0.7, 0x8c3038, -1.1, 1.75, CROSS_HALF);
+  const cherrySample = sphere(0.2, TOPPING_COLORS.cherry ?? 0xc23b4e, -1.1, 2.15, CROSS_HALF);
+  const limeCrate = box(0.9, 0.5, 0.7, 0x4f7a35, 1.1, 1.75, CROSS_HALF);
+  const limeSample = sphere(0.2, TOPPING_COLORS.lime ?? 0x77c34f, 1.1, 2.15, CROSS_HALF);
+
+  // What's in the baker's hands, rendered at the bottom of the view.
+  scene.add(camera); // camera children only render if the camera is in-scene
+  const heldMesh = sphere(0.12, 0xffffff, 0.28, -0.22, -0.5, camera);
+  heldMesh.visible = false;
+
   const interactables: Record<InteractableKind, THREE.Mesh[]> = {
     wheel: [wheelMesh],
     winch: [drumMesh, winchHandle],
     lever: [leverStick, leverKnob],
     bucket: [bucketMesh, toppingMesh],
+    "shelf-cherry": [cherryCrate, cherrySample],
+    "shelf-lime": [limeCrate, limeSample],
   };
   const raycastTargets: THREE.Mesh[] = Object.values(interactables).flat();
   const kindOf = new Map<THREE.Object3D, InteractableKind>();
@@ -269,6 +310,9 @@ async function main(): Promise<void> {
   window.addEventListener("keydown", (e) => {
     keys.add(e.code);
     if (e.code === "KeyE" && !e.repeat) ePressed = true;
+    // Greybox restart: reload is the honest reset.
+    if (e.code === "KeyR" && order.status !== "running")
+      window.location.reload();
   });
   window.addEventListener("keyup", (e) => keys.delete(e.code));
   window.addEventListener("blur", () => keys.clear());
@@ -294,8 +338,30 @@ async function main(): Promise<void> {
   };
 
   const hud = document.getElementById("hud");
+  const banner = document.getElementById("banner");
+  let bannerShown = false;
   let flashMsg = "";
   let flashUntil = 0;
+
+  const promptFor = (kind: InteractableKind): string => {
+    switch (kind) {
+      case "wheel":
+        return "hold E + A/D — traverse wheel";
+      case "winch":
+        return "hold E — crank the winch";
+      case "lever":
+        return "E — pull the release lever!";
+      case "bucket":
+        if (machineState.loaded !== null) return "bucket is full — fire it!";
+        return carrying !== null
+          ? `E — load the ${carrying}`
+          : "hands empty — fetch a topping from the pantry";
+      case "shelf-cherry":
+        return carrying !== null ? "hands full — one at a time" : "E — take a cherry";
+      case "shelf-lime":
+        return carrying !== null ? "hands full — one at a time" : "E — take a lime";
+    }
+  };
 
   // --- Fixed-timestep loop, rendering decoupled ---
   let last = performance.now();
@@ -312,7 +378,14 @@ async function main(): Promise<void> {
       const eEdge = ePressed;
       ePressed = false;
 
-      // Machine intent from what the crosshair engages.
+      // Pantry pickup: hands must be empty, one topping at a time.
+      if (eEdge && carrying === null) {
+        if (target === "shelf-cherry") carrying = "cherry";
+        else if (target === "shelf-lime") carrying = "lime";
+      }
+
+      // Machine intent from what the crosshair engages. Loading requires
+      // full hands and an empty bucket — everything else is game/'s law.
       const intent: MachineIntent = debugIntent ?? {
         turn:
           target === "wheel" && eHeld
@@ -324,8 +397,15 @@ async function main(): Promise<void> {
             : 0,
         crank: target === "winch" && eHeld,
         pullLever: target === "lever" && eEdge,
-        load: target === "bucket" && eEdge ? "cherry" : null,
+        load:
+          target === "bucket" &&
+          eEdge &&
+          carrying !== null &&
+          machineState.loaded === null
+            ? carrying
+            : null,
       };
+      if (intent.load !== null && debugIntent === null) carrying = null;
       const engaged =
         eHeld && (target === "wheel" || target === "winch") && !debugIntent;
 
@@ -342,7 +422,9 @@ async function main(): Promise<void> {
         );
         const mesh = new THREE.Mesh(
           new THREE.SphereGeometry(PROJECTILE_RADIUS, 16, 12),
-          new THREE.MeshStandardMaterial({ color: 0xc23b4e }),
+          new THREE.MeshStandardMaterial({
+            color: TOPPING_COLORS[r.shot.topping] ?? 0xc23b4e,
+          }),
         );
         scene.add(mesh);
         shotMeshes.push({ body, mesh });
@@ -366,12 +448,40 @@ async function main(): Promise<void> {
       };
       baker.step(move);
 
-      const impacts = shots.step(physics); // steps the whole world
-      for (const im of impacts) {
+      const ev = shots.step(physics); // steps the whole world
+      for (const im of ev.impacts) {
         const splat = im.speed >= SPLAT_SPEED;
         addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
         flashMsg = `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`;
         flashUntil = now + 4000;
+      }
+      // Scoring truth: where the topping comes to REST.
+      for (const s of ev.settled) {
+        const onCake =
+          Math.abs(s.pos.x - CAKE_POS.x) <= 4 &&
+          Math.abs(s.pos.z - CAKE_POS.z) <= 4 &&
+          s.pos.y > 2.9;
+        const before = order.delivered;
+        order = deliverTopping(order, s.topping, onCake);
+        if (order.delivered > before) {
+          flashMsg = `the patron gets a cherry! ${order.delivered}/${order.needed}`;
+          flashUntil = now + 4000;
+        } else if (s.topping === order.topping && !onCake) {
+          flashMsg = "no good — the cherry didn't stay on the cake";
+          flashUntil = now + 4000;
+        } else if (onCake && s.topping !== order.topping) {
+          flashMsg = `a ${s.topping} settles on the cake. the patron did not order limes.`;
+          flashUntil = now + 4000;
+        }
+      }
+      order = tickOrder(order);
+      if (order.status !== "running" && !bannerShown && banner) {
+        bannerShown = true;
+        banner.textContent =
+          order.status === "won"
+            ? "ORDER COMPLETE!\nthe patron is delighted\n\npress R to bake again"
+            : "TIME!\nthe patron waits for no one\n\npress R to try again";
+        banner.style.display = "flex";
       }
       accumulator -= FIXED_DT;
     }
@@ -388,6 +498,15 @@ async function main(): Promise<void> {
     armPivot.rotation.x = 0.5 + tensionFrac * 0.7; // arm winches down and back
     drumMesh.rotation.x = totalCrankSpins * 0.05;
     toppingMesh.visible = machineState.loaded !== null;
+    if (machineState.loaded !== null)
+      (toppingMesh.material as THREE.MeshStandardMaterial).color.setHex(
+        TOPPING_COLORS[machineState.loaded] ?? 0xc23b4e,
+      );
+    heldMesh.visible = carrying !== null;
+    if (carrying !== null)
+      (heldMesh.material as THREE.MeshStandardMaterial).color.setHex(
+        TOPPING_COLORS[carrying] ?? 0xffffff,
+      );
 
     for (const s of shotMeshes) {
       const t = s.body.translation();
@@ -397,13 +516,16 @@ async function main(): Promise<void> {
     if (hud) {
       const locked = document.pointerLockElement === canvas;
       const crankPct = Math.round((crankTicks / CRANK_TICKS_PER_CLICK) * 100);
+      const secsLeft = Math.ceil(order.ticksLeft * FIXED_DT);
+      const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
       const lines = [
+        `ORDER — land ${order.needed} cherries ON the cake · ${order.delivered}/${order.needed} · ${clock}`,
         locked
           ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
           : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"}`,
+        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
       ];
-      if (target) lines.push(`▸ ${PROMPTS[target]}`);
+      if (target) lines.push(`▸ ${promptFor(target)}`);
       if (now < flashUntil) lines.push(flashMsg);
       hud.textContent = lines.join("\n");
     }
@@ -423,6 +545,11 @@ async function main(): Promise<void> {
       shots,
       getMachine: () => ({ ...machineState, crankTicks }),
       getTarget: () => target,
+      getOrder: () => ({ ...order }),
+      getCarrying: () => carrying,
+      setCarrying: (t: string | null) => {
+        carrying = t;
+      },
       setDebugInput: (i: BakerInput | null) => {
         debugInput = i;
       },

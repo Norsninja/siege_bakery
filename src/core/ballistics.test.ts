@@ -67,10 +67,26 @@ function fireAndLand(clicks: number): Impact {
     "cherry",
   );
   for (let i = 0; i < 600; i++) {
-    const first = shots.step(world)[0];
+    const first = shots.step(world).impacts[0];
     if (first) return first;
   }
   throw new Error(`no impact within 10s for ${clicks} clicks`);
+}
+
+/** Fire and run until the topping comes to rest; return where it settled. */
+function fireAndSettle(clicks: number): { x: number; y: number; z: number } {
+  const { world, shots } = makeRange();
+  shots.spawn(
+    world,
+    launchOrigin(MACHINE_BASE, 0),
+    launchVelocity(0, clicks),
+    "cherry",
+  );
+  for (let i = 0; i < 1800; i++) {
+    const first = shots.step(world).settled[0];
+    if (first) return first.pos;
+  }
+  throw new Error(`no rest within 30s for ${clicks} clicks`);
 }
 
 describe("the lob, end to end (headless Rapier)", () => {
@@ -102,7 +118,7 @@ describe("the lob, end to end (headless Rapier)", () => {
     expect(a.speed).toBe(b.speed);
   });
 
-  it("reports each projectile's FIRST impact exactly once", () => {
+  it("reports FIRST impact and final rest exactly once each", () => {
     const { world, shots } = makeRange();
     shots.spawn(
       world,
@@ -110,9 +126,31 @@ describe("the lob, end to end (headless Rapier)", () => {
       launchVelocity(0, 7),
       "cherry",
     );
-    let count = 0;
-    for (let i = 0; i < 900; i++) count += shots.step(world).length;
-    expect(count).toBe(1); // settles, maybe bounces — still one report
+    let impacts = 0;
+    let settles = 0;
+    for (let i = 0; i < 1800; i++) {
+      const ev = shots.step(world);
+      impacts += ev.impacts.length;
+      settles += ev.settled.length;
+    }
+    expect(impacts).toBe(1); // bounces and skids don't re-report
+    expect(settles).toBe(1); // rest is reported once, then untracked
     expect(shots.bodies.length).toBe(1); // and the topping stays in the world
+  });
+
+  it("the scoring window: 6-7 clicks STAY on the cake, 5 short, 8 over", () => {
+    // Scoring truth is final REST position (visionary's rule, 2026-07-02):
+    // hit the cake and roll off → the patron gets nothing. With soft-landing
+    // absorption the click ladder gives a two-click window — this is the
+    // dead-reckoning game. If tuning moves this window, move it on purpose.
+    const onCake = (p: { x: number; y: number; z: number }): boolean =>
+      Math.abs(p.x) <= 4 &&
+      p.z <= CAKE_FRONT_Z &&
+      p.z >= CAKE_BACK_Z &&
+      p.y > 2.9;
+    expect(onCake(fireAndSettle(5))).toBe(false); // short, on the ground
+    expect(onCake(fireAndSettle(6))).toBe(true);
+    expect(onCake(fireAndSettle(7))).toBe(true);
+    expect(onCake(fireAndSettle(8))).toBe(false); // skids off the back
   });
 });

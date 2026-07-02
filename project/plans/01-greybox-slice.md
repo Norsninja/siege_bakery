@@ -1,15 +1,20 @@
 # Slice 1 — The Greybox (v1)
 
-*Status as of 2026-07-02: Steps 0–3 DONE. Step 1 (baker) feel-check passed
-(sensitivity 0.0022). Step 2 complete: machine state + tickMachine operator
-law in game/catapult.ts, interactables wired (crosshair raycast, hold-E
-winch at 0.75s/click, E+A/D traverse at 30°/s, E lever). Step 3 complete:
-core/ballistics.ts (fixed 55° elevation, speed 4+1.5/click, SPLAT at
-13 m/s) + core/projectiles.ts (first-impact events); click ladder pinned by
-headless test: 3 clicks places short, 7 clicks splats on the cake top.
-TEMP: E on the bucket loads a cherry until Step 4's shelf-and-carry.
-Step 3 human check pending: land three in a row on the cake top (dead
-reckoning). Then Step 4 — the loop, and the first formal playtest.*
+*Status as of 2026-07-02: Steps 0–4 BUILT; Step 4's formal playtest is
+NEXT. Steps 1–3 feel-checked (Step 3 verdict: "that is fun"; range-judging
+difficulty deliberately kept pure — no prediction UI, revisit after the
+playtest). Step 4 complete: pantry crates (cherry + lime), carry one at a
+time, E loads the carried topping (temp hack removed), 90s toy order in
+game/order.ts, end banner + R restart. SCORING LAW (visionary's call):
+final REST position — a topping that hits the cake and rolls off scores
+nothing. Soft-landing absorption (IMPACT_ABSORPTION 0.15) makes the order
+winnable: settle ladder pinned by test = 5 clicks short / 6-7 ON the cake /
+8 skids off the back. Rest detection is a velocity-threshold counter
+(~0.5s), not Rapier sleep (too slow for feedback). Browser settle position
+matched the Node test to the centimeter — determinism proven cross-runtime.
+NEXT: the visionary plays the full loop (the slice's exit question), record
+verdict + tuning notes here, then decide Step 5 (two tabs, one cake) vs
+feel iteration.*
 
 ## The one question this slice answers
 
