@@ -19,7 +19,8 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
 import { FrostingField } from "../core/frosting";
-import { launchOrigin, launchVelocity } from "../core/ballistics";
+import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
+import { isPaint } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
 import {
   createCatapult,
@@ -141,6 +142,7 @@ export class Room {
       toppings: this.shots
         .resting()
         .map((r) => ({ topping: r.topping, x: r.pos.x, y: r.pos.y, z: r.pos.z })),
+      frosting: this.frosting.snapshot(),
     });
     this.broadcast({ t: "join", id, name: member.name }, id);
     return id;
@@ -205,6 +207,7 @@ export class Room {
           r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
         ),
         r.shot.topping,
+        { consumeOnImpact: isPaint(r.shot.topping) },
       );
       this.broadcast({
         t: "shot",
@@ -218,32 +221,17 @@ export class Room {
     }
 
     const ev = this.shots.step(this.world);
-    for (const s of ev.settled) {
-      const onCake = isOnCake(s.pos);
-      this.settled.push({ topping: s.topping, pos: s.pos, onCake });
-      const r = evaluateOrder(
-        this.order,
-        this.settled,
-        this.frosting,
-        this.shotsFired,
-      );
-      this.order = r.state;
-      this.broadcast({
-        t: "scored",
-        topping: s.topping,
-        onCake,
-        order: this.order,
-        checks: r.checks,
-      });
-      // Every row met → the Judgment rendered on the spot. Announce it.
-      if (r.judgment)
-        this.broadcast({
-          t: "order",
-          order: this.order,
-          checks: r.checks,
-          judgment: r.judgment,
-        });
+    // Paint lands at IMPACT: the glob is consumed, the field takes the
+    // splat, and the delivery scores immediately — zero painted samples is
+    // floor frosting, mess like any other miss (plans/07).
+    for (const im of ev.impacts) {
+      if (!isPaint(im.topping)) continue;
+      const painted = this.frosting.paint(im.pos, im.speed);
+      this.scoreDelivery(im.topping, im.pos, painted > 0);
     }
+    // Solids land at REST — scoring truth unchanged.
+    for (const s of ev.settled)
+      this.scoreDelivery(s.topping, s.pos, isOnCake(s.pos));
 
     // The Patron looks at the cake every 12s of order time.
     if (this.order.status === "running") {
@@ -274,8 +262,16 @@ export class Room {
         this.orderTicks = 0;
         this.looks = 0;
         this.prevMess = 0;
+        // Solid litter stays where it lies; the Giant licks the FROSTING
+        // clean between deals — paint is the scoreboard (plans/07).
+        this.frosting.reset();
         this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60);
-        this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
+        this.broadcast({
+          t: "order",
+          order: this.order,
+          checks: this.currentChecks(),
+          fresh: true,
+        });
       }
     }
 
@@ -290,6 +286,34 @@ export class Room {
     // message that ENDS an order (carrying the verdict) stays the last word.
     if (this.order.status === "running" && this.tickCount % ORDER_CLOCK_EVERY === 0)
       this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
+  }
+
+  /** One delivery lands (solid at rest, paint at impact): ledger it,
+   * re-census, tell everyone — and announce the Judgment if that met the
+   * last row. */
+  private scoreDelivery(topping: string, pos: Vec3, onCake: boolean): void {
+    this.settled.push({ topping, pos, onCake });
+    const r = evaluateOrder(
+      this.order,
+      this.settled,
+      this.frosting,
+      this.shotsFired,
+    );
+    this.order = r.state;
+    this.broadcast({
+      t: "scored",
+      topping,
+      onCake,
+      order: this.order,
+      checks: r.checks,
+    });
+    if (r.judgment)
+      this.broadcast({
+        t: "order",
+        order: this.order,
+        checks: r.checks,
+        judgment: r.judgment,
+      });
   }
 
   private currentChecks(): RequirementCheck[] {

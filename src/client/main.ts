@@ -76,6 +76,8 @@ async function main(): Promise<void> {
   const fx: NetFx = {
     spawnShot: (msg) => shotsView.spawn(msg),
     spawnResting: (t) => shotsView.spawnResting(t),
+    restoreFrosting: () => {}, // frosting view arrives in F5 (plans/07)
+    resetFrosting: () => {},
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,

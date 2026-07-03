@@ -18,6 +18,11 @@ export interface NetFx {
   spawnShot(msg: ShotMsg): void;
   /** Recreate a topping already at rest (welcome world-sync, F2). */
   spawnResting(t: RestingTopping): void;
+  /** Adopt the welcome's frosting snapshot — the painted cake as it lies
+   * (plans/07; the one surface that ever crosses the wire). */
+  restoreFrosting(coats: number[]): void;
+  /** A fresh deal: the Giant licked the cake clean — clear local paint. */
+  resetFrosting(): void;
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
@@ -38,6 +43,7 @@ export function applyServerMsg(
       view.checks = msg.checks;
       for (const p of msg.poses) fx.upsertGhost(p);
       for (const t of msg.toppings) fx.spawnResting(t);
+      fx.restoreFrosting(msg.frosting);
       break;
     case "join":
       fx.flash(`${msg.name} ran into the bakery!`);
@@ -82,6 +88,7 @@ export function applyServerMsg(
       view.checks = msg.checks;
       if (msg.judgment) view.verdict = msg.judgment;
       else if (msg.order.status === "running") view.verdict = null; // fresh deal
+      if (msg.fresh) fx.resetFrosting();
       break;
     case "patron":
       view.lastPatron = { text: msg.text, seq: msg.seq };

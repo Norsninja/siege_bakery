@@ -163,6 +163,44 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.toppings[0]?.y).toBeGreaterThan(3.4);
   });
 
+  it("a frosting glob scores at IMPACT and paints the welcome snapshot (plans/07)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    room.onMessage(a.id, { t: "load", topping: "frosting" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 300); // flight to impact — no rest wait for paint
+    const scored = a.last("scored");
+    expect(scored?.topping).toBe("frosting");
+    expect(scored?.onCake).toBe(true); // the 6-click arc splats the tiers
+    // The glob was consumed: a late joiner inherits PAINT, not a body.
+    const carol = connect(room, "carol");
+    const w = carol.last("welcome");
+    expect(w?.toppings).toEqual([]);
+    expect(w?.frosting.some((c) => c > 0)).toBe(true);
+  });
+
+  it("the re-deal says fresh and hands late joiners a licked-clean cake", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    // Paint the cake first, so the reset has something to lick clean.
+    room.onMessage(a.id, { t: "load", topping: "frosting" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 300);
+    expect(connect(room, "peek").last("welcome")?.frosting.some((c) => c > 0)).toBe(true);
+    run(room, 90 * 60); // long enough to lose AND re-deal
+    const fresh = a.all("order").find((m) => m.fresh);
+    expect(fresh).toBeDefined();
+    expect(fresh?.order.status).toBe("running");
+    const bob = connect(room, "bob");
+    expect(bob.last("welcome")?.frosting.every((c) => c === 0)).toBe(true);
+  });
+
   it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
     const room = new Room();
     const a = connect(room, "alice");

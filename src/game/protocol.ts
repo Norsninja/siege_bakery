@@ -56,6 +56,10 @@ export type ServerMsg =
       /** The world as it lies: every settled topping (F2 — refresh and
        * late join recreate the same litter and the same obstacles). */
       toppings: RestingTopping[];
+      /** The frosting field as it lies: coats per sample point (plans/07).
+       * The one place a surface ever crosses the wire — in play, paint is
+       * recomputed from shot events (sync-shots-not-surfaces). */
+      frosting: number[];
     }
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }
@@ -81,12 +85,15 @@ export type ServerMsg =
       checks: RequirementCheck[];
     }
   /** `judgment` rides along exactly when this message ENDS the order —
-   * the verdict the banner renders (delighted/refused/hungry). */
+   * the verdict the banner renders (delighted/refused/hungry). `fresh`
+   * rides along exactly when the room DEALS anew: the Giant licked the
+   * cake clean, clients clear their local frosting (plans/07). */
   | {
       t: "order";
       order: OrderState;
       checks: RequirementCheck[];
       judgment?: Judgment;
+      fresh?: true;
     }
   /** The Patron spoke. Any rows/clock he changed follow in an `order`
    * message; this is the voice. `seq` marks distinct utterances. */
