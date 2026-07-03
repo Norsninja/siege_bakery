@@ -12,9 +12,14 @@
  * welcome snapshot ever carries the field itself.
  *
  * Sample points sit on each tier's EXPOSED top ring (annulus up to the tier
- * above; full disc on the summit). Tier SIDES are deliberately unsampled:
- * lobs arrive from above — demanding frosted walls from a catapult is
- * homework, not comedy (recorded in plans/07 so nobody "fixes" it).
+ * above; full disc on the summit) AND on the three cylindrical WALL faces
+ * (visionary playtest note, 2026-07-03 — this overrules the plan's original
+ * "sides unsampled" call): a short shot that smacks the cake's foot now
+ * FROSTS the wall base instead of counting as pure mess, ledge splashes
+ * wrap onto the walls above and below, and the sides are honest decorating
+ * surface. Wall rings are SPARSER than top rings — the walls are two-thirds
+ * of the cake's skin and would otherwise drown the tops in the coverage
+ * denominator.
  *
  * core/ law: deterministic, no DOM, no three.js.
  */
@@ -23,14 +28,17 @@ import { SPLAT_SPEED, type Vec3 } from "./ballistics";
 
 /** Target spacing between sample points (m) — ring gap and arc step. */
 export const SAMPLE_SPACING = 0.45;
+/** Wall rings are coarser (see header) — height gap and arc step. */
+export const WALL_SAMPLE_SPACING = 0.65;
 
 /** Dollop (a gentle landing, below SPLAT_SPEED): thick, tidy, small.
  * Sizes pinned by the study's coverage table (research/04 §3) AND a full
  * scripted playthrough (plans/07 O2): the four-shot decorating line —
- * summit front (notch 1 max crank), summit back (level 7), each flank
- * (±8° level 6) — must clear a 30% frost row with margin. Smaller radii
- * measured fine per shot but left a 5% tail only reachable by re-aiming
- * grind, and the clock died. Decorating, not grinding. */
+ * bottom ledge (notch 1 × 7), summit front (notch 1 max crank), summit
+ * back (level 7), a flank (±8° level 6) — must clear the frost row with
+ * margin. Smaller radii measured fine per shot but left a coverage tail
+ * only reachable by re-aiming grind, and the clock died. Decorating, not
+ * grinding. */
 export const FROST_DOLLOP_RADIUS = 1.3;
 export const FROST_DOLLOP_COATS = 2;
 /** Splash (at/above SPLAT_SPEED): wide, thin, growing with landing energy.
@@ -59,15 +67,27 @@ export function splatCoats(speed: number): number {
   return speed < SPLAT_SPEED ? FROST_DOLLOP_COATS : 1;
 }
 
-/** The census grid: polar rings per tier over the exposed top, ~SAMPLE_
- * SPACING apart, phase-shifted per ring so points never align radially.
- * Built once at module load — a pure function of CAKE_TIERS. */
-function buildSamples(): Vec3[] {
-  const pts: Vec3[] = [];
+/** One census point: where it sits and which way its surface faces —
+ * +y on tier tops, radially outward on tier walls. The client flattens
+ * its frosting blobs against the normal; nothing else reads it. */
+export interface FrostSample {
+  pos: Vec3;
+  normal: Vec3;
+}
+
+const UP: Vec3 = { x: 0, y: 1, z: 0 };
+
+/** The census grid: polar rings per tier over the exposed top (~SAMPLE_
+ * SPACING apart) plus coarser rings down each wall face, all phase-shifted
+ * per ring so points never align. Built once at module load — a pure
+ * function of CAKE_TIERS. */
+function buildSamples(): FrostSample[] {
+  const pts: FrostSample[] = [];
   for (let i = 0; i < CAKE_TIERS.length; i++) {
     const t = CAKE_TIERS[i]!;
     const inner = CAKE_TIERS[i + 1]?.radius ?? 0;
-    if (inner === 0) pts.push({ x: 0, y: t.top, z: CAKE_Z }); // summit center
+    if (inner === 0)
+      pts.push({ pos: { x: 0, y: t.top, z: CAKE_Z }, normal: UP }); // summit center
     for (
       let r = inner + SAMPLE_SPACING * 0.6;
       r <= t.radius - 0.15;
@@ -76,14 +96,35 @@ function buildSamples(): Vec3[] {
       const n = Math.max(6, Math.round((2 * Math.PI * r) / SAMPLE_SPACING));
       for (let k = 0; k < n; k++) {
         const a = r + (2 * Math.PI * k) / n; // ring radius as phase offset
-        pts.push({ x: r * Math.cos(a), y: t.top, z: CAKE_Z + r * Math.sin(a) });
+        pts.push({
+          pos: { x: r * Math.cos(a), y: t.top, z: CAKE_Z + r * Math.sin(a) },
+          normal: UP,
+        });
+      }
+    }
+    // The wall face: rings from just above this tier's foot (the ground, or
+    // the ledge below) up to just under its top edge.
+    const n = Math.max(6, Math.round((2 * Math.PI * t.radius) / WALL_SAMPLE_SPACING));
+    for (
+      let y = t.bottom + WALL_SAMPLE_SPACING * 0.55;
+      y <= t.top - 0.2;
+      y += WALL_SAMPLE_SPACING
+    ) {
+      for (let k = 0; k < n; k++) {
+        const a = y * 2.4 + (2 * Math.PI * k) / n; // ring height as phase offset
+        const c = Math.cos(a);
+        const s = Math.sin(a);
+        pts.push({
+          pos: { x: t.radius * c, y, z: CAKE_Z + t.radius * s },
+          normal: { x: c, y: 0, z: s },
+        });
       }
     }
   }
   return pts;
 }
 
-export const CAKE_SAMPLES: readonly Vec3[] = buildSamples();
+export const CAKE_SAMPLES: readonly FrostSample[] = buildSamples();
 
 export class FrostingField {
   private coats: number[] = new Array<number>(CAKE_SAMPLES.length).fill(0);
@@ -95,7 +136,7 @@ export class FrostingField {
     const add = splatCoats(speed);
     let painted = 0;
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-      const s = CAKE_SAMPLES[i]!;
+      const s = CAKE_SAMPLES[i]!.pos;
       if (Math.abs(s.y - impact.y) > FROST_VERTICAL_BAND) continue;
       if (Math.hypot(s.x - impact.x, s.z - impact.z) > r) continue;
       this.coats[i]! += add;
@@ -129,7 +170,7 @@ export class FrostingField {
   frostedNear(pos: Vec3, within = FROSTED_NEAR_M): boolean {
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
       if (this.coats[i]! === 0) continue;
-      const s = CAKE_SAMPLES[i]!;
+      const s = CAKE_SAMPLES[i]!.pos;
       const d = Math.hypot(s.x - pos.x, s.y - pos.y, s.z - pos.z);
       if (d <= within) return true;
     }

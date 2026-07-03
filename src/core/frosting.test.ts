@@ -21,19 +21,46 @@ const GENTLE = SPLAT_SPEED - 1;
 const HOT = SPLAT_SPEED + 5;
 
 describe("the sample grid (pure function of the cake)", () => {
-  it("is deterministic, dense, and sits on tier tops inside tier radii", () => {
-    expect(CAKE_SAMPLES.length).toBeGreaterThan(150);
-    const tops = new Set(CAKE_TIERS.map((t) => t.top));
-    for (const s of CAKE_SAMPLES) {
-      expect(tops.has(s.y)).toBe(true);
-      const tier = CAKE_TIERS.find((t) => t.top === s.y)!;
-      expect(Math.hypot(s.x, s.z - CAKE_Z)).toBeLessThanOrEqual(tier.radius);
+  const tops = CAKE_SAMPLES.filter((s) => s.normal.y === 1);
+  const walls = CAKE_SAMPLES.filter((s) => s.normal.y === 0);
+
+  it("is deterministic and dense, and every sample is a top or a wall", () => {
+    expect(tops.length).toBeGreaterThan(150);
+    expect(walls.length).toBeGreaterThan(150);
+    expect(tops.length + walls.length).toBe(CAKE_SAMPLES.length);
+  });
+
+  it("top samples sit on tier tops inside tier radii, facing up", () => {
+    const topYs = new Set(CAKE_TIERS.map((t) => t.top));
+    for (const s of tops) {
+      expect(topYs.has(s.pos.y)).toBe(true);
+      const tier = CAKE_TIERS.find((t) => t.top === s.pos.y)!;
+      expect(Math.hypot(s.pos.x, s.pos.z - CAKE_Z)).toBeLessThanOrEqual(
+        tier.radius,
+      );
     }
   });
 
-  it("samples every tier's exposed ring", () => {
-    for (const t of CAKE_TIERS)
-      expect(CAKE_SAMPLES.some((s) => s.y === t.top)).toBe(true);
+  it("wall samples sit ON their tier's cylinder face, facing radially out", () => {
+    for (const s of walls) {
+      const tier = CAKE_TIERS.find(
+        (t) => s.pos.y > t.bottom && s.pos.y < t.top,
+      )!;
+      expect(tier).toBeDefined();
+      expect(Math.hypot(s.pos.x, s.pos.z - CAKE_Z)).toBeCloseTo(tier.radius, 6);
+      // The normal points straight out from the axis.
+      expect(s.normal.x).toBeCloseTo(s.pos.x / tier.radius, 6);
+      expect(s.normal.z).toBeCloseTo((s.pos.z - CAKE_Z) / tier.radius, 6);
+    }
+  });
+
+  it("samples every tier's exposed ring and every tier's wall", () => {
+    for (const t of CAKE_TIERS) {
+      expect(tops.some((s) => s.pos.y === t.top)).toBe(true);
+      expect(walls.some((s) => s.pos.y > t.bottom && s.pos.y < t.top)).toBe(
+        true,
+      );
+    }
   });
 });
 
@@ -54,12 +81,25 @@ describe("the paint law", () => {
     expect(b.paint(SUMMIT, HOT)).toBeGreaterThan(a.paint(SUMMIT, GENTLE));
   });
 
-  it("paints one story: summit spray never reaches the bottom tier", () => {
+  it("paints one story: summit spray never reaches the bottom tier or its wall", () => {
     const field = new FrostingField();
     field.paint({ x: 0, y: 5.3, z: CAKE_Z }, HOT);
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-      if (CAKE_SAMPLES[i]!.y === CAKE_TIERS[0]!.top)
-        expect(field.coatAt(i)).toBe(0);
+      if (field.coatAt(i) > 0)
+        expect(CAKE_SAMPLES[i]!.pos.y).toBeGreaterThan(3); // tier 3 country only
+    }
+  });
+
+  it("a short shot at the cake's FOOT frosts the wall base — the forgiveness rule", () => {
+    // The visionary's 5-click shot (playtest, 2026-07-03): ground impact
+    // just in front of the bottom wall. It used to be pure mess; now the
+    // dollop reaches the wall's lower rings and counts.
+    const field = new FrostingField();
+    const foot = { x: 0, y: 0.3, z: CAKE_Z + CAKE_TIERS[0]!.radius + 0.7 };
+    const painted = field.paint(foot, GENTLE);
+    expect(painted).toBeGreaterThan(0);
+    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+      if (field.coatAt(i) > 0) expect(CAKE_SAMPLES[i]!.normal.y).toBe(0); // walls only
     }
   });
 
