@@ -335,6 +335,78 @@ describe("Room: the match, headless over protocol", () => {
     expect(room.memberCount()).toBe(1);
   });
 
+  it("the WIN path over protocol: frost → sprinkles → demand → crown → WON → fresh deal (audit 2026-07-03)", () => {
+    // The O2 scripted playthrough, re-bodied as a permanent Room test —
+    // the only Room-level ending pinned before this was loss-by-clock.
+    const room = new Room();
+    const a = connect(room, "alice");
+    const op = (turn: -1 | 0 | 1, screw: -1 | 0 | 1, crank: boolean): void =>
+      room.onMessage(a.id, { t: "op", turn, screw, crank });
+    const crankTo = (clicks: number): void => {
+      op(0, 0, true);
+      run(room, CRANK_TICKS_PER_CLICK * clicks);
+      op(0, 0, false);
+      run(room, 1);
+    };
+    const screw = (dir: -1 | 1): void => {
+      op(0, dir, false);
+      run(room, SCREW_TICKS_PER_NOTCH + 2);
+      op(0, 0, false);
+      run(room, 1);
+    };
+    const turnTicks = (dir: -1 | 1, ticks: number): void => {
+      op(dir, 0, false);
+      run(room, ticks);
+      op(0, 0, false);
+      run(room, 1);
+    };
+    const fire = (topping: string, clicks: number, wait: number): void => {
+      room.onMessage(a.id, { t: "load", topping });
+      run(room, 1);
+      crankTo(clicks);
+      room.onMessage(a.id, { t: "lever" });
+      run(room, wait); // paint scores ~170 ticks out; solids need rest
+    };
+    const lastChecks = () => {
+      for (let i = a.inbox.length - 1; i >= 0; i--) {
+        const m = a.inbox[i]!;
+        if (m.t === "order" || m.t === "scored" || m.t === "welcome")
+          return m.checks;
+      }
+      return [];
+    };
+    // The decorating line (research/04 §3 arcs, all deterministic):
+    fire("frosting", 6, 300); // middle-ledge splash
+    fire("sprinkles", 6, 650); // rests ON it — before any nag can want more
+    screw(1);
+    fire("frosting", 7, 300); // bottom-ledge splash (the screw's answer)
+    fire("frosting", 8, 300); // summit splash
+    screw(-1);
+    turnTicks(1, 16); // +8°: the wheel earns its keep
+    fire("frosting", 6, 300); // flank splash
+    fire("sprinkles", 6, 650); // second sprinkle, fresh flank spot
+    turnTicks(-1, 16);
+    expect(lastChecks().find((c) => c.req.kind === "frost-coverage")?.met).toBe(
+      true,
+    );
+    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
+      true,
+    );
+    // The Giant demanded his crown along the way (progress-triggered).
+    expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
+    screw(1);
+    fire("cherry", 8, 650); // the tier-clearing crown shot
+    const end = a.all("order").find((m) => m.order.status === "won");
+    expect(end).toBeDefined();
+    expect(end?.judgment?.accepted).toBe(true);
+    expect(end?.judgment?.stars).toBeGreaterThanOrEqual(2);
+    // The linger passes; the fresh deal starts honestly unmet.
+    run(room, 700);
+    const fresh = a.all("order").find((m) => m.fresh);
+    expect(fresh?.order.status).toBe("running");
+    expect(fresh?.checks.every((c) => c.current === 0 && !c.met)).toBe(true);
+  });
+
   it("a joiner mid-banner is welcomed with the verdict (audit 2026-07-03)", () => {
     const room = new Room();
     const a = connect(room, "alice");
