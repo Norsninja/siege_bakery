@@ -1,5 +1,5 @@
 /**
- * GREYBOX SLICE — Steps 1–5: the client, speaking protocol.
+ * The client entry — boot, transport pick, and the fixed-timestep loop.
  *
  * There is no solo code path anymore. The client ALWAYS talks to a Room
  * (server/room.ts) through a Transport: in-memory loopback when playing
@@ -9,10 +9,11 @@
  * movement (client-auth transforms, plans/02), the camera, and what the
  * crosshair is pointing at.
  *
- * Projectiles: on a `shot` message we simulate the lob LOCALLY in our own
- * Rapier world — deterministic ballistics land identically everywhere, so
- * flight needs no further sync (sync-shots-not-surfaces). Impact markers
- * and splat readouts are local; the `scored` message is the patron's truth.
+ * Decomposed (plans/06): state.ts holds the MatchView, net-handlers.ts
+ * applies every room message, hud.ts words the HUD/banner, input.ts owns
+ * grip semantics, scene.ts builds the world + machine rig, shots-view.ts
+ * simulates the visible lobs, ghosts.ts renders the other bakers. This
+ * file is the wiring and the clock.
  *
  * Mode pick: `?join=ws://host:port` joins explicitly; a page served by the
  * room server itself (port 5175) auto-joins; otherwise (vite dev) loopback.
@@ -21,29 +22,7 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
-import { SPLAT_SPEED, launchOrigin, launchVelocity } from "../core/ballistics";
-import { ProjectileManager, PROJECTILE_RADIUS } from "../core/projectiles";
-import {
-  CROSS_HALF,
-  WALLS,
-  WALL_HEIGHT,
-  MACHINE_BASE,
-  CAKE_Z,
-  CAKE_TIERS,
-  PANTRY_POS,
-  PANTRY_HALF,
-  PLINTH_POS,
-  PLINTH_HALF,
-  BAKER_SPAWN,
-  buildArenaColliders,
-} from "../core/arena";
-import {
-  CRANK_TICKS_PER_CLICK,
-  TENSION_MAX_CLICKS,
-  SCREW_TICKS_PER_NOTCH,
-  TILT_DEG_PER_NOTCH,
-  TILT_MAX_NOTCH,
-} from "../game/catapult";
+import { BAKER_SPAWN, buildArenaColliders } from "../core/arena";
 import { tickOrder } from "../game/order";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
@@ -58,14 +37,12 @@ import {
 import { createMatchView } from "./state";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
+import { buildGameScene, TOPPING_COLORS } from "./scene";
+import { ShotsView } from "./shots-view";
+import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 
 const REACH_M = 2.8; // how far the baker can reach an interactable
 const POSE_SEND_EVERY = 3; // ticks → 20Hz
-
-const TOPPING_COLORS: Record<string, number> = {
-  cherry: 0xc23b4e,
-  lime: 0x77c34f,
-};
 
 async function main(): Promise<void> {
   await RAPIER.init();
@@ -75,203 +52,16 @@ async function main(): Promise<void> {
   physics.timestep = FIXED_DT;
   buildArenaColliders(physics);
   const baker = new Baker(physics, BAKER_SPAWN);
-  const shots = new ProjectileManager();
 
   // --- The match, as this client knows it (state.ts) ---
   const view = createMatchView();
 
-  // --- Three.js scene ---
+  // --- The world on screen (scene.ts) ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87b5e5);
-  scene.fog = new THREE.Fog(0x87b5e5, 60, 120);
-
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    200,
-  );
-  camera.rotation.order = "YXZ"; // yaw, then pitch — the FPS rig
-
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 1.4);
-  sun.position.set(8, 14, 6);
-  scene.add(sun);
-
-  const box = (
-    w: number,
-    h: number,
-    d: number,
-    color: number,
-    x: number,
-    y: number,
-    z: number,
-    parent: THREE.Object3D = scene,
-  ): THREE.Mesh => {
-    const m = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshStandardMaterial({ color }),
-    );
-    m.position.set(x, y, z);
-    parent.add(m);
-    return m;
-  };
-  const sphere = (
-    r: number,
-    color: number,
-    x: number,
-    y: number,
-    z: number,
-    parent: THREE.Object3D = scene,
-  ): THREE.Mesh => {
-    const m = new THREE.Mesh(
-      new THREE.SphereGeometry(r, 16, 12),
-      new THREE.MeshStandardMaterial({ color }),
-    );
-    m.position.set(x, y, z);
-    parent.add(m);
-    return m;
-  };
-
-  // Arena visuals mirror core/arena's physics definitions exactly.
-  box(80, 0.2, 80, 0x7a9e6b, 0, -0.1, 0); // ground
-  for (const w of WALLS)
-    box(w.hx * 2, WALL_HEIGHT, w.hz * 2, 0x9a9a9a, w.x, WALL_HEIGHT / 2, w.z);
-  box(PANTRY_HALF.x * 2, PANTRY_HALF.y * 2, PANTRY_HALF.z * 2, 0xb98a4a,
-    PANTRY_POS.x, PANTRY_POS.y, PANTRY_POS.z);
-  box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
-    PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z);
-  // The Test Cake (plans/05): three tiers straight from core/arena, sponge
-  // paling toward the summit so the climb is READABLE from the catapult.
-  // The peak-zone painted square retired with the box cake — the top tier
-  // IS the target now, and the crown rule owns "on top".
-  const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a];
-  CAKE_TIERS.forEach((t, i) =>
-    box(t.half * 2, t.top - t.bottom, t.half * 2, TIER_COLORS[i] ?? 0xefd39a,
-      0, (t.top + t.bottom) / 2, CAKE_Z),
-  );
-  // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): it is
-  // the wind instrument you read from the firing position — when wind
-  // arrives, this flag is the forecast. The painted square on the cake top
-  // stays for the spotter to call.
-  box(0.06, 2.4, 0.06, 0xefe3d0, PLINTH_POS.x + 1.8, 1.2, PLINTH_POS.z - 0.6);
-  box(0.7, 0.3, 0.02, 0xd8452e, PLINTH_POS.x + 2.18, 2.2, PLINTH_POS.z - 0.6);
-  for (let z = -CROSS_HALF; z <= CROSS_HALF; z += 6)
-    box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z); // crossing stripes
-
-  // --- The machine greybox, on the plinth. Group yaw = traverseDeg. ---
-  const machine = new THREE.Group(); // yaw (traverse) only
-  machine.position.set(MACHINE_BASE.x, MACHINE_BASE.y, MACHINE_BASE.z);
-  scene.add(machine);
-
-  // The FRAME tilts; its pivot sits at the REAR ground contact so the tail
-  // stays planted on the plinth and the NOSE visibly lifts (a jacked-up
-  // machine, not a see-saw — playtest note 2026-07-03).
-  const tiltFrame = new THREE.Group();
-  tiltFrame.position.set(0, 0, 0.7);
-  machine.add(tiltFrame);
-
-  box(1.4, 0.25, 1.4, 0x6e5233, 0, 0.125, -0.7, tiltFrame); // carriage
-  const armPivot = new THREE.Group();
-  armPivot.position.set(0, 0.3, -0.25);
-  tiltFrame.add(armPivot);
-  box(0.12, 1.5, 0.12, 0x8a6b45, 0, 0.75, 0, armPivot); // throwing arm
-  const bucketMesh = box(0.34, 0.16, 0.34, 0x4a4a55, 0, 1.5, 0, armPivot);
-  const toppingMesh = sphere(0.16, 0xc23b4e, 0, 1.66, 0, armPivot);
-
-  const wheelMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.3, 0.08, 20),
-    new THREE.MeshStandardMaterial({ color: 0x8a6b3d }),
-  );
-  wheelMesh.rotation.z = Math.PI / 2;
-  wheelMesh.position.set(-0.8, 0.45, -0.7);
-  tiltFrame.add(wheelMesh);
-
-  const winchGroup = new THREE.Group();
-  winchGroup.position.set(0.8, 0.45, -0.55);
-  tiltFrame.add(winchGroup);
-  const drumMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.16, 0.16, 0.4, 12),
-    new THREE.MeshStandardMaterial({ color: 0x50505c }),
-  );
-  drumMesh.rotation.z = Math.PI / 2;
-  winchGroup.add(drumMesh);
-  const winchHandle = box(0.05, 0.3, 0.05, 0x8a6b3d, 0.24, 0.15, 0, winchGroup);
-
-  const leverGroup = new THREE.Group();
-  leverGroup.position.set(0.55, 0.15, -1.45);
-  tiltFrame.add(leverGroup);
-  const leverStick = box(0.06, 0.55, 0.06, 0x777788, 0, 0.28, 0, leverGroup);
-  const leverKnob = sphere(0.09, 0xc23b4e, 0, 0.58, 0, leverGroup);
-
-  // The elevation screw AT THE FRONT (plans/04): a great ugly dwarven jack.
-  // It stays PLANTED on the plinth (child of machine, not frame) and its
-  // post EXTENDS to hold the lifted nose — post height IS the notch gauge.
-  const screwGroup = new THREE.Group();
-  screwGroup.position.set(-0.55, 0, -0.75);
-  machine.add(screwGroup);
-  const screwPost = box(0.1, 0.6, 0.1, 0x5a5a66, 0, 0.3, 0, screwGroup);
-  const screwHandle = box(0.4, 0.06, 0.06, 0x8a6b3d, 0, 0.62, 0, screwGroup);
-
-  // Pantry crates — the ammo. E takes ONE; you carry it by hand.
-  const crateY = PANTRY_POS.y + PANTRY_HALF.y + 0.25;
-  const cherryCrate = box(0.9, 0.5, 0.7, 0x8c3038, -1.1, crateY, PANTRY_POS.z);
-  const cherrySample = sphere(0.2, TOPPING_COLORS.cherry ?? 0xc23b4e, -1.1, crateY + 0.4, PANTRY_POS.z);
-  const limeCrate = box(0.9, 0.5, 0.7, 0x4f7a35, 1.1, crateY, PANTRY_POS.z);
-  const limeSample = sphere(0.2, TOPPING_COLORS.lime ?? 0x77c34f, 1.1, crateY + 0.4, PANTRY_POS.z);
-
-  // What's in the baker's hands, rendered at the bottom of the view.
-  scene.add(camera); // camera children only render if the camera is in-scene
-  const heldMesh = sphere(0.12, 0xffffff, 0.28, -0.22, -0.5, camera);
-  heldMesh.visible = false;
-
-  const interactables: Record<InteractableKind, THREE.Mesh[]> = {
-    wheel: [wheelMesh],
-    winch: [drumMesh, winchHandle],
-    screw: [screwPost, screwHandle],
-    lever: [leverStick, leverKnob],
-    bucket: [bucketMesh, toppingMesh],
-    "shelf-cherry": [cherryCrate, cherrySample],
-    "shelf-lime": [limeCrate, limeSample],
-  };
-  const raycastTargets: THREE.Mesh[] = Object.values(interactables).flat();
-  const kindOf = new Map<THREE.Object3D, InteractableKind>();
-  for (const [kind, meshes] of Object.entries(interactables) as Array<
-    [InteractableKind, THREE.Mesh[]]
-  >)
-    for (const m of meshes) kindOf.set(m, kind);
-
-  const setHighlight = (kind: InteractableKind | null): void => {
-    for (const meshes of Object.values(interactables))
-      for (const m of meshes)
-        (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x000000);
-    if (kind)
-      for (const m of interactables[kind])
-        (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x443300);
-  };
-
-  // --- Other bakers: interpolated ghosts (ghosts.ts) ---
+  const gs = buildGameScene(canvas);
+  const { renderer, scene, camera, rig, heldMesh } = gs;
+  const shotsView = new ShotsView(physics, scene);
   const ghosts = new GhostManager(scene);
-
-  // Projectiles in flight / at rest, and landing markers.
-  const shotMeshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> = [];
-  const addLandingMarker = (x: number, y: number, z: number, splat: boolean): void => {
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.25, splat ? 0.55 : 0.4, 24),
-      new THREE.MeshBasicMaterial({
-        color: splat ? 0xd8452e : 0x3fae5a,
-        side: THREE.DoubleSide,
-      }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, Math.max(0.02, y - PROJECTILE_RADIUS + 0.03), z);
-    scene.add(ring);
-  };
 
   const hud = document.getElementById("hud");
   const banner = document.getElementById("banner");
@@ -283,30 +73,9 @@ async function main(): Promise<void> {
     flashUntil = performance.now() + ms;
   };
 
-  // --- Every word the room says (net-handlers.ts); side effects live
-  // here, where the scene and the local physics world are. ---
+  // --- Every word the room says (net-handlers.ts) ---
   const fx: NetFx = {
-    spawnShot: (msg) => {
-      // Everyone simulates the same deterministic lob locally.
-      const body = shots.spawn(
-        physics,
-        launchOrigin(MACHINE_BASE, msg.traverseDeg),
-        launchVelocity(
-          msg.traverseDeg,
-          msg.tensionClicks,
-          msg.tiltNotch * TILT_DEG_PER_NOTCH,
-        ),
-        msg.topping,
-      );
-      const mesh = sphere(
-        PROJECTILE_RADIUS,
-        TOPPING_COLORS[msg.topping] ?? 0xc23b4e,
-        0,
-        -5,
-        0,
-      );
-      shotMeshes.push({ body, mesh });
-    },
+    spawnShot: (msg) => shotsView.spawn(msg),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
@@ -353,24 +122,19 @@ async function main(): Promise<void> {
   let target: InteractableKind | null = null;
   const updateTarget = (): void => {
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const hit = raycaster.intersectObjects(raycastTargets, false)[0];
-    const next = hit ? (kindOf.get(hit.object) ?? null) : null;
+    const hit = raycaster.intersectObjects(gs.raycastTargets, false)[0];
+    const next = hit ? (gs.kindOf.get(hit.object) ?? null) : null;
     if (next !== target) {
       target = next;
-      setHighlight(target);
+      gs.setHighlight(target);
     }
   };
 
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
-  let lastTiltNotch = 0;
-  /** GRAB SEMANTICS: the control you engage with E stays gripped until E
-   * is released — the crosshair slipping off (or the control moving under
-   * it, e.g. the jack post extending) must never drop your hold and turn
-   * held W/S into walking (playtest bug, 2026-07-03). */
+  /** GRAB SEMANTICS (input.ts): the control you engage with E stays gripped
+   * until E is released. */
   let heldTarget: InteractableKind | null = null;
-  let totalCrankSpins = 0; // visual-only: winch drum angle
-  let lastCrankTicks = 0;
   let tickCounter = 0;
   let last = performance.now();
   let accumulator = 0;
@@ -443,15 +207,9 @@ async function main(): Promise<void> {
       // Local clock prediction between authoritative order messages.
       view.order = tickOrder(view.order);
 
-      // Local visual projectile sim: markers + splat readout only.
-      const ev = shots.step(physics);
-      for (const im of ev.impacts) {
-        const splat = im.speed >= SPLAT_SPEED;
-        addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
-        flash(
-          `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
-        );
-      }
+      // Local visual projectile sim: advances the SHARED world (after
+      // Baker.step registered its movement); markers + splat readout only.
+      shotsView.step(flash);
 
       if (view.order.status !== "running" && !bannerShown && banner) {
         bannerShown = true;
@@ -470,49 +228,14 @@ async function main(): Promise<void> {
     camera.position.set(p.x, p.y + EYE_HEIGHT_OFFSET, p.z);
     camera.rotation.set(input.pitch, input.yaw, 0);
 
-    machine.rotation.y = (view.machine.traverseDeg * Math.PI) / 180;
-    // The frame tilts around its planted REAR; partial screw progress
-    // previews the coming notch. The jack post extends to hold the nose —
-    // its height is the analog gauge.
-    const tiltDeg = Math.min(
-      TILT_MAX_NOTCH * TILT_DEG_PER_NOTCH,
-      Math.max(
-        0,
-        (view.machine.tiltNotch + view.screwTicks / SCREW_TICKS_PER_NOTCH) *
-          TILT_DEG_PER_NOTCH,
-      ),
-    );
-    const tiltRad = (tiltDeg * Math.PI) / 180;
-    tiltFrame.rotation.x = tiltRad;
-    const noseLift = 1.45 * Math.sin(tiltRad); // nose height at the screw
-    const postScale = (0.6 + noseLift) / 0.6;
-    screwPost.scale.y = postScale;
-    screwPost.position.y = 0.3 * postScale;
-    screwHandle.position.y = 0.6 * postScale + 0.02;
-    screwHandle.rotation.y = view.screwTicks * 0.3; // the jack handle works
     // The moment a notch engages, say so — the CLUNK is the readout.
-    if (view.machine.tiltNotch !== lastTiltNotch) {
-      const dir = view.machine.tiltNotch > lastTiltNotch ? "raised" : "lowered";
+    rig.update(view, (notch) => {
+      const dir = notch > rig.shownTiltNotch ? "raised" : "lowered";
       flash(
-        `CLUNK — arc ${dir} to +${view.machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(view.machine.tiltNotch)}`,
+        `CLUNK — arc ${dir} to +${notch * TILT_DEG_PER_NOTCH}° ${arcGlyph(notch)}`,
         2500,
       );
-      lastTiltNotch = view.machine.tiltNotch;
-    }
-    const tensionFrac =
-      (view.machine.tensionClicks + view.crankTicks / CRANK_TICKS_PER_CLICK) /
-      TENSION_MAX_CLICKS;
-    armPivot.rotation.x = 0.5 + tensionFrac * 0.7; // arm winches down and back
-    if (view.crankTicks !== lastCrankTicks) {
-      totalCrankSpins += 1;
-      lastCrankTicks = view.crankTicks;
-    }
-    drumMesh.rotation.x = totalCrankSpins * 0.05;
-    toppingMesh.visible = view.machine.loaded !== null;
-    if (view.machine.loaded !== null)
-      (toppingMesh.material as THREE.MeshStandardMaterial).color.setHex(
-        TOPPING_COLORS[view.machine.loaded] ?? 0xc23b4e,
-      );
+    });
     heldMesh.visible = view.carrying !== null;
     if (view.carrying !== null)
       (heldMesh.material as THREE.MeshStandardMaterial).color.setHex(
@@ -520,11 +243,7 @@ async function main(): Promise<void> {
       );
 
     ghosts.update();
-
-    for (const s of shotMeshes) {
-      const t = s.body.translation();
-      s.mesh.position.set(t.x, t.y, t.z);
-    }
+    shotsView.sync();
 
     if (hud) {
       hud.textContent = hudLines({
@@ -554,7 +273,7 @@ async function main(): Promise<void> {
       scene,
       camera,
       baker,
-      shots,
+      shots: shotsView,
       send: (m: Parameters<Transport["send"]>[0]) => transport.send(m),
       getMachine: () => ({ ...view.machine, crankTicks: view.crankTicks }),
       getTarget: () => target,
