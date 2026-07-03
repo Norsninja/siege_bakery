@@ -51,7 +51,11 @@ import {
   type CatapultState,
 } from "../game/catapult";
 import { createOrder, tickOrder, type OrderState } from "../game/order";
-import { describeRequirement, type RequirementCheck } from "../game/judgment";
+import {
+  describeRequirement,
+  type Judgment,
+  type RequirementCheck,
+} from "../game/judgment";
 import type { ServerMsg, HeldOp, PlayerPose } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
 
@@ -89,6 +93,7 @@ async function main(): Promise<void> {
   let crankTicks = 0;
   let order: OrderState = createOrder([], 90 * 60); // rows arrive with `welcome`
   let checks: RequirementCheck[] = [];
+  let verdict: Judgment | null = null; // rides the order message that ENDS it
   let myId: number | null = null;
   let carrying: string | null = null; // client-local inventory (plans/02)
   let netStatus: "loopback" | "connecting" | "open" | "closed" = "loopback";
@@ -372,6 +377,8 @@ async function main(): Promise<void> {
       case "order":
         order = msg.order;
         checks = msg.checks;
+        if (msg.judgment) verdict = msg.judgment;
+        else if (msg.order.status === "running") verdict = null; // fresh deal
         break;
     }
   };
@@ -560,10 +567,23 @@ async function main(): Promise<void> {
         const list = checks
           .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
           .join("\n");
-        banner.textContent =
-          order.status === "won"
-            ? `ORDER COMPLETE!\n${list}\nthe patron is delighted\n\na new order is coming…`
-            : `TIME!\n${list}\nthe patron waits for no one\n\na new order is coming…`;
+        const scoreLine = verdict
+          ? `assembly ${verdict.score}/100 — mess ${Math.round(verdict.mess * 100)}% · ${
+              verdict.waste >= 1 ? "under par" : "over par"
+            }`
+          : "";
+        let text: string;
+        if (order.status === "won" && verdict) {
+          // Both gates cleared: tiered delight.
+          text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}\n${list}\n${scoreLine}`;
+        } else if (verdict?.met) {
+          // Gate 2 refusal — the insulting kind: every box ticked, badly.
+          text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
+        } else {
+          // Gate 1 failure: the clock died first.
+          text = `TIME!\n${list}\nthe patron goes hungry`;
+        }
+        banner.textContent = `${text}\n\na new order is coming…`;
         banner.style.display = "flex";
       } else if (order.status === "running" && bannerShown && banner) {
         // The room dealt a fresh order — clear the slate.
@@ -662,6 +682,7 @@ async function main(): Promise<void> {
       getTarget: () => target,
       getOrder: () => ({ ...order }),
       getChecks: () => checks.map((c) => ({ ...c })),
+      getJudgment: () => (verdict ? { ...verdict } : null),
       getCarrying: () => carrying,
       setCarrying: (t: string | null) => {
         carrying = t;

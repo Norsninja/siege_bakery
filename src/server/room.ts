@@ -27,6 +27,7 @@ import {
 } from "../game/catapult";
 import {
   checkRequirements,
+  judge,
   type Requirement,
   type RequirementCheck,
   type SettledTopping,
@@ -84,6 +85,8 @@ export class Room {
    * Reset with the order: physical toppings stay in the world (the bakery
    * gets messier), but a fresh order counts fresh deliveries only. */
   private settled: SettledTopping[] = [];
+  /** Shots this order — the waste axis. Resets with each fresh deal. */
+  private shotsFired = 0;
   private readonly members = new Map<number, Member>();
   private nextId = 1;
   private tickCount = 0;
@@ -168,6 +171,7 @@ export class Room {
     this.machine = r.state;
     this.crankTicks = r.crankTicks;
     if (r.shot) {
+      this.shotsFired++;
       this.shots.spawn(
         this.world,
         launchOrigin(MACHINE_BASE, r.shot.traverseDeg),
@@ -188,7 +192,7 @@ export class Room {
     for (const s of ev.settled) {
       const onCake = isOnCake(s.pos);
       this.settled.push({ topping: s.topping, pos: s.pos, onCake });
-      const r = evaluateOrder(this.order, this.settled);
+      const r = evaluateOrder(this.order, this.settled, this.shotsFired);
       this.order = r.state;
       this.broadcast({
         t: "scored",
@@ -197,12 +201,27 @@ export class Room {
         order: this.order,
         checks: r.checks,
       });
+      // Every row met → the Judgment rendered on the spot. Announce it.
+      if (r.judgment)
+        this.broadcast({
+          t: "order",
+          order: this.order,
+          checks: r.checks,
+          judgment: r.judgment,
+        });
     }
 
     const statusBefore = this.order.status;
     this.order = tickOrder(this.order);
-    if (this.order.status !== statusBefore)
-      this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
+    if (this.order.status !== statusBefore) {
+      // The clock died first: gate 1 fails — the patron goes hungry.
+      this.broadcast({
+        t: "order",
+        order: this.order,
+        checks: this.currentChecks(),
+        judgment: judge(this.order, this.settled, this.shotsFired),
+      });
+    }
 
     // A finished order lingers on the banner, then the patron orders again.
     if (this.order.status !== "running") {
@@ -210,6 +229,7 @@ export class Room {
       if (this.endedTicks >= ORDER_RESET_TICKS) {
         this.endedTicks = 0;
         this.settled = [];
+        this.shotsFired = 0;
         this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60);
         this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
       }
@@ -222,7 +242,9 @@ export class Room {
       }
     }
     if (this.tickCount % MACHINE_BROADCAST_EVERY === 0) this.broadcastMachine();
-    if (this.tickCount % ORDER_CLOCK_EVERY === 0)
+    // 1Hz clock correction — only while the clock is actually moving, so the
+    // message that ENDS an order (carrying the verdict) stays the last word.
+    if (this.order.status === "running" && this.tickCount % ORDER_CLOCK_EVERY === 0)
       this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
   }
 

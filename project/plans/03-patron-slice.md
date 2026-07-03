@@ -1,6 +1,6 @@
 # Slice 2 — The Patron (v1)
 
-*Status: Step 1 BUILT + browser-verified 2026-07-03 (see Step 1 record
+*Status: Steps 1–2 BUILT + browser-verified 2026-07-03 (see step records
 below). Planned 2026-07-03, decided at the fork recorded in
 research/01-port-gap-analysis.md (visionary picked Patron + gate-1 Judgment
 over frosting / second catapult / art). Slice order going forward: Patron →
@@ -73,6 +73,25 @@ the Patron is a BANNER VOICE this slice, zero geometry.
   renormalized; coverage/neatness/integrity enter with frosting next slice.
   End banner shows the checklist + score breakdown, names the failed gate.
   Shot count needs `shotsFired` in Room (it already sees every shot).
+
+  *Step 2 RECORD (built 2026-07-03): judge() in game/judgment.ts —
+  JudgedOrder structural slice keeps order.ts→judgment.ts imports acyclic.
+  Axes live now: mess (settled off-cake / total — floor limes sting like
+  floor cherries) 0.6 + waste (par/fired past par) 0.4, the 2D 3:2 ratio;
+  coverage/neatness/integrity join with frosting and the weights go home.
+  END SEMANTICS: the Judgment renders the MOMENT every row is met —
+  accepted → won (stars by margin over passScore, 2D thresholds +15/+30),
+  refused → lost the insulting kind; clock-out → hungry (judgment rides
+  the ending order message). Room counts shotsFired (resets per deal) and
+  the 1Hz clock correction only runs while the order does, so the verdict
+  message stays the last word. Banner: DELIGHTED ★★★ / REFUSED ("you did
+  what I asked. it is TERRIBLE.") / TIME-hungry, always with the ✓/✗
+  checklist + score line. 66 tests green, tsc clean. Browser-verified: a
+  3-shot clean bake (cherries at ±5° traverse, lime dead center) rendered
+  THE PATRON IS DELIGHTED ★★★, assembly 100/100; refusal and hungry paths
+  unit-pinned (met-but-messy → refused; clock-out judgment met:false).
+  Preview note: reload put the tab in visibilityState hidden again — the
+  handoff's restart-the-preview-server fix applied.*
 - **Step 3 — The Giant speaks.** `game/patron.ts`: Patron/PatronContext/
   PatronAct translated; the Giant's rule list minus sneeze (no wind) and
   bite-carve (mess draws a patience hit + a THUNDEROUS complaint instead).

@@ -132,6 +132,9 @@ describe("Room: the match, headless over protocol", () => {
     const order = a.last("order");
     expect(order?.order.status).toBe("lost");
     expect(order?.order.ticksLeft).toBe(0);
+    // The clock died first: the verdict rides along, and it's the sad kind.
+    expect(order?.judgment?.met).toBe(false);
+    expect(order?.judgment?.stars).toBe(0);
   });
 
   it("a finished order lingers ~10s, then the patron orders again", () => {

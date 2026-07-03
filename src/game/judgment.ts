@@ -52,6 +52,62 @@ export function checkRequirements(
   });
 }
 
+/** What judge() needs to know about an order — a structural slice of
+ * OrderState (order.ts imports this module; the reverse would be a cycle). */
+export interface JudgedOrder {
+  requirements: Requirement[];
+  /** Shots for full waste credit; beyond this the score decays. */
+  parShots: number;
+  /** Gate 2: minimum assembly score the Patron will accept. */
+  passScore: number;
+}
+
+export interface Judgment {
+  /** Gate 1: every row satisfied? FAIL → the patron goes hungry. */
+  met: boolean;
+  /** Gate 2: met AND score ≥ passScore? FAIL → refused, the insulting kind. */
+  accepted: boolean;
+  score: number; // 0..100
+  stars: 0 | 1 | 2 | 3;
+  checks: RequirementCheck[];
+  // The score axes, exposed for the HUD breakdown (all 0..1):
+  mess: number;
+  waste: number;
+}
+
+/**
+ * Render the verdict — the 2D judge(), on the axes that exist without
+ * frosting. 2D weights were 0.35 coverage + 0.15 neatness + 0.25 integrity
+ * + 0.15 (1-mess) + 0.10 waste; coverage/neatness/integrity need frosting
+ * and cake damage (next slice), so mess and waste carry the score at their
+ * 2D ratio (3:2 → 0.6/0.4) until the other axes land and the weights
+ * return home. MESS counts every settled topping off-cake — floor limes
+ * sting exactly like floor cherries.
+ */
+export function judge(
+  order: JudgedOrder,
+  settled: readonly SettledTopping[],
+  shotsFired: number,
+): Judgment {
+  const checks = checkRequirements(order.requirements, settled);
+  const met = checks.length > 0 && checks.every((c) => c.met);
+
+  const total = settled.length;
+  const offCake = settled.filter((s) => !s.onCake).length;
+  const mess = total > 0 ? offCake / total : 0;
+  const waste =
+    shotsFired <= order.parShots ? 1 : order.parShots / Math.max(1, shotsFired);
+
+  const score = Math.max(0, Math.round(100 * (0.6 * (1 - mess) + 0.4 * waste)));
+  const accepted = met && score >= order.passScore;
+  let stars: 0 | 1 | 2 | 3 = 0;
+  if (accepted) {
+    stars =
+      score >= order.passScore + 30 ? 3 : score >= order.passScore + 15 ? 2 : 1;
+  }
+  return { met, accepted, score, stars, checks, mess, waste };
+}
+
 const ZONE_LABELS: Record<ZoneId, string> = {
   cake: "ON the cake",
   peak: "DEAD CENTER",

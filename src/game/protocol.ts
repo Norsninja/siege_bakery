@@ -8,7 +8,7 @@
  * small, JSON-friendly.
  */
 import type { MachineIntent, CatapultState } from "./catapult";
-import type { RequirementCheck } from "./judgment";
+import type { Judgment, RequirementCheck } from "./judgment";
 import type { OrderState } from "./order";
 
 export interface Pose {
@@ -60,7 +60,14 @@ export type ServerMsg =
       order: OrderState;
       checks: RequirementCheck[];
     }
-  | { t: "order"; order: OrderState; checks: RequirementCheck[] };
+  /** `judgment` rides along exactly when this message ENDS the order —
+   * the verdict the banner renders (delighted/refused/hungry). */
+  | {
+      t: "order";
+      order: OrderState;
+      checks: RequirementCheck[];
+      judgment?: Judgment;
+    };
 
 /** One player's standing hold on the machine. */
 export interface HeldOp {

@@ -10,11 +10,16 @@
  * gets nothing. Wrong toppings land and lie there — mistakes execute, they
  * never block, they just don't count.
  *
- * Gate 1 semantics this step: every row met while the clock runs → won;
- * clock out first → lost. judge() — gate 2, stars, refusal — is Step 2.
+ * End semantics (Step 2, both gates live): the moment every row is met,
+ * THE JUDGMENT renders — gate 2 decides delighted (1–3 stars) vs REFUSED
+ * (lost, the insulting kind: you did what was asked, badly). The clock
+ * dying first is gate 1 failure — the patron goes hungry (lost, the sad
+ * kind). Late shots after the verdict change nothing.
  */
 import {
   checkRequirements,
+  judge,
+  type Judgment,
   type Requirement,
   type RequirementCheck,
   type SettledTopping,
@@ -54,21 +59,28 @@ export function tickOrder(state: OrderState): OrderState {
 }
 
 /**
- * Re-census the order against everything at rest. Gate 1: all rows met
- * while running → won (an empty order can't win — nothing was asked).
+ * Re-census the order against everything at rest. When every row is met
+ * while running, the Judgment renders on the spot: accepted → won,
+ * refused → lost (an empty order can't win — nothing was asked).
  * A finished order never un-finishes; late landings still show in checks.
  */
 export function evaluateOrder(
   state: OrderState,
   settled: readonly SettledTopping[],
-): { state: OrderState; checks: RequirementCheck[] } {
+  shotsFired: number,
+): { state: OrderState; checks: RequirementCheck[]; judgment?: Judgment } {
   const checks = checkRequirements(state.requirements, settled);
   if (
     state.status === "running" &&
     checks.length > 0 &&
     checks.every((c) => c.met)
   ) {
-    return { state: { ...state, status: "won" }, checks };
+    const judgment = judge(state, settled, shotsFired);
+    return {
+      state: { ...state, status: judgment.accepted ? "won" : "lost" },
+      checks,
+      judgment,
+    };
   }
   return { state, checks };
 }

@@ -29,7 +29,7 @@ describe("orders with rows", () => {
     const o = createOrder(rows(), 5400);
     expect(o.status).toBe("running");
     expect(o.ticksLeft).toBe(5400);
-    const { checks } = evaluateOrder(o, []);
+    const { checks } = evaluateOrder(o, [], 0);
     expect(checks.every((c) => !c.met && c.current === 0)).toBe(true);
   });
 
@@ -43,56 +43,84 @@ describe("orders with rows", () => {
     expect(tickOrder(o).ticksLeft).toBe(0);
   });
 
-  it("some rows met is still running; ALL rows met wins", () => {
+  it("some rows met is still running; ALL rows met renders the Judgment", () => {
     const o = createOrder(rows(), 5400);
-    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", 3)]);
+    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", 3)], 2);
     expect(partial.checks[0]?.met).toBe(true);
     expect(partial.state.status).toBe("running");
-    const full = evaluateOrder(o, [
+    expect(partial.judgment).toBeUndefined();
+    // A clean bake, under par: both gates clear — delighted, full marks.
+    const full = evaluateOrder(
+      o,
+      [onCake("cherry"), onCake("cherry", 3), onCake("lime", 0.5)],
+      3,
+    );
+    expect(full.state.status).toBe("won");
+    expect(full.judgment?.met).toBe(true);
+    expect(full.judgment?.accepted).toBe(true);
+    expect(full.judgment?.score).toBe(100);
+    expect(full.judgment?.stars).toBe(3);
+  });
+
+  it("gate 2 refusal: every box ticked, but the floor wears most of it", () => {
+    const o = createOrder(rows(), 5400); // passScore 50
+    const settled = [
       onCake("cherry"),
       onCake("cherry", 3),
       onCake("lime", 0.5),
-    ]);
-    expect(full.state.status).toBe("won");
+      ...Array.from({ length: 9 }, () => onFloor("cherry")),
+    ];
+    const r = evaluateOrder(o, settled, 24); // 12 toppings, 24 shots vs par 6
+    expect(r.judgment?.met).toBe(true); // you did what was asked...
+    expect(r.judgment?.accepted).toBe(false); // ...badly. REFUSED.
+    expect(r.state.status).toBe("lost");
+    expect(r.judgment?.stars).toBe(0);
   });
 
   it("floor cherries and wrong toppings move no row", () => {
     const o = createOrder(rows(), 5400);
-    const { state, checks } = evaluateOrder(o, [
-      onFloor("cherry"),
-      onCake("lime", 3.5), // on the cake but not DEAD CENTER
-    ]);
+    const { state, checks } = evaluateOrder(
+      o,
+      [
+        onFloor("cherry"),
+        onCake("lime", 3.5), // on the cake but not DEAD CENTER
+      ],
+      2,
+    );
     expect(checks.map((c) => c.current)).toEqual([0, 0]);
     expect(state.status).toBe("running");
   });
 
   it("an empty order cannot win — nothing was asked", () => {
-    const { state } = evaluateOrder(createOrder([], 5400), []);
+    const { state } = evaluateOrder(createOrder([], 5400), [], 0);
     expect(state.status).toBe("running");
   });
 
   it("a finished order never un-finishes", () => {
     const o = createOrder([{ kind: "count-on-cake", topping: "cherry", needed: 1 }], 5400);
-    const won = evaluateOrder(o, [onCake("cherry")]).state;
+    const won = evaluateOrder(o, [onCake("cherry")], 1).state;
     expect(won.status).toBe("won");
-    expect(evaluateOrder(won, []).state.status).toBe("won"); // even re-censused empty
+    expect(evaluateOrder(won, [], 1).state.status).toBe("won"); // even re-censused empty
     let lost = createOrder(rows(), 1);
     lost = tickOrder(lost);
-    expect(evaluateOrder(lost, [onCake("cherry"), onCake("cherry", 3), onCake("lime")]).state.status).toBe("lost");
+    expect(
+      evaluateOrder(lost, [onCake("cherry"), onCake("cherry", 3), onCake("lime")], 3)
+        .state.status,
+    ).toBe("lost");
   });
 
   it("the Patron may mutate rows mid-order: tightening un-meets, appending demands more", () => {
     const o = createOrder(rows(), 5400);
     const settled = [onCake("cherry"), onCake("cherry", 3)];
-    expect(evaluateOrder(o, settled).checks[0]?.met).toBe(true);
+    expect(evaluateOrder(o, settled, 2).checks[0]?.met).toBe(true);
     // MORE. CHERRIES. (tighten row 0 in place — the array is deliberately mutable)
     const r0 = o.requirements[0];
     if (r0?.kind === "count-on-cake") r0.needed = 3;
-    const after = evaluateOrder(o, settled);
+    const after = evaluateOrder(o, settled, 2);
     expect(after.checks[0]?.met).toBe(false);
     expect(after.checks[0]?.target).toBe(3);
     // ...IT NEEDS A CHERRY DEAD CENTER. NOW. (append a row)
     o.requirements.push({ kind: "count-in-zone", topping: "cherry", zone: "peak", needed: 1 });
-    expect(evaluateOrder(o, settled).checks).toHaveLength(3);
+    expect(evaluateOrder(o, settled, 2).checks).toHaveLength(3);
   });
 });

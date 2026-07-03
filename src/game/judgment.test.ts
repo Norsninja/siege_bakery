@@ -8,6 +8,7 @@ import { CAKE_POS, isInZone } from "../core/arena";
 import {
   checkRequirements,
   describeRequirement,
+  judge,
   type Requirement,
   type SettledTopping,
 } from "./judgment";
@@ -67,5 +68,44 @@ describe("checkRequirements", () => {
   it("rows speak the checklist's language", () => {
     expect(describeRequirement(CHERRIES_2)).toBe("2 × cherry ON the cake");
     expect(describeRequirement(LIME_PEAK)).toBe("1 × lime DEAD CENTER");
+  });
+});
+
+describe("judge — the two gates on today's axes (mess + waste)", () => {
+  const order = { requirements: [CHERRIES_2], parShots: 6, passScore: 50 };
+  const clean = [at("cherry", 0, CAKE_POS.z), at("cherry", 2, CAKE_POS.z)];
+
+  it("a clean bake under par: met, accepted, full marks, three stars", () => {
+    const j = judge(order, clean, 2);
+    expect(j).toMatchObject({ met: true, accepted: true, score: 100, stars: 3 });
+    expect(j.mess).toBe(0);
+    expect(j.waste).toBe(1);
+  });
+
+  it("gate 1 fails when a row is unmet — hungry, no stars, whatever the score", () => {
+    const j = judge(order, [at("cherry", 0, CAKE_POS.z)], 1);
+    expect(j.met).toBe(false);
+    expect(j.accepted).toBe(false);
+    expect(j.stars).toBe(0);
+  });
+
+  it("mess drags the score: every floor topping stings, whatever it is", () => {
+    const j = judge(order, [...clean, at("lime", 0, -20, false), at("lime", 1, -20, false)], 4);
+    expect(j.mess).toBe(0.5);
+    expect(j.score).toBe(70); // 0.6·(1−0.5) + 0.4·1 → met, 2 stars (≥65)
+    expect(j.stars).toBe(2);
+  });
+
+  it("waste decays past par; enough of it gets the cake REFUSED", () => {
+    const overPar = judge(order, clean, 12);
+    expect(overPar.waste).toBe(0.5); // 6 par / 12 fired
+    expect(overPar.score).toBe(80);
+    const hosed = judge(
+      order,
+      [...clean, ...Array.from({ length: 8 }, (_, i) => at("cherry", i, -20, false))],
+      30,
+    );
+    expect(hosed.met).toBe(true); // every box ticked...
+    expect(hosed.accepted).toBe(false); // ...REFUSED, the insulting kind
   });
 });
