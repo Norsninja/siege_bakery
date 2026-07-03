@@ -481,6 +481,12 @@ async function main(): Promise<void> {
     }
   };
 
+  /** The arc position as a filled ladder — "notch 1/3" read as a THREE-
+   * notch ladder in playtest; the glyph shows all four positions at once. */
+  const arcGlyph = (): string =>
+    "▮".repeat(machineState.tiltNotch + 1) +
+    "▯".repeat(TILT_MAX_NOTCH - machineState.tiltNotch);
+
   const promptFor = (kind: InteractableKind): string => {
     switch (kind) {
       case "wheel":
@@ -488,7 +494,7 @@ async function main(): Promise<void> {
       case "winch":
         return "hold E — crank the winch";
       case "screw":
-        return `hold E + W/S — elevation screw · notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH} (+${machineState.tiltNotch * TILT_DEG_PER_NOTCH}°)`;
+        return `hold E + W/S — elevation screw · +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()}`;
       case "lever":
         return "E — pull the release lever!";
       case "bucket":
@@ -684,7 +690,7 @@ async function main(): Promise<void> {
     if (machineState.tiltNotch !== lastTiltNotch) {
       const dir = machineState.tiltNotch > lastTiltNotch ? "raised" : "lowered";
       flash(
-        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° (notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH})`,
+        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()}`,
         2500,
       );
       lastTiltNotch = machineState.tiltNotch;
@@ -747,7 +753,7 @@ async function main(): Promise<void> {
         locked
           ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
           : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH} (+${machineState.tiltNotch * TILT_DEG_PER_NOTCH}°) · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
+        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()} · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
       ];
       if (target) lines.push(`▸ ${promptFor(target)}`);
       if (now < flashUntil) lines.push(flashMsg);

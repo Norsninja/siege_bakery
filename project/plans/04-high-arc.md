@@ -98,3 +98,13 @@ already called fun?"**
 Feel verdict from the visionary: does working the screw feel like
 operating (good) or like menuing (bad)? Then the Test Cake slice gives the
 high notches their reason to exist.
+
+**LADDER DECISION (visionary, 2026-07-03): KEEP the +15° four-position
+ladder as built (55/70/85/100).** His words: "I am imposing arbitrary
+angle prefs when a 3-tier cake might give us better data." Re-spacing
+options on record (six notches +7° to exactly 90; four notches +10°) —
+revisit AFTER the Test Cake tiers generate real shot data. The notch
+confusion root cause was the readout: "notch 1/3" read as a three-notch
+ladder; replaced everywhere with degrees + a position glyph
+("arc +15° ▮▮▯▯"). Feel verdict on the screw itself: GOOD ("it feels
+good") once grip semantics landed.
