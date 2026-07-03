@@ -110,8 +110,14 @@ export class Room {
   );
   /** Everything at rest THIS order — the census the checklist counts from.
    * Reset with the order: physical toppings stay in the world (the bakery
-   * gets messier), but a fresh order counts fresh deliveries only. */
-  private settled: SettledTopping[] = [];
+   * gets messier), but a fresh order counts fresh deliveries only.
+   * LIVE TRUTH (checkpoint audit 2026-07-03, the 2D "live cell scans" law):
+   * solid entries keep their body, and refreshLedger() re-reads position +
+   * onCake before every census — a scored cherry BOWLED off the cake by a
+   * later shot un-counts, and a wrong crown can be knocked away on purpose.
+   * Recovery through play; the patron counts what he SEES. Paint entries
+   * have no body: a splat can never be re-mobilized. */
+  private settled: Array<SettledTopping & { body?: RAPIER.RigidBody }> = [];
   /** The frosting field — paint events accumulate here (plans/07). Reset
    * with the order: the Giant licks the cake clean between deals (paint is
    * the scoreboard; a fresh FROST row must not start half-met). */
@@ -303,7 +309,7 @@ export class Room {
     // litters the world (its body landed); it just counts for nothing.
     for (const s of ev.settled) {
       if (s.tag !== this.deal) continue;
-      this.scoreDelivery(s.topping, s.pos, isOnCake(s.pos));
+      this.scoreDelivery(s.topping, s.pos, isOnCake(s.pos), s.body);
     }
 
     // The Patron looks at the cake every 12s of order time.
@@ -364,11 +370,30 @@ export class Room {
       this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
   }
 
+  /** Re-read every solid ledger entry from its body: position AND onCake
+   * follow the world as it lies now (live-truth, audit 2026-07-03). Paint
+   * entries (no body) keep their impact record — for them onCake means
+   * "painted something", not a position. */
+  private refreshLedger(): void {
+    for (const s of this.settled) {
+      if (!s.body || !s.body.isValid()) continue;
+      const p = s.body.translation();
+      s.pos = { x: p.x, y: p.y, z: p.z };
+      s.onCake = isOnCake(s.pos);
+    }
+  }
+
   /** One delivery lands (solid at rest, paint at impact): ledger it,
    * re-census, tell everyone — and announce the Judgment if that met the
    * last row. */
-  private scoreDelivery(topping: string, pos: Vec3, onCake: boolean): void {
-    this.settled.push({ topping, pos, onCake });
+  private scoreDelivery(
+    topping: string,
+    pos: Vec3,
+    onCake: boolean,
+    body?: RAPIER.RigidBody,
+  ): void {
+    this.refreshLedger(); // earlier deliveries may have been shoved since
+    this.settled.push({ topping, pos, onCake, ...(body ? { body } : {}) });
     const r = evaluateOrder(
       this.order,
       this.settled,
@@ -393,12 +418,14 @@ export class Room {
   }
 
   private currentChecks(): RequirementCheck[] {
+    this.refreshLedger();
     return checkRequirements(this.order.requirements, this.settled, this.frosting);
   }
 
   /** One Patron look: observe → act (may mutate rows) → patience lands on
    * the clock → everyone hears the voice, then the amended order. */
   private patronLooks(): void {
+    this.refreshLedger(); // he judges the cake as it LIES
     const total = this.settled.length;
     const mess =
       total > 0 ? this.settled.filter((s) => !s.onCake).length / total : 0;

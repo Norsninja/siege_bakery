@@ -163,6 +163,35 @@ describe("Room: the match, headless over protocol", () => {
     expect(sprinkleRow?.current).toBe(1); // same spot, freshly painted
   });
 
+  it("scoring truth follows the bodies: a bowled-off sprinkle un-counts (audit 2026-07-03)", () => {
+    // Live-truth ledger, the 2D "live cell scans" law re-bodied. Pinned by
+    // the bowl study (this session): a second 6-click shot lands on the
+    // first's exact rest spot and knocks it from the tier-1 ledge to the
+    // ground (~4.5m, off cake) — deterministically.
+    const room = new Room();
+    const a = connect(room, "alice");
+    const fire = (topping: string): void => {
+      room.onMessage(a.id, { t: "load", topping });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600);
+    };
+    fire("frosting"); // paint the 6-click landing zone
+    fire("sprinkles"); // rests ON the frosting → the row counts it
+    expect(
+      a.last("scored")?.checks.find((c) => c.req.kind === "on-frosting")
+        ?.current,
+    ).toBe(1);
+    fire("cherry"); // same arc: bowls the sprinkle off the ledge
+    run(room, 120); // two 1Hz check broadcasts later, everything at rest
+    expect(
+      a.last("order")?.checks.find((c) => c.req.kind === "on-frosting")
+        ?.current,
+    ).toBe(0); // the patron counts what he SEES
+  });
+
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
     const room = new Room();
     const a = connect(room, "alice");

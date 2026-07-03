@@ -45,6 +45,10 @@ export interface Settled {
   topping: string;
   /** The spawn's generation tag, echoed back (see spawn opts). */
   tag: number;
+  /** The body, still live in the world: litter can be re-mobilized by a
+   * later shot, and scoring truth follows the bodies as they lie NOW
+   * (live-truth ledger, checkpoint audit 2026-07-03). */
+  body: RAPIER.RigidBody;
 }
 
 export interface StepEvents {
@@ -240,6 +244,7 @@ export class ProjectileManager {
         pos: { x: p.x, y: p.y, z: p.z },
         topping: shot.topping,
         tag: shot.tag,
+        body: shot.body,
       });
       this.tracked.delete(handle);
     }
