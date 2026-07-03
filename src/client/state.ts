@@ -26,6 +26,19 @@ export interface MatchView {
   netStatus: NetStatus;
 }
 
+/**
+ * Local clock prediction between authoritative order messages (audit F5,
+ * plans/06): the display clock counts down, but the CLIENT NEVER DECLARES
+ * AN ENDING — it clamps at one tick and waits for the room's word. The
+ * local clock can run up to a second ahead of the 1Hz correction; letting
+ * it flip status rendered the banner before the verdict arrived, eating
+ * the score line. Mirrors the Room's own patience clamp.
+ */
+export function predictClock(order: OrderState): OrderState {
+  if (order.status !== "running") return order;
+  return { ...order, ticksLeft: Math.max(1, order.ticksLeft - 1) };
+}
+
 /** Placeholders until `welcome` arrives. */
 export function createMatchView(): MatchView {
   return {

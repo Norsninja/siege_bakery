@@ -23,7 +23,6 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { BAKER_SPAWN, buildArenaColliders } from "../core/arena";
-import { tickOrder } from "../game/order";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
 import { arcGlyph, bannerText, hudLines, type InteractableKind } from "./hud";
@@ -34,7 +33,7 @@ import {
   deriveMove,
   machineEngaged,
 } from "./input";
-import { createMatchView } from "./state";
+import { createMatchView, predictClock } from "./state";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
@@ -204,8 +203,8 @@ async function main(): Promise<void> {
       // Solo: our loop drives the room. Joined: the server drives it.
       if (tickRoom) tickRoom();
 
-      // Local clock prediction between authoritative order messages.
-      view.order = tickOrder(view.order);
+      // Local clock prediction — never declares an ending (F5, state.ts).
+      view.order = predictClock(view.order);
 
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
