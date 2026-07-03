@@ -25,7 +25,13 @@ import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { BAKER_SPAWN, buildArenaColliders } from "../core/arena";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
-import { arcGlyph, bannerText, hudLines, type InteractableKind } from "./hud";
+import {
+  arcGlyph,
+  bannerText,
+  hudLines,
+  SHELF_TOPPING,
+  type InteractableKind,
+} from "./hud";
 import {
   InputTracker,
   updateGrip,
@@ -38,6 +44,7 @@ import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
+import { FrostingView } from "./frosting-view";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 
 const REACH_M = 2.8; // how far the baker can reach an interactable
@@ -60,6 +67,10 @@ async function main(): Promise<void> {
   const gs = buildGameScene(canvas);
   const { renderer, scene, camera, rig, heldMesh } = gs;
   const shotsView = new ShotsView(physics, scene);
+  const frostingView = new FrostingView(scene);
+  // Paint lands in the local sim → the local field (deterministic twin of
+  // the Room's — sync-shots-not-surfaces).
+  shotsView.onPaintImpact = (pos, speed) => frostingView.paintImpact(pos, speed);
   const ghosts = new GhostManager(scene);
 
   const hud = document.getElementById("hud");
@@ -76,8 +87,8 @@ async function main(): Promise<void> {
   const fx: NetFx = {
     spawnShot: (msg) => shotsView.spawn(msg),
     spawnResting: (t) => shotsView.spawnResting(t),
-    restoreFrosting: () => {}, // frosting view arrives in F5 (plans/07)
-    resetFrosting: () => {},
+    restoreFrosting: (coats) => frostingView.restore(coats),
+    resetFrosting: () => frostingView.reset(),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
@@ -157,9 +168,9 @@ async function main(): Promise<void> {
       const grip = heldTarget ?? target;
 
       // Pantry pickup: hands must be empty, one topping at a time.
-      if (eEdge && view.carrying === null) {
-        if (target === "shelf-cherry") view.carrying = "cherry";
-        else if (target === "shelf-lime") view.carrying = "lime";
+      if (eEdge && view.carrying === null && target) {
+        const shelf = SHELF_TOPPING[target];
+        if (shelf) view.carrying = shelf;
       }
 
       // Hold state on the machine → send only on change. HOLD ops read the

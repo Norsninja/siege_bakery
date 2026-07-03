@@ -8,7 +8,14 @@ import { describe, it, expect } from "vitest";
 import { createCatapult } from "../game/catapult";
 import { createOrder } from "../game/order";
 import type { Judgment, RequirementCheck } from "../game/judgment";
-import { arcGlyph, bannerText, hudLines, promptFor, type HudView } from "./hud";
+import {
+  arcGlyph,
+  bannerText,
+  hudLines,
+  promptFor,
+  SHELF_TOPPING,
+  type HudView,
+} from "./hud";
 
 const machine = (over: Partial<ReturnType<typeof createCatapult>> = {}) => ({
   ...createCatapult(),
@@ -66,6 +73,20 @@ describe("promptFor", () => {
       "hands full — one at a time",
     );
     expect(promptFor("shelf-lime", machine(), null)).toBe("E — take a lime");
+    expect(promptFor("shelf-frosting", machine(), null)).toBe(
+      "E — scoop a glob of frosting",
+    );
+    expect(promptFor("shelf-sprinkles", machine(), "cherry")).toBe(
+      "hands full — one at a time",
+    );
+  });
+
+  it("every shelf hands out its own topping (the pickup map)", () => {
+    expect(SHELF_TOPPING["shelf-frosting"]).toBe("frosting");
+    expect(SHELF_TOPPING["shelf-sprinkles"]).toBe("sprinkles");
+    expect(SHELF_TOPPING["shelf-cherry"]).toBe("cherry");
+    expect(SHELF_TOPPING["shelf-lime"]).toBe("lime");
+    expect(SHELF_TOPPING.lever).toBeUndefined(); // machines are not snacks
   });
 });
 

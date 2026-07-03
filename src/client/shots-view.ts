@@ -11,10 +11,16 @@
  */
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { launchOrigin, launchVelocity, SPLAT_SPEED } from "../core/ballistics";
+import {
+  launchOrigin,
+  launchVelocity,
+  SPLAT_SPEED,
+  type Vec3,
+} from "../core/ballistics";
 import { ProjectileManager, PROJECTILE_RADIUS } from "../core/projectiles";
 import { MACHINE_BASE } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
+import { isPaint } from "../game/toppings";
 import type { RestingTopping } from "../game/protocol";
 import type { ShotMsg } from "./net-handlers";
 import { sphere, TOPPING_COLORS } from "./scene";
@@ -23,6 +29,9 @@ export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
     [];
+  /** A paint glob landed in the local sim — main wires this to the
+   * FrostingView (the deterministic twin of the Room's field). */
+  onPaintImpact: ((pos: Vec3, speed: number) => void) | null = null;
 
   constructor(
     private readonly world: RAPIER.World,
@@ -40,6 +49,9 @@ export class ShotsView {
         msg.tiltNotch * TILT_DEG_PER_NOTCH,
       ),
       msg.topping,
+      // Paint globs are consumed at impact (plans/07): the manager removes
+      // the body; sync() sweeps the orphaned mesh.
+      { consumeOnImpact: isPaint(msg.topping) },
     );
     const mesh = sphere(
       PROJECTILE_RADIUS,
@@ -77,15 +89,23 @@ export class ShotsView {
     for (const im of ev.impacts) {
       const splat = im.speed >= SPLAT_SPEED;
       this.addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
+      if (isPaint(im.topping)) this.onPaintImpact?.(im.pos, im.speed);
       flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );
     }
   }
 
-  /** Per frame: meshes follow their bodies. */
+  /** Per frame: meshes follow their bodies; consumed globs' meshes leave
+   * with them (the manager removed the body at impact). */
   sync(): void {
-    for (const s of this.meshes) {
+    for (let i = this.meshes.length - 1; i >= 0; i--) {
+      const s = this.meshes[i]!;
+      if (!s.body.isValid()) {
+        this.scene.remove(s.mesh);
+        this.meshes.splice(i, 1);
+        continue;
+      }
       const t = s.body.translation();
       s.mesh.position.set(t.x, t.y, t.z);
     }

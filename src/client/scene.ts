@@ -35,6 +35,8 @@ import type { MatchView } from "./state";
 export const TOPPING_COLORS: Record<string, number> = {
   cherry: 0xc23b4e,
   lime: 0x77c34f,
+  frosting: 0xfff0f5,
+  sprinkles: 0xb45fd6,
 };
 
 const box = (
@@ -258,12 +260,18 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
 
   const rig = new MachineRig(scene);
 
-  // Pantry crates — the ammo. E takes ONE; you carry it by hand.
+  // Pantry crates — the ammo. E takes ONE; you carry it by hand. Four
+  // crates since the frosting slice (plans/07): frosting first (the base
+  // layer), the lime decoy LAST — never ordered, always tempting.
   const crateY = PANTRY_POS.y + PANTRY_HALF.y + 0.25;
-  const cherryCrate = box(0.9, 0.5, 0.7, 0x8c3038, -1.1, crateY, PANTRY_POS.z, scene);
-  const cherrySample = sphere(0.2, TOPPING_COLORS.cherry ?? 0xc23b4e, -1.1, crateY + 0.4, PANTRY_POS.z, scene);
-  const limeCrate = box(0.9, 0.5, 0.7, 0x4f7a35, 1.1, crateY, PANTRY_POS.z, scene);
-  const limeSample = sphere(0.2, TOPPING_COLORS.lime ?? 0x77c34f, 1.1, crateY + 0.4, PANTRY_POS.z, scene);
+  const crate = (x: number, bodyColor: number, topping: string): THREE.Mesh[] => [
+    box(0.8, 0.5, 0.7, bodyColor, x, crateY, PANTRY_POS.z, scene),
+    sphere(0.2, TOPPING_COLORS[topping] ?? 0xffffff, x, crateY + 0.4, PANTRY_POS.z, scene),
+  ];
+  const frostingCrate = crate(-1.5, 0xc9a7b8, "frosting");
+  const cherryCrate = crate(-0.5, 0x8c3038, "cherry");
+  const sprinklesCrate = crate(0.5, 0x6b4a8a, "sprinkles");
+  const limeCrate = crate(1.5, 0x4f7a35, "lime");
 
   // What's in the baker's hands, rendered at the bottom of the view.
   scene.add(camera); // camera children only render if the camera is in-scene
@@ -276,8 +284,10 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     screw: [rig.screwPost, rig.screwHandle],
     lever: [rig.leverStick, rig.leverKnob],
     bucket: [rig.bucketMesh, rig.toppingMesh],
-    "shelf-cherry": [cherryCrate, cherrySample],
-    "shelf-lime": [limeCrate, limeSample],
+    "shelf-frosting": frostingCrate,
+    "shelf-cherry": cherryCrate,
+    "shelf-sprinkles": sprinklesCrate,
+    "shelf-lime": limeCrate,
   };
   const raycastTargets: THREE.Mesh[] = Object.values(interactables).flat();
   const kindOf = new Map<THREE.Object3D, InteractableKind>();
