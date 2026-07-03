@@ -506,6 +506,11 @@ async function main(): Promise<void> {
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
   let lastTiltNotch = 0;
+  /** GRAB SEMANTICS: the control you engage with E stays gripped until E
+   * is released — the crosshair slipping off (or the control moving under
+   * it, e.g. the jack post extending) must never drop your hold and turn
+   * held W/S into walking (playtest bug, 2026-07-03). */
+  let heldTarget: InteractableKind | null = null;
   let totalCrankSpins = 0; // visual-only: winch drum angle
   let lastCrankTicks = 0;
   let tickCounter = 0;
@@ -524,16 +529,22 @@ async function main(): Promise<void> {
       const eEdge = ePressed;
       ePressed = false;
 
+      // Grip: latch the crosshair target while E is held; release with E.
+      if (!eHeld) heldTarget = null;
+      else if (heldTarget === null && target !== null) heldTarget = target;
+      const grip = heldTarget ?? target;
+
       // Pantry pickup: hands must be empty, one topping at a time.
       if (eEdge && carrying === null) {
         if (target === "shelf-cherry") carrying = "cherry";
         else if (target === "shelf-lime") carrying = "lime";
       }
 
-      // Hold state on the machine → send only on change.
+      // Hold state on the machine → send only on change. HOLD ops read the
+      // GRIP (sticky), edge ops below keep reading the live crosshair.
       const op: HeldOp = {
         turn:
-          target === "wheel" && eHeld
+          grip === "wheel" && eHeld
             ? keys.has("KeyA") && !keys.has("KeyD")
               ? 1
               : keys.has("KeyD") && !keys.has("KeyA")
@@ -541,14 +552,14 @@ async function main(): Promise<void> {
                 : 0
             : 0,
         screw:
-          target === "screw" && eHeld
+          grip === "screw" && eHeld
             ? keys.has("KeyW") && !keys.has("KeyS")
               ? 1
               : keys.has("KeyS") && !keys.has("KeyW")
                 ? -1
                 : 0
             : 0,
-        crank: target === "winch" && eHeld,
+        crank: grip === "winch" && eHeld,
       };
       if (
         op.turn !== lastOp.turn ||
@@ -577,7 +588,7 @@ async function main(): Promise<void> {
       // Hands on the machine = feet planted. Otherwise, normal movement.
       const engaged =
         eHeld &&
-        (target === "wheel" || target === "winch" || target === "screw");
+        (grip === "wheel" || grip === "winch" || grip === "screw");
       const move: BakerInput = debugInput ?? {
         forward: engaged
           ? 0

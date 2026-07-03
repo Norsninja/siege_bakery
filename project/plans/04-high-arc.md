@@ -14,6 +14,23 @@ gained an optional 4th screwTicks param so every pre-existing crank-law
 test stood unchanged; notch-0 ballistics pins untouched (tilt defaults
 to 0 everywhere).*
 
+*GRIP BUG (visionary, 2026-07-03, after the readability fix): operating
+the screw walked the baker forward/away. Root cause: movement suppression
+required the crosshair RAY to keep hitting the control, and the
+readability fix made the jack post scale and the handle jump on each
+notch — the control moved out from under the crosshair, the ray missed,
+and held W/S became walking. FIX: GRAB SEMANTICS — the control you engage
+with E stays gripped until E is released; hold-ops and feet-planting read
+the grip, edge-ops still read the live crosshair. Verified with real
+dispatched key events: 1.2s of E+W = two notches, baker displacement
+0.0000m. Second report ("max elevation + max power used to land on the
+cake, now shoots straight up") investigated: git diff proves the
+readability fix touched ONLY client visuals — ballistics identical. The
+cake-landing steep shot is and was NOTCH 1 (70°) at 8 clicks; notch 3
+(100°) always fired up-and-backwards. The pre-fix unreadable tilt hid
+which notch was engaged. The REAL finding: the 4-notch ladder wastes its
+top half (see the ladder decision recorded below).*
+
 *FEEL CHECK (visionary, 2026-07-03): "it feels good" — but the notch had
 no visible readout and the tilt looked glitchy: the frame rotated around
 its CENTER (nose up, tail digging into the plinth — no planted reference
