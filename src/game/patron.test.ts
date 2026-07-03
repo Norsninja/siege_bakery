@@ -52,16 +52,27 @@ describe("The Giant", () => {
     expect(standing.utterance).not.toContain("FLOOR");
   });
 
-  it("tightens a stalled row ONCE, in place, from the third look", () => {
+  it("tightens a stalled row ONCE, in place, from the third look — but only while another row is met", () => {
     const g = createGiant();
-    const order = createOrder(rows(), 5400);
-    const early = g.act(ctx(order, [0, 0], { look: 1 }));
+    // A crown row already exists so the demand rule stays quiet and the
+    // nag's own law is what's under test.
+    const order = createOrder(
+      [...rows(), { kind: "crown", topping: "cherry" }],
+      5400,
+    );
+    const early = g.act(ctx(order, [0, 1, 0], { look: 1 }));
     expect(early.utterance).not.toContain("MORE");
-    const nag = g.act(ctx(order, [0, 0], { look: 2 }));
+    // Nothing met at all → no nag, however stalled (the O2 guard: with the
+    // honest order, a later row is RATIONALLY zero while the first goes
+    // down — an unguarded nag fired every game like a tax).
+    const untouched = g.act(ctx(order, [0, 0, 0], { look: 2 }));
+    expect(untouched.utterance).not.toContain("MORE");
+    // Lime row met, cherry row stalled → the nag, once.
+    const nag = g.act(ctx(order, [0, 1, 0], { look: 2 }));
     expect(nag.utterance).toBe("MORE. CHERRY.");
     const r0 = order.requirements[0];
     expect(r0?.kind === "count-on-cake" && r0.needed).toBe(3); // the row itself tightened
-    const again = g.act(ctx(order, [0, 0], { look: 3 }));
+    const again = g.act(ctx(order, [0, 1, 0], { look: 3 }));
     expect(again.utterance).not.toContain("MORE"); // he only tightens once
     expect(r0?.kind === "count-on-cake" && r0.needed).toBe(3);
   });

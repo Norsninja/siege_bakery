@@ -1,12 +1,38 @@
 # The Frosting Slice — round tiers, frosting + census, sprinkles, the honest order (slice 4)
 
-*Status: PLANNED 2026-07-03. From the locked roadmap (research/01 §F: Patron ✓ →
-Test Cake ✓ → **frosting + census** → second catapult/towns → art). Prereqs all
-met: Test Cake playtested GOOD (plans/05), decomp phase done — client frosting
-code has tested modules to live in, and main.ts is wiring only (plans/06).
-Sequencing LOCKED by the visionary (handoff 2026-07-03): ROUND tiers ride at the
-FRONT of this slice, so the coverage census is built ONCE against final
-geometry — not retrofitted after an art pass.*
+*Status: BUILT + browser-verified 2026-07-03, same day as planned. REMAINING:
+the visionary's playtest (the exit question below). From the locked roadmap
+(research/01 §F: Patron ✓ → Test Cake ✓ → **frosting + census** → second
+catapult/towns → art). Prereqs all met: Test Cake playtested GOOD (plans/05),
+decomp phase done — client frosting code has tested modules to live in, and
+main.ts is wiring only (plans/06). Sequencing LOCKED by the visionary (handoff
+2026-07-03): ROUND tiers ride at the FRONT of this slice, so the coverage
+census is built ONCE against final geometry — not retrofitted after an art
+pass.*
+
+*Build record: ten commits exactly as planned (P0, R1–R2, F1–F5, O1, O2),
+each gated by `npm run check`. Tests 115 → 142, tsc strict clean, vite build
+clean. The cylinder study (research/04) confirmed A-round (radii 4/3/2.25)
+holds the pinned ladder VERBATIM — 6→tier 2, 7→tier 3, notch 1 × 8 → tier 3 —
+and the curved ledges catch at ±8° traverse (±14° misses go wide of the
+footprint: aim geometry, not shedding; the summit demands a centered shot).
+218 sample points. O2's scripted playthrough was itself a playtest and
+re-tuned three knobs BEFORE the human ever suffered them: (1) splash radii up
+(base 2.1 + 0.15/speed, dollop 1.3) — the first tuning left a 5% coverage
+tail reachable only by re-aiming grind and the clock died; now the four-shot
+decorating line clears 30% in 3–4 shots (16.5% summit front, 15.1% summit
+back, ~5–7% per flank, overlap-taxed); (2) sprinkles 3 → 2 (the nag can make
+it 3); (3) the nag gained a some-row-met guard — unguarded, it fired every
+single game at the second look (sprinkles are RATIONALLY zero while frosting
+goes down), a constant tax wearing a character's hat. Verified end-to-end in
+the browser via `__game` over the real protocol: 3 frost shots → 31.2% ✓,
+sprinkles ×3 (nag fired correctly after frost met) ✓, crown demanded, notch-1
+max-crank cherry → WON 91/100 ★★★, banner reading "coverage 31% · neat 42% ·
+mess 0% · under par" — every gate-2 axis live. Fresh deal verified: blobs
+lick clean (fresh flag), sprinkles back to 2, and the next order's globs
+deflect off the last order's litter (prior deliveries shape later shots —
+determinism, working). Known quirk stands: preview tab hidden after reload
+freezes the rAF loopback sim — restart the preview, not a game bug.*
 
 ## The one question
 

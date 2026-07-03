@@ -68,11 +68,15 @@ export function createGiant(): Patron {
         };
       }
 
-      // 2. A row stalling after two looks? He demands MORE of it (tightens
-      //    the row in place, once). Only COUNT rows tighten — there is no
-      //    such thing as more crown, and the frost fraction is a promise,
-      //    not a count.
-      if (!nagged && ctx.look >= 2) {
+      // 2. A row stalling after two looks — while ANOTHER row is already
+      //    met? He demands MORE of the neglected thing (tightens the row in
+      //    place, once). The some-row-met guard is an O2 lesson (plans/07):
+      //    with the honest order, sprinkles are RATIONALLY zero while the
+      //    frosting goes down — an unguarded nag fired every single game at
+      //    the second look, a constant tax wearing a character's hat. Only
+      //    COUNT rows tighten — there is no such thing as more crown, and
+      //    the frost fraction is a promise, not a count.
+      if (!nagged && ctx.look >= 2 && ctx.checks.some((c) => c.met)) {
         const stalled = ctx.checks.find(
           (c) => isCountRow(c.req) && !c.met && c.current < c.target * 0.25,
         );

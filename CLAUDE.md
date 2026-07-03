@@ -72,4 +72,5 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current slice:
-`project/plans/03-patron-slice.md` (port map: research/01-port-gap-analysis.md).
+`project/plans/07-frosting-slice.md` — BUILT, awaiting the visionary's
+playtest (port map: research/01-port-gap-analysis.md).

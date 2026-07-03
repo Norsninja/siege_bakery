@@ -72,14 +72,16 @@ export const ORDER_PAR_SHOTS = 8;
  * one row per order — the "is it 4 cherries or 5" arithmetic is impossible
  * by construction. LIMES ARE NEVER ORDERED — the lime is the pantry DECOY
  * (visionary, 2026-07-03): grab the wrong crate under pressure and it
- * fires anyway, lands anyway, counts only as mess. frac 0.3 = 3–4 varied
- * splashes (research/04 §3: a good splash covers 8–12%, and identical
- * arcs re-coat the SAME spot — spreading demands the traverse wheel).
- * Fresh rows every deal — orders are mutable, never share row objects. */
+ * fires anyway, lands anyway, counts only as mess. frac 0.3 = the four-
+ * shot decorating line (summit front and back, each flank — identical
+ * arcs re-coat the SAME spot, so spreading demands the traverse wheel);
+ * sprinkles 2 (the nag can make it 3). Both pinned by the O2 scripted
+ * playthrough. Fresh rows every deal — orders are mutable, never share
+ * row objects. */
 export function standardRequirements(): Requirement[] {
   return [
     { kind: "frost-coverage", frac: 0.3 },
-    { kind: "on-frosting", topping: "sprinkles", needed: 3 },
+    { kind: "on-frosting", topping: "sprinkles", needed: 2 },
   ];
 }
 
