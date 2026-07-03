@@ -16,6 +16,12 @@ import {
   SPLAT_SPEED,
 } from "./ballistics";
 import { ProjectileManager, type Impact } from "./projectiles";
+import {
+  buildArenaColliders,
+  MACHINE_BASE,
+  CAKE_POS,
+  CAKE_HALF,
+} from "./arena";
 
 describe("launch math (pure)", () => {
   it("speed ladder: flop at zero, linear per click", () => {
@@ -39,22 +45,16 @@ describe("launch math (pure)", () => {
   });
 });
 
-// Greybox layout replicated: plinth-top base at (0,1,-12), cake box 8x3x8
-// centered z=-30 (front face z=-26, top y=3).
-const MACHINE_BASE = { x: 0, y: 1, z: -12 };
-const CAKE_FRONT_Z = -26;
-const CAKE_BACK_Z = -34;
-const CAKE_TOP_Y = 3;
+// The REAL arena (core/arena.ts) — no duplicated geometry. The shots fly
+// from the actual plinth over the actual wall onto the actual cake.
+const CAKE_FRONT_Z = CAKE_POS.z + CAKE_HALF.z;
+const CAKE_BACK_Z = CAKE_POS.z - CAKE_HALF.z;
+const CAKE_TOP_Y = CAKE_POS.y + CAKE_HALF.y;
 
 function makeRange(): { world: RAPIER.World; shots: ProjectileManager } {
   const world = new RAPIER.World(GRAVITY);
   world.timestep = FIXED_DT;
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(60, 0.1, 60).setTranslation(0, -0.1, 0),
-  );
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(4, 1.5, 4).setTranslation(0, 1.5, -30),
-  );
+  buildArenaColliders(world);
   return { world, shots: new ProjectileManager() };
 }
 

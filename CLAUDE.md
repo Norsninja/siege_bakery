@@ -44,7 +44,8 @@ Assets: Blender → glTF export → `GLTFLoader`. Blender is the level/prop edit
 - `src/game/` — match rules (orders, judgment, patron, catapult machine
   state). Imports `core/` only.
 - `src/client/` — three.js rendering, input, `main.ts`. May import anything.
-- `src/server/` (future) — Node room server. Imports `core/` + `game/` only.
+- `src/server/` — Room (THE match implementation, transport-agnostic) +
+  Node ws entry. Imports `core/` + `game/` only.
 
 **LAW:** `core/` and `game/` must run headless in Node — vitest is the
 tripwire. Only `client/` may touch `window`/DOM/three.js.
@@ -58,6 +59,11 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 - `npm run dev` — Vite dev server on **5174** (the 2D prototype owns 5173;
   `PORT` env overrides).
+- `npm run server` — Node room server on **5175** (tsx; `PORT` overrides).
+  Serves `dist/` statically too, so one tunneled port = the friend test.
+  Join from any client with `?join=ws://localhost:5175`; a page served BY
+  the room server auto-joins; the vite dev page defaults to loopback solo
+  (same Room class in-process — one match implementation, see plans/02).
 - `npm test` — vitest; `npx tsc --noEmit` — typecheck; `npm run build`.
 - DEV builds expose `window.__game` for headless browser verification, same
   culture as the 2D project.
