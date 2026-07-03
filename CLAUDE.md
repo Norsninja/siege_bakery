@@ -72,4 +72,4 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current slice:
-`project/plans/01-greybox-slice.md`.
+`project/plans/03-patron-slice.md` (port map: research/01-port-gap-analysis.md).
