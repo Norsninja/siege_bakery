@@ -35,12 +35,16 @@ export interface Impact {
   /** Speed at the tick before contact — the landing energy. */
   speed: number;
   topping: string;
+  /** The spawn's generation tag, echoed back (see spawn opts). */
+  tag: number;
 }
 
 export interface Settled {
   /** Final rest position (body center). */
   pos: Vec3;
   topping: string;
+  /** The spawn's generation tag, echoed back (see spawn opts). */
+  tag: number;
 }
 
 export interface StepEvents {
@@ -66,6 +70,10 @@ interface TrackedShot {
    * whole story — report it, then leave the world. No settle, no litter,
    * no obstacle. */
   consumeOnImpact: boolean;
+  /** Caller's generation tag, echoed on this shot's events (checkpoint
+   * audit 2026-07-03: the Room tags spawns with its deal counter so a shot
+   * fired during one order can never score on the next). Physics ignores it. */
+  tag: number;
 }
 
 export class ProjectileManager {
@@ -80,7 +88,7 @@ export class ProjectileManager {
     origin: Vec3,
     velocity: Vec3,
     topping: string,
-    opts?: { consumeOnImpact?: boolean },
+    opts?: { consumeOnImpact?: boolean; tag?: number },
   ): RAPIER.RigidBody {
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -109,6 +117,7 @@ export class ProjectileManager {
       impacted: false,
       stillTicks: 0,
       consumeOnImpact: opts?.consumeOnImpact ?? false,
+      tag: opts?.tag ?? 0,
     });
     this.bodies.push({ body, topping });
     return body;
@@ -179,6 +188,7 @@ export class ProjectileManager {
           pos: { x: p.x, y: p.y, z: p.z },
           speed: shot.lastSpeed,
           topping: shot.topping,
+          tag: shot.tag,
         });
         // Paint: the impact IS the landing — no absorption, no settle wait.
         if (shot.consumeOnImpact) {
@@ -229,6 +239,7 @@ export class ProjectileManager {
       settled.push({
         pos: { x: p.x, y: p.y, z: p.z },
         topping: shot.topping,
+        tag: shot.tag,
       });
       this.tracked.delete(handle);
     }

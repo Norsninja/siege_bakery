@@ -88,7 +88,10 @@ async function main(): Promise<void> {
     spawnShot: (msg) => shotsView.spawn(msg),
     spawnResting: (t) => shotsView.spawnResting(t),
     restoreFrosting: (coats) => frostingView.restore(coats),
-    resetFrosting: () => frostingView.reset(),
+    resetFrosting: () => {
+      frostingView.reset();
+      shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
+    },
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,

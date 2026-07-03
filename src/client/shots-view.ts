@@ -32,6 +32,11 @@ export class ShotsView {
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). */
   onPaintImpact: ((pos: Vec3, speed: number) => void) | null = null;
+  /** The local deal generation — the mirror of the Room's stale-shot rule
+   * (checkpoint audit 2026-07-03): a glob fired against the previous order
+   * still visibly lands, but must not paint the freshly licked local field
+   * the Room's authoritative field will never show. */
+  private deal = 0;
 
   constructor(
     private readonly world: RAPIER.World,
@@ -51,7 +56,7 @@ export class ShotsView {
       msg.topping,
       // Paint globs are consumed at impact (plans/07): the manager removes
       // the body; sync() sweeps the orphaned mesh.
-      { consumeOnImpact: isPaint(msg.topping) },
+      { consumeOnImpact: isPaint(msg.topping), tag: this.deal },
     );
     const mesh = sphere(
       PROJECTILE_RADIUS,
@@ -83,13 +88,20 @@ export class ShotsView {
     this.meshes.push({ body, mesh });
   }
 
+  /** A fresh deal was dealt: shots already in the air belong to the old
+   * order — their paint must not land on the licked-clean field. */
+  bumpDeal(): void {
+    this.deal++;
+  }
+
   /** One fixed tick: advance the shared world; markers + splat readout. */
   step(flash: (msg: string, ms?: number) => void): void {
     const ev = this.shots.step(this.world);
     for (const im of ev.impacts) {
       const splat = im.speed >= SPLAT_SPEED;
       this.addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
-      if (isPaint(im.topping)) this.onPaintImpact?.(im.pos, im.speed);
+      if (isPaint(im.topping) && im.tag === this.deal)
+        this.onPaintImpact?.(im.pos, im.speed);
       flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );

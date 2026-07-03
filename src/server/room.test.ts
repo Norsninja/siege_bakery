@@ -290,6 +290,38 @@ describe("Room: the match, headless over protocol", () => {
     expect(room.memberCount()).toBe(1);
   });
 
+  it("a glob fired during the linger cannot paint the NEXT order (audit 2026-07-03)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    // Wind full tension while the order still runs — tension persists.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    // Let the patience-burned clock kill the order.
+    let guard = 0;
+    while (
+      (a.last("order")?.order.status ?? "running") === "running" &&
+      guard++ < 130 * 60
+    )
+      room.tick();
+    expect(a.last("order")?.order.status).toBe("lost");
+    // Deep in the 600-tick linger, fire a frosting glob timed to be IN
+    // FLIGHT when the room deals fresh (6-click impact is ~170 ticks out).
+    run(room, 520);
+    room.onMessage(a.id, { t: "load", topping: "frosting" });
+    run(room, 1);
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 500); // re-deal (~79 ticks) then the stale glob lands
+    const fresh = a.all("order").find((m) => m.fresh);
+    expect(fresh).toBeDefined();
+    // The stale glob scored nothing: no delivery after the fresh deal...
+    const freshAt = a.inbox.indexOf(fresh!);
+    expect(a.inbox.slice(freshAt).filter((m) => m.t === "scored")).toEqual([]);
+    // ...and the authoritative field is still licked clean.
+    const peek = connect(room, "peek");
+    expect(peek.last("welcome")?.frosting.every((c) => c === 0)).toBe(true);
+  });
+
   // The wire is typed but the internet is not (checkpoint audit 2026-07-03):
   // the friend test exposes the room to every port-scanner on earth, so the
   // Room's field boundary is part of the match rules now.

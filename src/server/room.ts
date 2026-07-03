@@ -118,6 +118,12 @@ export class Room {
   private readonly frosting = new FrostingField();
   /** Shots this order — the waste axis. Resets with each fresh deal. */
   private shotsFired = 0;
+  /** The deal generation. Shots spawn tagged with it, and a delivery whose
+   * tag is stale scores NOTHING (checkpoint audit 2026-07-03): the machine
+   * stays operable through the linger — mistakes execute, they never
+   * block — but a glob fired against one order can't paint the next one's
+   * freshly licked cake, waste-free. Its body still lands and litters. */
+  private deal = 0;
   /** The personality at the table. FRESH each deal — his nagged-once
    * flags live in his closure. Whim rng persists across deals. */
   private patron: Patron = createGiant();
@@ -258,7 +264,7 @@ export class Room {
           r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
         ),
         r.shot.topping,
-        { consumeOnImpact: isPaint(r.shot.topping) },
+        { consumeOnImpact: isPaint(r.shot.topping), tag: this.deal },
       );
       this.broadcast({
         t: "shot",
@@ -277,12 +283,16 @@ export class Room {
     // floor frosting, mess like any other miss (plans/07).
     for (const im of ev.impacts) {
       if (!isPaint(im.topping)) continue;
+      if (im.tag !== this.deal) continue; // fired against a previous order
       const painted = this.frosting.paint(im.pos, im.speed);
       this.scoreDelivery(im.topping, im.pos, painted > 0);
     }
-    // Solids land at REST — scoring truth unchanged.
-    for (const s of ev.settled)
+    // Solids land at REST — scoring truth unchanged. A stale solid still
+    // litters the world (its body landed); it just counts for nothing.
+    for (const s of ev.settled) {
+      if (s.tag !== this.deal) continue;
       this.scoreDelivery(s.topping, s.pos, isOnCake(s.pos));
+    }
 
     // The Patron looks at the cake every 12s of order time.
     if (this.order.status === "running") {
@@ -307,6 +317,7 @@ export class Room {
       this.endedTicks++;
       if (this.endedTicks >= ORDER_RESET_TICKS) {
         this.endedTicks = 0;
+        this.deal++; // in-flight shots now carry a stale tag
         this.settled = [];
         this.shotsFired = 0;
         this.patron = createGiant();
