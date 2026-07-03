@@ -1,11 +1,13 @@
 /**
  * The baker — first-person character movement as deterministic sim state.
  *
- * Lives in core/ because the authoritative server must run the exact same
- * movement: a Baker consumes a plain serializable BakerInput each fixed tick
- * and moves a kinematic capsule through Rapier's KinematicCharacterController.
- * The client's job is only to SAMPLE input (keys, mouse yaw) and RENDER the
- * resulting position — never to compute movement itself.
+ * A Baker consumes a plain serializable BakerInput each fixed tick and
+ * moves a kinematic capsule through Rapier's KinematicCharacterController.
+ * Movement is CLIENT-AUTHORITATIVE: each client runs its own Baker and the
+ * room merely relays poses (plans/02 — co-op among friends, not an
+ * anti-cheat problem). It lives in core/ because it is still deterministic
+ * sim math with a headless test suite — and because a future server-side
+ * baker (F4 latency work, or competitive modes) would run this exact class.
  *
  * Tuning law (plans/01): travel time is the pressure currency of the whole
  * design. Crossing the arena must take ~4–6 seconds. ARENA_CROSSING_M with
