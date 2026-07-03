@@ -5,7 +5,8 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { PATRON_LOOK_EVERY, Room } from "./room";
+import { Room } from "./room";
+import { PATRON_LOOK_EVERY } from "../game/tuning";
 import { CRANK_TICKS_PER_CLICK, SCREW_TICKS_PER_NOTCH } from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 

@@ -37,6 +37,14 @@ import {
 } from "../game/judgment";
 import { createOrder, tickOrder, evaluateOrder, type OrderState } from "../game/order";
 import { createGiant, type Patron } from "../game/patron";
+import {
+  FROST_FRAC,
+  ORDER_PAR_SHOTS,
+  ORDER_RESET_TICKS,
+  ORDER_SECONDS,
+  PATRON_LOOK_EVERY,
+  SPRINKLES_NEEDED,
+} from "../game/tuning";
 import { mulberry32 } from "../core/rng";
 import {
   mergeIntents,
@@ -48,22 +56,11 @@ import {
   type PlayerPose,
 } from "../game/protocol";
 
+// Wire cadences — transport shape, not economy; the economy knobs live in
+// game/tuning.ts (THE dashboard — structural feedback session 2026-07-03).
 const POSE_BROADCAST_EVERY = 3; // ticks → 20Hz
 const MACHINE_BROADCAST_EVERY = 4; // ticks → 15Hz
 const ORDER_CLOCK_EVERY = 60; // ticks → 1Hz clock correction
-/** After a win/loss lingers this long, the room deals a fresh order.
- * (Clients can't reset a shared room by reloading; the room resets itself.
- * Landed toppings stay where they lie — the bakery gets messier. Good.) */
-const ORDER_RESET_TICKS = 600; // 10s
-/** The Patron looks at the cake every N ticks of ORDER time (12s). */
-export const PATRON_LOOK_EVERY = 12 * 60;
-
-/** 120s: the honest order asks ~7–8 good shots (3–4 varied frosting
- * splashes + sprinkles + the crown) where the toy order asked 4 in 90s.
- * First knob the playtest turns if the bakery feels rushed or slack. */
-export const ORDER_SECONDS = 120;
-/** Par: the good-shot count of a clean line (research/04 §3). */
-export const ORDER_PAR_SHOTS = 8;
 
 /** THE HONEST ORDER (plans/07 phase O) — the decorating truth as a ticket:
  * frost the cake, sprinkles on the frosting, and the Giant's mid-order
@@ -72,19 +69,16 @@ export const ORDER_PAR_SHOTS = 8;
  * one row per order — the "is it 4 cherries or 5" arithmetic is impossible
  * by construction. LIMES ARE NEVER ORDERED — the lime is the pantry DECOY
  * (visionary, 2026-07-03): grab the wrong crate under pressure and it
- * fires anyway, lands anyway, counts only as mess. frac 0.25, re-pinned
- * against the WALL census (research/04 §3, amendment): the walls tripled
- * the sampled skin, and the four-shot decorating line — bottom ledge
- * (notch 1 × 7, now the best splash in the game at ~10%), summit front
- * (notch 1 × 8), summit back (level 7), a flank (±8° level 6) — clears a
- * quarter with margin. Identical arcs re-coat the SAME spot, so spreading
- * demands the traverse wheel; short shots frost the wall base instead of
- * counting as pure mess. Sprinkles 2 (the nag can make it 3). Fresh rows
- * every deal — orders are mutable, never share row objects. */
+ * fires anyway, lands anyway, counts only as mess. The NUMBERS (frac,
+ * sprinkles, clock, par) live in game/tuning.ts — the dashboard — with
+ * the re-pin law and the economy math; the row SHAPES live here. The
+ * four-shot decorating line and the wall-census re-pin rationale are
+ * recorded in plans/07 (amendment) and research/04 §3. Fresh rows every
+ * deal — orders are mutable, never share row objects. */
 export function standardRequirements(): Requirement[] {
   return [
-    { kind: "frost-coverage", frac: 0.25 },
-    { kind: "on-frosting", topping: "sprinkles", needed: 2 },
+    { kind: "frost-coverage", frac: FROST_FRAC },
+    { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
   ];
 }
 
@@ -180,7 +174,7 @@ export class Room {
         ? {
             judgment: judge(
               this.order,
-              this.settled,
+              this.ledger(),
               this.frosting,
               this.shotsFired,
             ),
@@ -340,7 +334,7 @@ export class Room {
         t: "order",
         order: this.order,
         checks: this.currentChecks(),
-        judgment: judge(this.order, this.settled, this.frosting, this.shotsFired),
+        judgment: judge(this.order, this.ledger(), this.frosting, this.shotsFired),
       });
     }
 
@@ -384,17 +378,21 @@ export class Room {
       this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
   }
 
-  /** Re-read every solid ledger entry from its body: position AND onCake
-   * follow the world as it lies now (live-truth, audit 2026-07-03). Paint
+  /** THE LEDGER SEAM (structural feedback session 2026-07-03): every READ
+   * for scoring flows through here, so the live-truth refresh can never be
+   * forgotten at a new census site — position AND onCake follow the world
+   * as it lies NOW (audit AUD-6, the 2D "live cell scans" law). Paint
    * entries (no body) keep their impact record — for them onCake means
-   * "painted something", not a position. */
-  private refreshLedger(): void {
+   * "painted something", not a position. Mutations (push/reset) use
+   * this.settled directly; checks/judge/mess NEVER do. */
+  private ledger(): readonly SettledTopping[] {
     for (const s of this.settled) {
       if (!s.body || !s.body.isValid()) continue;
       const p = s.body.translation();
       s.pos = { x: p.x, y: p.y, z: p.z };
       s.onCake = isOnCake(s.pos);
     }
+    return this.settled;
   }
 
   /** One delivery lands (solid at rest, paint at impact): ledger it,
@@ -406,11 +404,10 @@ export class Room {
     onCake: boolean,
     body?: RAPIER.RigidBody,
   ): void {
-    this.refreshLedger(); // earlier deliveries may have been shoved since
     this.settled.push({ topping, pos, onCake, ...(body ? { body } : {}) });
     const r = evaluateOrder(
       this.order,
-      this.settled,
+      this.ledger(), // earlier deliveries may have been shoved since
       this.frosting,
       this.shotsFired,
     );
@@ -432,17 +429,16 @@ export class Room {
   }
 
   private currentChecks(): RequirementCheck[] {
-    this.refreshLedger();
-    return checkRequirements(this.order.requirements, this.settled, this.frosting);
+    return checkRequirements(this.order.requirements, this.ledger(), this.frosting);
   }
 
   /** One Patron look: observe → act (may mutate rows) → patience lands on
    * the clock → everyone hears the voice, then the amended order. */
   private patronLooks(): void {
-    this.refreshLedger(); // he judges the cake as it LIES
-    const total = this.settled.length;
+    const settled = this.ledger(); // he judges the cake as it LIES
+    const total = settled.length;
     const mess =
-      total > 0 ? this.settled.filter((s) => !s.onCake).length / total : 0;
+      total > 0 ? settled.filter((s) => !s.onCake).length / total : 0;
     const act = this.patron.act({
       order: this.order,
       checks: this.currentChecks(),

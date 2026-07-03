@@ -24,6 +24,11 @@ import {
   type RequirementCheck,
 } from "./judgment";
 import type { OrderState } from "./order";
+import {
+  PATIENCE_BURN_GRUMBLE_S,
+  PATIENCE_BURN_THUNDER_S,
+  PATIENCE_BURN_URGENT_S,
+} from "./tuning";
 
 /** Everything a Patron may observe (and, through `order`, mutate). */
 export interface PatronContext {
@@ -64,7 +69,7 @@ export function createGiant(): Patron {
       if (ctx.mess > 0.3 && ctx.mess > ctx.prevMess + 0.05) {
         return {
           utterance: "I SEE FOOD ON THE FLOOR. THE FLOOR IS NOT ME.",
-          patienceDeltaSeconds: -8,
+          patienceDeltaSeconds: -PATIENCE_BURN_THUNDER_S,
         };
       }
 
@@ -133,7 +138,7 @@ export function createGiant(): Patron {
         if (missing) {
           return {
             utterance: `TIME RUNS SHORT. DO NOT FORGET: ${describeRequirement(missing.req)}.`,
-            patienceDeltaSeconds: -2,
+            patienceDeltaSeconds: -PATIENCE_BURN_URGENT_S,
           };
         }
       }
@@ -150,7 +155,7 @@ export function createGiant(): Patron {
       const grumbles = ["HMPH.", "HURRY UP.", "MY TUMMY IS MAKING THE NOISES."];
       return {
         utterance: grumbles[ctx.look % grumbles.length]!,
-        patienceDeltaSeconds: -4,
+        patienceDeltaSeconds: -PATIENCE_BURN_GRUMBLE_S,
       };
     },
   };
