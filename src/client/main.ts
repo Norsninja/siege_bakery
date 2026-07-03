@@ -29,7 +29,6 @@ import {
   arcGlyph,
   bannerText,
   hudLines,
-  SHELF_TOPPING,
   type InteractableKind,
 } from "./hud";
 import {
@@ -40,6 +39,7 @@ import {
   machineEngaged,
 } from "./input";
 import { createMatchView, predictClock } from "./state";
+import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
@@ -170,12 +170,6 @@ async function main(): Promise<void> {
       heldTarget = updateGrip(heldTarget, eHeld, target);
       const grip = heldTarget ?? target;
 
-      // Pantry pickup: hands must be empty, one topping at a time.
-      if (eEdge && view.carrying === null && target) {
-        const shelf = SHELF_TOPPING[target];
-        if (shelf) view.carrying = shelf;
-      }
-
       // Hold state on the machine → send only on change. HOLD ops read the
       // GRIP (sticky), edge ops below keep reading the live crosshair.
       const op = deriveOp(grip, eHeld, input.keys);
@@ -187,21 +181,12 @@ async function main(): Promise<void> {
         transport.send({ t: "op", turn: op.turn, screw: op.screw, crank: op.crank });
         lastOp = op;
       }
-      // Edges.
-      if (eEdge && target === "lever") {
-        transport.send({ t: "lever" });
-        if (view.machine.loaded === null)
-          flash("dry release — the crank was for nothing", 2500);
-      }
-      if (
-        eEdge &&
-        target === "bucket" &&
-        view.carrying !== null &&
-        view.machine.loaded === null
-      ) {
-        transport.send({ t: "load", topping: view.carrying });
-        view.carrying = null;
-      }
+      // Edges: pickup / lever / load — the RULES live in interactions.ts
+      // (tested); this is the wiring that executes them.
+      const act = tickInteraction(eEdge, target, view.carrying, view.machine.loaded);
+      view.carrying = act.carrying;
+      for (const m of act.send) transport.send(m);
+      if (act.flash) flash(act.flash.msg, act.flash.ms);
 
       // Hands on the machine = feet planted. Otherwise, normal movement.
       const engaged = machineEngaged(grip, eHeld);
@@ -227,14 +212,17 @@ async function main(): Promise<void> {
       // Baker.step registered its movement); markers + splat readout only.
       shotsView.step(flash);
 
-      if (view.order.status !== "running" && !bannerShown && banner) {
-        bannerShown = true;
-        banner.textContent = bannerText(view.order, view.checks, view.verdict);
-        banner.style.display = "flex";
-      } else if (view.order.status === "running" && bannerShown && banner) {
-        // The room dealt a fresh order — clear the slate.
-        bannerShown = false;
-        banner.style.display = "none";
+      if (banner) {
+        const b = bannerLatch(view.order.status, bannerShown);
+        if (b === "show") {
+          bannerShown = true;
+          banner.textContent = bannerText(view.order, view.checks, view.verdict);
+          banner.style.display = "flex";
+        } else if (b === "hide") {
+          // The room dealt a fresh order — clear the slate.
+          bannerShown = false;
+          banner.style.display = "none";
+        }
       }
       accumulator -= FIXED_DT;
     }
