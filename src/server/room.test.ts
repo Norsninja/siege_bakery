@@ -44,6 +44,8 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.id).toBe(a.id);
     expect(w?.machine.tensionClicks).toBe(0);
     expect(w?.order.status).toBe("running");
+    expect(w?.checks.length).toBeGreaterThan(0); // the standing order has rows
+    expect(w?.checks.every((c) => !c.met)).toBe(true);
     const b = connect(room, "bob");
     expect(a.last("join")?.id).toBe(b.id);
     expect(b.last("welcome")?.id).toBe(b.id);
@@ -118,7 +120,9 @@ describe("Room: the match, headless over protocol", () => {
     run(room, 600); // flight + skid + rest detection
     const scored = b.last("scored");
     expect(scored?.onCake).toBe(true); // 6 clicks is the pinned scoring window
-    expect(scored?.order.delivered).toBe(1);
+    const cherryRow = scored?.checks.find((c) => c.req.topping === "cherry");
+    expect(cherryRow?.current).toBe(1);
+    expect(scored?.order.status).toBe("running"); // one cherry is not the order
   });
 
   it("the clock is authoritative: order runs out and everyone hears it", () => {
@@ -139,7 +143,8 @@ describe("Room: the match, headless over protocol", () => {
     run(room, 60);
     const fresh = a.last("order");
     expect(fresh?.order.status).toBe("running");
-    expect(fresh?.order.delivered).toBe(0);
+    // The ledger reset with the order: a fresh deal counts fresh deliveries.
+    expect(fresh?.checks.every((c) => c.current === 0)).toBe(true);
   });
 
   it("leavers stop receiving; the rest are told", () => {

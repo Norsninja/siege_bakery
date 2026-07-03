@@ -25,7 +25,13 @@ import {
   tickMachine,
   type CatapultState,
 } from "../game/catapult";
-import { createOrder, tickOrder, deliverTopping, type OrderState } from "../game/order";
+import {
+  checkRequirements,
+  type Requirement,
+  type RequirementCheck,
+  type SettledTopping,
+} from "../game/judgment";
+import { createOrder, tickOrder, evaluateOrder, type OrderState } from "../game/order";
 import {
   mergeIntents,
   IDLE_OP,
@@ -44,9 +50,17 @@ const ORDER_CLOCK_EVERY = 60; // ticks → 1Hz clock correction
  * Landed toppings stay where they lie — the bakery gets messier. Good.) */
 const ORDER_RESET_TICKS = 600; // 10s
 
-export const ORDER_TOPPING = "cherry";
-export const ORDER_NEEDED = 3;
 export const ORDER_SECONDS = 90;
+
+/** The standing toy order until the Patron deals real ones (Step 3):
+ * cherries anywhere on the top, one lime in the bullseye. Fresh rows every
+ * deal — orders are mutable and must never share requirement objects. */
+export function standardRequirements(): Requirement[] {
+  return [
+    { kind: "count-on-cake", topping: "cherry", needed: 2 },
+    { kind: "count-in-zone", topping: "lime", zone: "peak", needed: 1 },
+  ];
+}
 
 interface Member {
   send: (msg: ServerMsg) => void;
@@ -63,10 +77,13 @@ export class Room {
   private machine: CatapultState = createCatapult();
   private crankTicks = 0;
   private order: OrderState = createOrder(
-    ORDER_TOPPING,
-    ORDER_NEEDED,
+    standardRequirements(),
     ORDER_SECONDS * 60,
   );
+  /** Everything at rest THIS order — the census the checklist counts from.
+   * Reset with the order: physical toppings stay in the world (the bakery
+   * gets messier), but a fresh order counts fresh deliveries only. */
+  private settled: SettledTopping[] = [];
   private readonly members = new Map<number, Member>();
   private nextId = 1;
   private tickCount = 0;
@@ -96,6 +113,7 @@ export class Room {
       machine: this.machine,
       crankTicks: this.crankTicks,
       order: this.order,
+      checks: this.currentChecks(),
       poses: this.poseList(id),
     });
     this.broadcast({ t: "join", id, name: member.name }, id);
@@ -169,22 +187,31 @@ export class Room {
     const ev = this.shots.step(this.world);
     for (const s of ev.settled) {
       const onCake = isOnCake(s.pos);
-      this.order = deliverTopping(this.order, s.topping, onCake);
-      this.broadcast({ t: "scored", topping: s.topping, onCake, order: this.order });
+      this.settled.push({ topping: s.topping, pos: s.pos, onCake });
+      const r = evaluateOrder(this.order, this.settled);
+      this.order = r.state;
+      this.broadcast({
+        t: "scored",
+        topping: s.topping,
+        onCake,
+        order: this.order,
+        checks: r.checks,
+      });
     }
 
     const statusBefore = this.order.status;
     this.order = tickOrder(this.order);
     if (this.order.status !== statusBefore)
-      this.broadcast({ t: "order", order: this.order });
+      this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
 
     // A finished order lingers on the banner, then the patron orders again.
     if (this.order.status !== "running") {
       this.endedTicks++;
       if (this.endedTicks >= ORDER_RESET_TICKS) {
         this.endedTicks = 0;
-        this.order = createOrder(ORDER_TOPPING, ORDER_NEEDED, ORDER_SECONDS * 60);
-        this.broadcast({ t: "order", order: this.order });
+        this.settled = [];
+        this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60);
+        this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
       }
     }
 
@@ -196,7 +223,11 @@ export class Room {
     }
     if (this.tickCount % MACHINE_BROADCAST_EVERY === 0) this.broadcastMachine();
     if (this.tickCount % ORDER_CLOCK_EVERY === 0)
-      this.broadcast({ t: "order", order: this.order });
+      this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
+  }
+
+  private currentChecks(): RequirementCheck[] {
+    return checkRequirements(this.order.requirements, this.settled);
   }
 
   memberCount(): number {

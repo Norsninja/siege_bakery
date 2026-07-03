@@ -1,6 +1,7 @@
 # Slice 2 — The Patron (v1)
 
-*Status: planned 2026-07-03, decided at the fork recorded in
+*Status: Step 1 BUILT + browser-verified 2026-07-03 (see Step 1 record
+below). Planned 2026-07-03, decided at the fork recorded in
 research/01-port-gap-analysis.md (visionary picked Patron + gate-1 Judgment
 over frosting / second catapult / art). Slice order going forward: Patron →
 frosting+census → second catapult+towns → art.*
@@ -46,6 +47,25 @@ the Patron is a BANNER VOICE this slice, zero geometry.
   already computes all three at settle time) as the state requirements are
   measured against. `checkRequirements()` pure + tested. Protocol `order`
   message carries the rows; HUD renders the ✓/✗ checklist live.
+
+  *Step 1 RECORD (built 2026-07-03): game/judgment.ts (Requirement,
+  SettledTopping, RequirementCheck, checkRequirements, describeRequirement);
+  order.ts reworked (rows + parShots + passScore; evaluateOrder; empty
+  orders can't win; finished orders never un-finish; mutability law tested
+  — tighten un-meets, append demands more). arena.ts: ZoneId + PEAK_HALF
+  1.5 + isInZone. Room: settled ledger (reset with each fresh deal — the
+  physical mess stays, the census doesn't), checks ride welcome/scored/
+  order messages. Standing toy order: 2 × cherry ON the cake + 1 × lime
+  DEAD CENTER, 90s. Client: checklist HUD, culprit-naming end banner,
+  progress-aware flashes (compares capped check totals, so a lime on-cake-
+  but-off-bullseye reads "not what was asked"), painted peak square + a
+  marker PENNANT on a pole (browser check found the painted square is
+  invisible at grazing angle from the ground — the pennant is the readable
+  bullseye, and foreshadows the wind pennant). 61 tests green, tsc clean.
+  Browser-verified end-to-end: 6-click lime settled DEAD CENTER and
+  flipped its row ✓; an 8-click overshoot skidded off and counted nothing;
+  the loss banner named the unmet cherry row; the 10s reset zeroed the
+  checklist.*
 - **Step 2 — The two gates.** `judge()` ported: gate 1 = every row met
   (else HUNGRY — sad rumbling), gate 2 = assembly score ≥ passScore (else
   REFUSED — the insulting kind; above: 1–3 stars by margin). Axes available

@@ -41,6 +41,7 @@ import {
   PLINTH_POS,
   PLINTH_HALF,
   BAKER_SPAWN,
+  PEAK_HALF,
   buildArenaColliders,
 } from "../core/arena";
 import {
@@ -50,6 +51,7 @@ import {
   type CatapultState,
 } from "../game/catapult";
 import { createOrder, tickOrder, type OrderState } from "../game/order";
+import { describeRequirement, type RequirementCheck } from "../game/judgment";
 import type { ServerMsg, HeldOp, PlayerPose } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
 
@@ -85,7 +87,8 @@ async function main(): Promise<void> {
   // --- Server-echoed match state (placeholders until `welcome`) ---
   let machineState: CatapultState = createCatapult();
   let crankTicks = 0;
-  let order: OrderState = createOrder("cherry", 3, 90 * 60);
+  let order: OrderState = createOrder([], 90 * 60); // rows arrive with `welcome`
+  let checks: RequirementCheck[] = [];
   let myId: number | null = null;
   let carrying: string | null = null; // client-local inventory (plans/02)
   let netStatus: "loopback" | "connecting" | "open" | "closed" = "loopback";
@@ -158,6 +161,20 @@ async function main(): Promise<void> {
     PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z);
   box(CAKE_HALF.x * 2, CAKE_HALF.y * 2, CAKE_HALF.z * 2, 0xd8a45c,
     CAKE_POS.x, CAKE_POS.y, CAKE_POS.z);
+  // The bullseye: the peak zone painted on the cake top ("dead center"
+  // orders must be READABLE from the catapult). Square, matching isInZone.
+  const peakZone = new THREE.Mesh(
+    new THREE.PlaneGeometry(PEAK_HALF * 2, PEAK_HALF * 2),
+    new THREE.MeshBasicMaterial({ color: 0xf2e3c2, transparent: true, opacity: 0.4 }),
+  );
+  peakZone.rotation.x = -Math.PI / 2;
+  peakZone.position.set(CAKE_POS.x, CAKE_POS.y + CAKE_HALF.y + 0.01, CAKE_POS.z);
+  scene.add(peakZone);
+  // From the ground the painted square is invisible (grazing angle), so the
+  // bullseye also flies a marker pennant readable from the catapult.
+  const cakeTopY = CAKE_POS.y + CAKE_HALF.y;
+  box(0.06, 1.6, 0.06, 0xefe3d0, CAKE_POS.x, cakeTopY + 0.8, CAKE_POS.z);
+  box(0.7, 0.3, 0.02, 0xd8452e, CAKE_POS.x + 0.38, cakeTopY + 1.35, CAKE_POS.z);
   for (let z = -CROSS_HALF; z <= CROSS_HALF; z += 6)
     box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z); // crossing stripes
 
@@ -299,6 +316,7 @@ async function main(): Promise<void> {
         machineState = msg.machine;
         crankTicks = msg.crankTicks;
         order = msg.order;
+        checks = msg.checks;
         for (const p of msg.poses) upsertGhost(p);
         break;
       case "join":
@@ -337,17 +355,23 @@ async function main(): Promise<void> {
         );
         break;
       }
-      case "scored":
+      case "scored": {
+        // Did the checklist actually advance? (A lime ON the cake but
+        // outside the bullseye is on-cake yet counts for nothing.)
+        const sum = (cs: RequirementCheck[]): number =>
+          cs.reduce((n, c) => n + Math.min(c.current, c.target), 0);
+        const progressed = sum(msg.checks) > sum(checks);
         order = msg.order;
-        if (msg.onCake && msg.topping === order.topping)
-          flash(`the patron gets a ${msg.topping}! ${order.delivered}/${order.needed}`);
-        else if (msg.topping === order.topping)
-          flash(`no good — the ${msg.topping} didn't stay on the cake`);
+        checks = msg.checks;
+        if (progressed) flash(`✓ the patron counts the ${msg.topping}!`);
         else if (msg.onCake)
-          flash(`a ${msg.topping} settles on the cake. it was not ordered.`);
+          flash(`the ${msg.topping} rests on the cake — but that's not what was asked`);
+        else flash(`no good — the ${msg.topping} didn't stay on the cake`);
         break;
+      }
       case "order":
         order = msg.order;
+        checks = msg.checks;
         break;
     }
   };
@@ -531,10 +555,15 @@ async function main(): Promise<void> {
 
       if (order.status !== "running" && !bannerShown && banner) {
         bannerShown = true;
+        // The checklist names the culprit — a lost order must say WHICH row
+        // failed, never contradict the player's memory (2D playtest lesson).
+        const list = checks
+          .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
+          .join("\n");
         banner.textContent =
           order.status === "won"
-            ? "ORDER COMPLETE!\nthe patron is delighted\n\na new order is coming…"
-            : "TIME!\nthe patron waits for no one\n\na new order is coming…";
+            ? `ORDER COMPLETE!\n${list}\nthe patron is delighted\n\na new order is coming…`
+            : `TIME!\n${list}\nthe patron waits for no one\n\na new order is coming…`;
         banner.style.display = "flex";
       } else if (order.status === "running" && bannerShown && banner) {
         // The room dealt a fresh order — clear the slate.
@@ -600,7 +629,11 @@ async function main(): Promise<void> {
               ? "joining the bakery…"
               : "CONNECTION LOST — refresh to rejoin";
       const lines = [
-        `ORDER — land ${order.needed} cherries ON the cake · ${order.delivered}/${order.needed} · ${clock}   [${who}]`,
+        `THE ORDER · ${clock}   [${who}]`,
+        ...checks.map(
+          (c) =>
+            `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${c.current}/${c.target}`,
+        ),
         locked
           ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
           : "Click to grab the mouse · WASD move · Shift sprint · E interact",
@@ -628,6 +661,7 @@ async function main(): Promise<void> {
       getMachine: () => ({ ...machineState, crankTicks }),
       getTarget: () => target,
       getOrder: () => ({ ...order }),
+      getChecks: () => checks.map((c) => ({ ...c })),
       getCarrying: () => carrying,
       setCarrying: (t: string | null) => {
         carrying = t;

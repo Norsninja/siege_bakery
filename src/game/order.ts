@@ -1,32 +1,48 @@
 /**
- * Orders — the toy version. game/ law: pure data, imports core/ only.
+ * Orders — now with rows (slice 2, plans/03). game/ law: pure data,
+ * imports core/ + sibling game modules only.
  *
- * An order asks for N of a topping ON the cake before the clock runs out.
- * The scoring truth is PHYSICAL (decided with the visionary, 2026-07-02):
- * a topping counts when it comes to REST on the cake. Hit the top and roll
- * off the back — the patron gets nothing. Speed matters only through its
- * real consequence; there is no arbitrary scoring threshold. Splat-vs-place
- * stays a readout until real Judgment lands.
+ * An order is a MUTABLE list of typed requirements (the Patron appends and
+ * tightens rows mid-order — 2D law, deliberate mutability) + the par shot
+ * count and the Patron's snob threshold (gate 2, consumed from Step 2) +
+ * the clock. Scoring truth stays PHYSICAL (visionary, 2026-07-02): rows
+ * count toppings AT REST — hit the top and roll off the back, the patron
+ * gets nothing. Wrong toppings land and lie there — mistakes execute, they
+ * never block, they just don't count.
  *
- * The client decides WHERE a settled topping is (level geometry is its
- * problem) and reports only (topping, onCake). Wrong toppings land and lie
- * there — mistakes execute, they never block, they just don't count.
+ * Gate 1 semantics this step: every row met while the clock runs → won;
+ * clock out first → lost. judge() — gate 2, stars, refusal — is Step 2.
  */
+import {
+  checkRequirements,
+  type Requirement,
+  type RequirementCheck,
+  type SettledTopping,
+} from "./judgment";
 
 export interface OrderState {
-  topping: string;
-  needed: number;
-  delivered: number;
+  /** MUTABLE: the Patron appends and tightens rows mid-order. */
+  requirements: Requirement[];
+  /** Shots for full waste credit (gate 2, Step 2 — carried on the wire now). */
+  parShots: number;
+  /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
+  passScore: number;
   ticksLeft: number;
   status: "running" | "won" | "lost";
 }
 
 export function createOrder(
-  topping: string,
-  needed: number,
+  requirements: Requirement[],
   ticks: number,
+  opts?: { parShots?: number; passScore?: number },
 ): OrderState {
-  return { topping, needed, delivered: 0, ticksLeft: ticks, status: "running" };
+  return {
+    requirements,
+    parShots: opts?.parShots ?? 6,
+    passScore: opts?.passScore ?? 50,
+    ticksLeft: ticks,
+    status: "running",
+  };
 }
 
 /** One fixed tick of clock. Time only moves while the order is running. */
@@ -37,19 +53,22 @@ export function tickOrder(state: OrderState): OrderState {
   return { ...state, ticksLeft };
 }
 
-/** A topping came to rest. Counts only if it matches, it's on the cake,
- * and the order is still live. */
-export function deliverTopping(
+/**
+ * Re-census the order against everything at rest. Gate 1: all rows met
+ * while running → won (an empty order can't win — nothing was asked).
+ * A finished order never un-finishes; late landings still show in checks.
+ */
+export function evaluateOrder(
   state: OrderState,
-  topping: string,
-  onCake: boolean,
-): OrderState {
-  if (state.status !== "running") return state;
-  if (!onCake || topping !== state.topping) return state;
-  const delivered = state.delivered + 1;
-  return {
-    ...state,
-    delivered,
-    status: delivered >= state.needed ? "won" : "running",
-  };
+  settled: readonly SettledTopping[],
+): { state: OrderState; checks: RequirementCheck[] } {
+  const checks = checkRequirements(state.requirements, settled);
+  if (
+    state.status === "running" &&
+    checks.length > 0 &&
+    checks.every((c) => c.met)
+  ) {
+    return { state: { ...state, status: "won" }, checks };
+  }
+  return { state, checks };
 }

@@ -8,6 +8,7 @@
  * small, JSON-friendly.
  */
 import type { MachineIntent, CatapultState } from "./catapult";
+import type { RequirementCheck } from "./judgment";
 import type { OrderState } from "./order";
 
 export interface Pose {
@@ -39,6 +40,7 @@ export type ServerMsg =
       machine: CatapultState;
       crankTicks: number;
       order: OrderState;
+      checks: RequirementCheck[];
       poses: PlayerPose[];
     }
   | { t: "join"; id: number; name: string }
@@ -49,9 +51,16 @@ export type ServerMsg =
    * locally — deterministic ballistics make all copies land identically.
    * This is sync-shots-not-surfaces. */
   | { t: "shot"; topping: string; traverseDeg: number; tensionClicks: number }
-  /** Authoritative scoring: a topping came to rest. */
-  | { t: "scored"; topping: string; onCake: boolean; order: OrderState }
-  | { t: "order"; order: OrderState };
+  /** Authoritative scoring: a topping came to rest. The checklist rides
+   * along — the client has no settled-toppings ledger of its own. */
+  | {
+      t: "scored";
+      topping: string;
+      onCake: boolean;
+      order: OrderState;
+      checks: RequirementCheck[];
+    }
+  | { t: "order"; order: OrderState; checks: RequirementCheck[] };
 
 /** One player's standing hold on the machine. */
 export interface HeldOp {
