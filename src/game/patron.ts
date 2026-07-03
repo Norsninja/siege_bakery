@@ -105,11 +105,18 @@ export function createGiant(): Patron {
         (n, c) => n + Math.min(1, c.current / Math.max(c.target, 1e-9)),
         0,
       );
+      //    ONE-NUMBER LAW guard on the TOPPING, not just the kind (audit
+      //    2026-07-03): today no template orders cherries, but a future
+      //    order with a cherry count row must suppress the demand too —
+      //    "3 × cherry" + "1 × cherry AS THE CROWN" is the exact arithmetic
+      //    the law exists to kill.
       if (
         !demanded &&
         rows > 0 &&
         progress * 2 >= rows &&
-        !ctx.order.requirements.some((r) => r.kind === "crown")
+        !ctx.order.requirements.some(
+          (r) => r.kind === "crown" || ("topping" in r && r.topping === "cherry"),
+        )
       ) {
         demanded = true;
         ctx.order.requirements.push({ kind: "crown", topping: "cherry" });

@@ -79,8 +79,13 @@ describe("The Giant", () => {
 
   it("half the boxes ticked and no crown promised → the crown demand, once", () => {
     const g = createGiant();
-    const order = createOrder(rows(), 5400);
-    const act = g.act(ctx(order, [2, 0])); // cherry row met, lime not
+    // No row references cherry, so the demand MAY fire (one-number law).
+    const cherryless: Requirement[] = [
+      { kind: "count-on-cake", topping: "sprinkles", needed: 2 },
+      { kind: "count-in-zone", topping: "lime", zone: "tier2", needed: 1 },
+    ];
+    const order = createOrder(cherryless, 5400);
+    const act = g.act(ctx(order, [2, 0])); // sprinkle row met, lime not
     expect(act.utterance).toContain("CHERRY");
     expect(act.utterance).toContain("ON THE VERY TOP");
     expect(order.requirements).toHaveLength(3);
@@ -90,6 +95,16 @@ describe("The Giant", () => {
     const again = g.act(ctx(order, [2, 0, 0]));
     expect(order.requirements).toHaveLength(3);
     expect(again.utterance).not.toContain("NEEDS A CHERRY");
+  });
+
+  it("a cherry COUNT row suppresses the demand — one number per topping (audit 2026-07-03)", () => {
+    // The guard reads the TOPPING, not just the kind: "3 × cherry" plus
+    // "1 × cherry AS THE CROWN" is the exact arithmetic the one-number law
+    // exists to kill, and no future order template gets to resurrect it.
+    const g = createGiant();
+    const order = createOrder(rows(), 5400); // rows() opens with "2 × cherry"
+    g.act(ctx(order, [2, 0])); // progress would trigger the demand...
+    expect(order.requirements).toHaveLength(2); // ...but no crown row appends
   });
 
   it("the crown demand normalizes per row — fractions can't poison the arithmetic", () => {

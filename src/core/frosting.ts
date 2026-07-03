@@ -7,9 +7,15 @@
  *
  * Determinism: the sample grid is a pure function of the cake geometry
  * (core/arena), and paint events are pure functions of impact position +
- * speed — both deterministic given the shot parameters. Every client and the
- * Room compute byte-identical fields from the same `shot` events; only the
- * welcome snapshot ever carries the field itself.
+ * speed — both deterministic given the shot parameters. Within one engine,
+ * every field computed from the same `shot` events is byte-identical; only
+ * the welcome snapshot ever carries the field itself. CROSS-ENGINE honesty
+ * (audit 2026-07-03): Math.sin/cos in the grid build are implementation-
+ * defined in their last ULP, so a Safari client's grid may differ from
+ * V8's by hairs — paint distance math below sticks to sqrt/mul/add (exactly
+ * rounded, identical everywhere), and SCORING truth is the Room's field:
+ * a client field is visuals, so a one-ULP disagreement can at worst
+ * grey out one blob, never a checkmark.
  *
  * Sample points sit on each tier's EXPOSED top ring (annulus up to the tier
  * above; full disc on the summit) AND on the three cylindrical WALL faces
@@ -135,10 +141,15 @@ export class FrostingField {
     const r = splatRadius(speed);
     const add = splatCoats(speed);
     let painted = 0;
+    const r2 = r * r;
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
       const s = CAKE_SAMPLES[i]!.pos;
       if (Math.abs(s.y - impact.y) > FROST_VERTICAL_BAND) continue;
-      if (Math.hypot(s.x - impact.x, s.z - impact.z) > r) continue;
+      // Squared distance, not Math.hypot: sqrt/mul/add are exactly rounded
+      // (identical on every engine); hypot is not (header note).
+      const dx = s.x - impact.x;
+      const dz = s.z - impact.z;
+      if (dx * dx + dz * dz > r2) continue;
       this.coats[i]! += add;
       painted++;
     }
@@ -168,11 +179,14 @@ export class FrostingField {
    * position? (3D distance — a sample directly under a settled ball is
    * ~0.3m away; the band keeps ground positions from reading tier paint.) */
   frostedNear(pos: Vec3, within = FROSTED_NEAR_M): boolean {
+    const w2 = within * within;
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
       if (this.coats[i]! === 0) continue;
       const s = CAKE_SAMPLES[i]!.pos;
-      const d = Math.hypot(s.x - pos.x, s.y - pos.y, s.z - pos.z);
-      if (d <= within) return true;
+      const dx = s.x - pos.x;
+      const dy = s.y - pos.y;
+      const dz = s.z - pos.z;
+      if (dx * dx + dy * dy + dz * dz <= w2) return true;
     }
     return false;
   }
@@ -187,12 +201,15 @@ export class FrostingField {
     return [...this.coats];
   }
 
-  /** Adopt a wire snapshot (late join / refresh). Ignores a snapshot whose
+  /** Adopt a wire snapshot (late join / refresh). Refuses a snapshot whose
    * length disagrees with this build's sample grid — a version-skew guard;
-   * the field then starts clean rather than corrupt. */
-  restore(coats: readonly number[]): void {
-    if (coats.length !== this.coats.length) return;
+   * the field then starts clean rather than corrupt. Returns whether it
+   * adopted, so the caller can SAY so (audit 2026-07-03: the refusal was
+   * silent, and "late joiner sees a naked cake" had no explanation). */
+  restore(coats: readonly number[]): boolean {
+    if (coats.length !== this.coats.length) return false;
     this.coats = [...coats];
+    return true;
   }
 
   /** The Giant licks the cake clean between orders (plans/07 phase F). */

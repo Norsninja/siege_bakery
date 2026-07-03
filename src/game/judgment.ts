@@ -177,8 +177,15 @@ export function judge(
   const accepted = met && score >= order.passScore;
   let stars: 0 | 1 | 2 | 3 = 0;
   if (accepted) {
+    // Thresholds clamp at the scale's top (audit 2026-07-03): a snob
+    // patron with passScore > 70 must still have a reachable third star —
+    // a perfect 100 is always 3★.
     stars =
-      score >= order.passScore + 30 ? 3 : score >= order.passScore + 15 ? 2 : 1;
+      score >= Math.min(100, order.passScore + 30)
+        ? 3
+        : score >= Math.min(100, order.passScore + 15)
+          ? 2
+          : 1;
   }
   return {
     met,

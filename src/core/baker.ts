@@ -14,7 +14,7 @@
  * the two speeds below brackets exactly that window; baker.test.ts pins it.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
-import { BAKER_COLLISION_GROUPS, FIXED_DT } from "./constants";
+import { BAKER_COLLISION_GROUPS, FIXED_DT, GRAVITY } from "./constants";
 
 /** Pantry-to-catapult crossing distance the speeds are tuned against. */
 export const ARENA_CROSSING_M = 24;
@@ -29,7 +29,10 @@ export const STAND_CENTER_Y = CAPSULE_HALF_HEIGHT + CAPSULE_RADIUS;
 /** Camera eye offset above the capsule center (client uses this). */
 export const EYE_HEIGHT_OFFSET = 0.65;
 
-const GRAVITY_Y = -9.81;
+/** The ONE gravity (audit 2026-07-03): the baker falls in the same world
+ * the toppings fly through — retuning constants.GRAVITY must never fork
+ * the kinematic fall from the projectile arcs. */
+const GRAVITY_Y = GRAVITY.y;
 
 /**
  * One tick of player intent. Plain data, no methods — this is what the

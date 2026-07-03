@@ -55,7 +55,12 @@ export class FrostingView {
 
   /** The welcome snapshot: the painted cake as it lies (late join/refresh). */
   restore(coats: number[]): void {
-    this.field.restore(coats);
+    if (!this.field.restore(coats))
+      // Version skew: the server's census disagrees with this build's.
+      // Starting clean is correct; starting SILENTLY clean was the trap.
+      console.warn(
+        `frosting snapshot refused: ${coats.length} coats vs ${CAKE_SAMPLES.length} samples — client/server build mismatch?`,
+      );
     this.refresh();
   }
 

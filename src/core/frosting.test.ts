@@ -30,6 +30,19 @@ describe("the sample grid (pure function of the cake)", () => {
     expect(tops.length + walls.length).toBe(CAKE_SAMPLES.length);
   });
 
+  it("the sample count IS the wire format: 437, moved only on purpose (audit 2026-07-03)", () => {
+    // welcome.frosting is coats-per-sample, and restore() REFUSES a
+    // snapshot of any other length (version-skew guard) — so any tweak to
+    // SAMPLE_SPACING / WALL_SAMPLE_SPACING / ring margins / CAKE_TIERS
+    // that shifts this number breaks every mixed-build late join, and
+    // pre-pin it did so SILENTLY (naked cake, no explanation). If this
+    // fails, you changed the census: re-pin the number here, re-run
+    // research/04 §3, and re-pin frac/par with it (standing law, plans/07).
+    expect(CAKE_SAMPLES.length).toBe(437);
+    expect(tops.length).toBe(218);
+    expect(walls.length).toBe(219);
+  });
+
   it("top samples sit on tier tops inside tier radii, facing up", () => {
     const topYs = new Set(CAKE_TIERS.map((t) => t.top));
     for (const s of tops) {
