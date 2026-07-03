@@ -23,6 +23,7 @@ import { ProjectileManager } from "../core/projectiles";
 import {
   createCatapult,
   tickMachine,
+  TILT_DEG_PER_NOTCH,
   type CatapultState,
 } from "../game/catapult";
 import {
@@ -81,6 +82,7 @@ export class Room {
   private readonly shots = new ProjectileManager();
   private machine: CatapultState = createCatapult();
   private crankTicks = 0;
+  private screwTicks = 0;
   private order: OrderState = createOrder(
     standardRequirements(),
     ORDER_SECONDS * 60,
@@ -127,6 +129,7 @@ export class Room {
       id,
       machine: this.machine,
       crankTicks: this.crankTicks,
+      screwTicks: this.screwTicks,
       order: this.order,
       checks: this.currentChecks(),
       poses: this.poseList(id),
@@ -151,7 +154,7 @@ export class Room {
         m.pose = msg.pose;
         break;
       case "op":
-        m.held = { turn: msg.turn, crank: msg.crank };
+        m.held = { turn: msg.turn, screw: msg.screw, crank: msg.crank };
         break;
       case "lever":
         m.leverPulls++;
@@ -179,21 +182,27 @@ export class Room {
     }
     const intent = mergeIntents(held, leverPulls, loads);
 
-    const r = tickMachine(this.machine, this.crankTicks, intent);
+    const r = tickMachine(this.machine, this.crankTicks, intent, this.screwTicks);
     this.machine = r.state;
     this.crankTicks = r.crankTicks;
+    this.screwTicks = r.screwTicks;
     if (r.shot) {
       this.shotsFired++;
       this.shots.spawn(
         this.world,
         launchOrigin(MACHINE_BASE, r.shot.traverseDeg),
-        launchVelocity(r.shot.traverseDeg, r.shot.tensionClicks),
+        launchVelocity(
+          r.shot.traverseDeg,
+          r.shot.tensionClicks,
+          r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
+        ),
         r.shot.topping,
       );
       this.broadcast({
         t: "shot",
         topping: r.shot.topping,
         traverseDeg: r.shot.traverseDeg,
+        tiltNotch: r.shot.tiltNotch,
         tensionClicks: r.shot.tensionClicks,
       });
       // Arm state changed sharply; don't wait for the 15Hz cadence.
@@ -322,6 +331,7 @@ export class Room {
       t: "machine",
       state: this.machine,
       crankTicks: this.crankTicks,
+      screwTicks: this.screwTicks,
     });
   }
 

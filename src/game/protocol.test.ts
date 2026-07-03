@@ -8,6 +8,7 @@ describe("mergeIntents", () => {
   it("nobody touching the machine is idle", () => {
     expect(mergeIntents([], 0, [])).toEqual({
       turn: 0,
+      screw: 0,
       crank: false,
       pullLever: false,
       load: null,
@@ -18,8 +19,8 @@ describe("mergeIntents", () => {
   it("two people cranking is still ONE winch", () => {
     const m = mergeIntents(
       [
-        { turn: 0, crank: true },
-        { turn: 0, crank: true },
+        { turn: 0, screw: 0, crank: true },
+        { turn: 0, screw: 0, crank: true },
       ],
       0,
       [],
@@ -31,8 +32,8 @@ describe("mergeIntents", () => {
     expect(
       mergeIntents(
         [
-          { turn: 1, crank: false },
-          { turn: -1, crank: false },
+          { turn: 1, screw: 0, crank: false },
+          { turn: -1, screw: 0, crank: false },
         ],
         0,
         [],
@@ -41,13 +42,36 @@ describe("mergeIntents", () => {
     expect(
       mergeIntents(
         [
-          { turn: 1, crank: false },
-          { turn: 1, crank: false },
+          { turn: 1, screw: 0, crank: false },
+          { turn: 1, screw: 0, crank: false },
         ],
         0,
         [],
       ).turn,
     ).toBe(1);
+  });
+
+  it("the screw merges like the wheel: opposites cancel, allies don't double", () => {
+    expect(
+      mergeIntents(
+        [
+          { turn: 0, screw: 1, crank: false },
+          { turn: 0, screw: -1, crank: false },
+        ],
+        0,
+        [],
+      ).screw,
+    ).toBe(0);
+    expect(
+      mergeIntents(
+        [
+          { turn: 0, screw: -1, crank: false },
+          { turn: 0, screw: -1, crank: false },
+        ],
+        0,
+        [],
+      ).screw,
+    ).toBe(-1);
   });
 
   it("any lever pull releases; first queued topping loads", () => {

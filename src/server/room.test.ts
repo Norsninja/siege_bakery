@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { PATRON_LOOK_EVERY, Room } from "./room";
-import { CRANK_TICKS_PER_CLICK } from "../game/catapult";
+import { CRANK_TICKS_PER_CLICK, SCREW_TICKS_PER_NOTCH } from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 
 interface FakeClient {
@@ -67,8 +67,8 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
-    room.onMessage(a.id, { t: "op", turn: 0, crank: true });
-    room.onMessage(b.id, { t: "op", turn: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: true });
     // A few extra ticks so the 15Hz machine broadcast lands after the click.
     run(room, CRANK_TICKS_PER_CLICK + 4);
     const m = a.last("machine");
@@ -79,10 +79,18 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
-    room.onMessage(a.id, { t: "op", turn: 1, crank: false });
-    room.onMessage(b.id, { t: "op", turn: -1, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 1, screw: 0, crank: false });
+    room.onMessage(b.id, { t: "op", turn: -1, screw: 0, crank: false });
     run(room, 120);
     expect(a.last("machine")?.state.traverseDeg).toBe(0);
+  });
+
+  it("the elevation screw works over the wire and tilts the frame", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 1, crank: false });
+    run(room, SCREW_TICKS_PER_NOTCH + 4);
+    expect(a.last("machine")?.state.tiltNotch).toBe(1);
   });
 
   it("load edge is consumed once, not re-applied after firing", () => {
@@ -103,9 +111,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const b = connect(room, "bob");
     room.onMessage(a.id, { t: "load", topping: "cherry" });
-    room.onMessage(b.id, { t: "op", turn: 0, crank: true });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: true });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(b.id, { t: "op", turn: 0, crank: false });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: false });
     room.onMessage(a.id, { t: "lever" });
     run(room, 1);
     const shotA = a.last("shot");
@@ -114,6 +122,7 @@ describe("Room: the match, headless over protocol", () => {
       t: "shot",
       topping: "cherry",
       traverseDeg: 0,
+      tiltNotch: 0,
       tensionClicks: 6,
     });
     expect(shotB).toEqual(shotA); // everyone spawns the same deterministic lob

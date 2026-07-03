@@ -7,22 +7,26 @@ import {
   createCatapult,
   turnTraverse,
   crankTension,
+  turnScrew,
   loadTopping,
   fire,
   tickMachine,
   TRAVERSE_MIN_DEG,
   TRAVERSE_MAX_DEG,
   TENSION_MAX_CLICKS,
+  TILT_MAX_NOTCH,
   CRANK_TICKS_PER_CLICK,
+  SCREW_TICKS_PER_NOTCH,
   TRAVERSE_DEG_PER_TICK,
   IDLE_INTENT,
   type CatapultState,
 } from "./catapult";
 
 describe("catapult machine state", () => {
-  it("starts centered, slack, and empty", () => {
+  it("starts centered, level, slack, and empty", () => {
     expect(createCatapult()).toEqual({
       traverseDeg: 0,
+      tiltNotch: 0,
       tensionClicks: 0,
       loaded: null,
     });
@@ -67,11 +71,18 @@ describe("catapult machine state", () => {
     s = turnTraverse(s, 30);
     for (let i = 0; i < 5; i++) s = crankTension(s);
     s = loadTopping(s, "cherry");
+    s = turnScrew(s, 1);
     const { state, shot } = fire(s);
-    expect(shot).toEqual({ topping: "cherry", traverseDeg: 30, tensionClicks: 5 });
+    expect(shot).toEqual({
+      topping: "cherry",
+      traverseDeg: 30,
+      tiltNotch: 1,
+      tensionClicks: 5,
+    });
     expect(state.tensionClicks).toBe(0);
     expect(state.loaded).toBeNull();
     expect(state.traverseDeg).toBe(30); // aim survives firing
+    expect(state.tiltNotch).toBe(1); // so does the frame tilt
   });
 
   it("dry fire (empty bucket) still releases: no shot, tension wasted", () => {
@@ -85,7 +96,64 @@ describe("catapult machine state", () => {
   it("zero-tension fire still produces a shot (the flop is ballistics' job)", () => {
     const s = loadTopping(createCatapult(), "cherry");
     const { shot } = fire(s);
-    expect(shot).toEqual({ topping: "cherry", traverseDeg: 0, tensionClicks: 0 });
+    expect(shot).toEqual({
+      topping: "cherry",
+      traverseDeg: 0,
+      tiltNotch: 0,
+      tensionClicks: 0,
+    });
+  });
+
+  it("the screw notches up and down and clamps at both ends", () => {
+    let s = createCatapult();
+    s = turnScrew(s, 1);
+    expect(s.tiltNotch).toBe(1);
+    for (let i = 0; i < 10; i++) s = turnScrew(s, 1);
+    expect(s.tiltNotch).toBe(TILT_MAX_NOTCH);
+    for (let i = 0; i < 10; i++) s = turnScrew(s, -1);
+    expect(s.tiltNotch).toBe(0);
+  });
+
+  it("holding the screw for SCREW_TICKS_PER_NOTCH raises exactly one notch", () => {
+    let s = createCatapult();
+    let screw = 0;
+    const raise = { ...IDLE_INTENT, screw: 1 as const };
+    for (let i = 0; i < SCREW_TICKS_PER_NOTCH - 1; i++) {
+      ({ state: s, screwTicks: screw } = tickMachine(s, 0, raise, screw));
+      expect(s.tiltNotch).toBe(0); // not yet
+    }
+    ({ state: s, screwTicks: screw } = tickMachine(s, 0, raise, screw));
+    expect(s.tiltNotch).toBe(1);
+    expect(screw).toBe(0);
+  });
+
+  it("letting go of the screw drops partial progress; reversing restarts it", () => {
+    let s = createCatapult();
+    let screw = 0;
+    const raise = { ...IDLE_INTENT, screw: 1 as const };
+    const lower = { ...IDLE_INTENT, screw: -1 as const };
+    for (let i = 0; i < SCREW_TICKS_PER_NOTCH - 5; i++)
+      ({ state: s, screwTicks: screw } = tickMachine(s, 0, raise, screw));
+    // Walk away one tick: progress gone.
+    ({ state: s, screwTicks: screw } = tickMachine(s, 0, IDLE_INTENT, screw));
+    expect(screw).toBe(0);
+    // Near-notch raising progress does not bank toward lowering.
+    s = turnScrew(s, 1); // sit at notch 1 so lowering is legal
+    for (let i = 0; i < SCREW_TICKS_PER_NOTCH - 5; i++)
+      ({ state: s, screwTicks: screw } = tickMachine(s, 0, raise, screw));
+    ({ state: s, screwTicks: screw } = tickMachine(s, 0, lower, screw));
+    expect(screw).toBe(-1); // restarted, one tick the other way
+    expect(s.tiltNotch).toBe(1);
+  });
+
+  it("at either limit the screw just clacks — no banked progress", () => {
+    let s = createCatapult(); // notch 0: lowering is a no-op
+    let screw = 0;
+    const lower = { ...IDLE_INTENT, screw: -1 as const };
+    for (let i = 0; i < SCREW_TICKS_PER_NOTCH * 2; i++)
+      ({ state: s, screwTicks: screw } = tickMachine(s, 0, lower, screw));
+    expect(s.tiltNotch).toBe(0);
+    expect(screw).toBe(0);
   });
 
   it("holding the winch for CRANK_TICKS_PER_CLICK yields exactly one click", () => {
@@ -119,6 +187,7 @@ describe("catapult machine state", () => {
   it("a fully-wound machine stops accumulating crank progress", () => {
     let s: CatapultState = {
       traverseDeg: 0,
+      tiltNotch: 0,
       tensionClicks: TENSION_MAX_CLICKS,
       loaded: null,
     };
@@ -142,6 +211,7 @@ describe("catapult machine state", () => {
   it("load + lever in one tick loads first, then fires that topping", () => {
     const r = tickMachine(createCatapult(), 0, {
       turn: 0,
+      screw: 0,
       crank: false,
       pullLever: true,
       load: "cherry",

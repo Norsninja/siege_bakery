@@ -48,6 +48,9 @@ import {
   createCatapult,
   TENSION_MAX_CLICKS,
   CRANK_TICKS_PER_CLICK,
+  SCREW_TICKS_PER_NOTCH,
+  TILT_DEG_PER_NOTCH,
+  TILT_MAX_NOTCH,
   type CatapultState,
 } from "../game/catapult";
 import { createOrder, tickOrder, type OrderState } from "../game/order";
@@ -67,6 +70,7 @@ const POSE_SEND_EVERY = 3; // ticks → 20Hz
 type InteractableKind =
   | "wheel"
   | "winch"
+  | "screw"
   | "lever"
   | "bucket"
   | "shelf-cherry"
@@ -91,6 +95,7 @@ async function main(): Promise<void> {
   // --- Server-echoed match state (placeholders until `welcome`) ---
   let machineState: CatapultState = createCatapult();
   let crankTicks = 0;
+  let screwTicks = 0;
   let order: OrderState = createOrder([], 90 * 60); // rows arrive with `welcome`
   let checks: RequirementCheck[] = [];
   let verdict: Judgment | null = null; // rides the order message that ENDS it
@@ -187,6 +192,7 @@ async function main(): Promise<void> {
 
   // --- The machine greybox, on the plinth. Group yaw = traverseDeg. ---
   const machine = new THREE.Group();
+  machine.rotation.order = "YXZ"; // traverse (yaw) first, then frame tilt
   machine.position.set(MACHINE_BASE.x, MACHINE_BASE.y, MACHINE_BASE.z);
   scene.add(machine);
 
@@ -223,6 +229,14 @@ async function main(): Promise<void> {
   const leverStick = box(0.06, 0.55, 0.06, 0x777788, 0, 0.28, 0, leverGroup);
   const leverKnob = sphere(0.09, 0xc23b4e, 0, 0.58, 0, leverGroup);
 
+  // The elevation screw AT THE FRONT (plans/04): a great ugly dwarven jack
+  // that tilts the whole frame back. E + W/S, notched like the crank.
+  const screwGroup = new THREE.Group();
+  screwGroup.position.set(-0.55, 0.1, -0.75);
+  machine.add(screwGroup);
+  const screwPost = box(0.1, 0.6, 0.1, 0x5a5a66, 0, 0.3, 0, screwGroup);
+  const screwHandle = box(0.4, 0.06, 0.06, 0x8a6b3d, 0, 0.62, 0, screwGroup);
+
   // Pantry crates — the ammo. E takes ONE; you carry it by hand.
   const crateY = PANTRY_POS.y + PANTRY_HALF.y + 0.25;
   const cherryCrate = box(0.9, 0.5, 0.7, 0x8c3038, -1.1, crateY, PANTRY_POS.z);
@@ -238,6 +252,7 @@ async function main(): Promise<void> {
   const interactables: Record<InteractableKind, THREE.Mesh[]> = {
     wheel: [wheelMesh],
     winch: [drumMesh, winchHandle],
+    screw: [screwPost, screwHandle],
     lever: [leverStick, leverKnob],
     bucket: [bucketMesh, toppingMesh],
     "shelf-cherry": [cherryCrate, cherrySample],
@@ -322,6 +337,7 @@ async function main(): Promise<void> {
         myId = msg.id;
         machineState = msg.machine;
         crankTicks = msg.crankTicks;
+        screwTicks = msg.screwTicks;
         order = msg.order;
         checks = msg.checks;
         for (const p of msg.poses) upsertGhost(p);
@@ -339,13 +355,18 @@ async function main(): Promise<void> {
       case "machine":
         machineState = msg.state;
         crankTicks = msg.crankTicks;
+        screwTicks = msg.screwTicks;
         break;
       case "shot": {
         // Everyone simulates the same deterministic lob locally.
         const body = shots.spawn(
           physics,
           launchOrigin(MACHINE_BASE, msg.traverseDeg),
-          launchVelocity(msg.traverseDeg, msg.tensionClicks),
+          launchVelocity(
+            msg.traverseDeg,
+            msg.tensionClicks,
+            msg.tiltNotch * TILT_DEG_PER_NOTCH,
+          ),
           msg.topping,
         );
         const mesh = sphere(
@@ -357,7 +378,7 @@ async function main(): Promise<void> {
         );
         shotMeshes.push({ body, mesh });
         flash(
-          `LOOSED! ${msg.topping} · ${msg.tensionClicks} clicks · ${msg.traverseDeg.toFixed(0)}°`,
+          `LOOSED! ${msg.topping} · ${msg.tensionClicks} clicks · ${msg.traverseDeg.toFixed(0)}°${msg.tiltNotch > 0 ? ` · arc +${msg.tiltNotch * TILT_DEG_PER_NOTCH}°` : ""}`,
           2500,
         );
         break;
@@ -459,6 +480,8 @@ async function main(): Promise<void> {
         return "hold E + A/D — traverse wheel";
       case "winch":
         return "hold E — crank the winch";
+      case "screw":
+        return "hold E + W/S — elevation screw";
       case "lever":
         return "E — pull the release lever!";
       case "bucket":
@@ -474,7 +497,7 @@ async function main(): Promise<void> {
   };
 
   // --- Fixed-timestep loop, rendering decoupled ---
-  let lastOp: HeldOp = { turn: 0, crank: false };
+  let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
   let totalCrankSpins = 0; // visual-only: winch drum angle
   let lastCrankTicks = 0;
   let tickCounter = 0;
@@ -509,10 +532,22 @@ async function main(): Promise<void> {
                 ? -1
                 : 0
             : 0,
+        screw:
+          target === "screw" && eHeld
+            ? keys.has("KeyW") && !keys.has("KeyS")
+              ? 1
+              : keys.has("KeyS") && !keys.has("KeyW")
+                ? -1
+                : 0
+            : 0,
         crank: target === "winch" && eHeld,
       };
-      if (op.turn !== lastOp.turn || op.crank !== lastOp.crank) {
-        transport.send({ t: "op", turn: op.turn, crank: op.crank });
+      if (
+        op.turn !== lastOp.turn ||
+        op.screw !== lastOp.screw ||
+        op.crank !== lastOp.crank
+      ) {
+        transport.send({ t: "op", turn: op.turn, screw: op.screw, crank: op.crank });
         lastOp = op;
       }
       // Edges.
@@ -532,7 +567,9 @@ async function main(): Promise<void> {
       }
 
       // Hands on the machine = feet planted. Otherwise, normal movement.
-      const engaged = eHeld && (target === "wheel" || target === "winch");
+      const engaged =
+        eHeld &&
+        (target === "wheel" || target === "winch" || target === "screw");
       const move: BakerInput = debugInput ?? {
         forward: engaged
           ? 0
@@ -605,6 +642,18 @@ async function main(): Promise<void> {
     camera.rotation.set(pitch, yaw, 0);
 
     machine.rotation.y = (machineState.traverseDeg * Math.PI) / 180;
+    // The frame leans back as the front screw rises — traverse first, then
+    // tilt (YXZ). Partial screw progress previews the coming notch.
+    const tiltDeg = Math.min(
+      TILT_MAX_NOTCH * TILT_DEG_PER_NOTCH,
+      Math.max(
+        0,
+        (machineState.tiltNotch + screwTicks / SCREW_TICKS_PER_NOTCH) *
+          TILT_DEG_PER_NOTCH,
+      ),
+    );
+    machine.rotation.x = (tiltDeg * Math.PI) / 180;
+    screwHandle.rotation.y = screwTicks * 0.3; // the jack handle works
     const tensionFrac =
       (machineState.tensionClicks + crankTicks / CRANK_TICKS_PER_CLICK) /
       TENSION_MAX_CLICKS;
@@ -663,7 +712,7 @@ async function main(): Promise<void> {
         locked
           ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
           : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
+        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
       ];
       if (target) lines.push(`▸ ${promptFor(target)}`);
       if (now < flashUntil) lines.push(flashMsg);

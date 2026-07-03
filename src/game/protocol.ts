@@ -27,7 +27,7 @@ export type ClientMsg =
   | { t: "hello"; name: string }
   | { t: "pose"; pose: Pose }
   /** Hold state on the machine, sent on CHANGE (not per tick). */
-  | { t: "op"; turn: -1 | 0 | 1; crank: boolean }
+  | { t: "op"; turn: -1 | 0 | 1; screw: -1 | 0 | 1; crank: boolean }
   /** Edges: consumed by the room exactly once. */
   | { t: "lever" }
   | { t: "load"; topping: string };
@@ -39,6 +39,7 @@ export type ServerMsg =
       id: number;
       machine: CatapultState;
       crankTicks: number;
+      screwTicks: number;
       order: OrderState;
       checks: RequirementCheck[];
       poses: PlayerPose[];
@@ -46,11 +47,17 @@ export type ServerMsg =
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }
   | { t: "poses"; poses: PlayerPose[] }
-  | { t: "machine"; state: CatapultState; crankTicks: number }
+  | { t: "machine"; state: CatapultState; crankTicks: number; screwTicks: number }
   /** Fire! Every receiver (and the room itself) spawns this projectile
    * locally — deterministic ballistics make all copies land identically.
    * This is sync-shots-not-surfaces. */
-  | { t: "shot"; topping: string; traverseDeg: number; tensionClicks: number }
+  | {
+      t: "shot";
+      topping: string;
+      traverseDeg: number;
+      tiltNotch: number;
+      tensionClicks: number;
+    }
   /** Authoritative scoring: a topping came to rest. The checklist rides
    * along — the client has no settled-toppings ledger of its own. */
   | {
@@ -75,16 +82,18 @@ export type ServerMsg =
 /** One player's standing hold on the machine. */
 export interface HeldOp {
   turn: -1 | 0 | 1;
+  screw: -1 | 0 | 1;
   crank: boolean;
 }
 
-export const IDLE_OP: HeldOp = { turn: 0, crank: false };
+export const IDLE_OP: HeldOp = { turn: 0, screw: 0, crank: false };
 
 /**
  * Many hands, one machine: merge every player's holds and queued edges into
- * the single intent tickMachine consumes. Opposite turns cancel; two people
- * cranking is still one ratchet (it's the same winch); any lever releases;
- * first queued topping loads. Chaos is a feature, but the machine is honest.
+ * the single intent tickMachine consumes. Opposite turns (and opposite
+ * screwing) cancel; two people cranking is still one ratchet (it's the
+ * same winch); any lever releases; first queued topping loads. Chaos is a
+ * feature, but the machine is honest.
  */
 export function mergeIntents(
   held: HeldOp[],
@@ -92,13 +101,16 @@ export function mergeIntents(
   loads: string[],
 ): MachineIntent {
   let turn = 0;
+  let screw = 0;
   let crank = false;
   for (const h of held) {
     turn += h.turn;
+    screw += h.screw;
     crank = crank || h.crank;
   }
   return {
     turn: turn > 0 ? 1 : turn < 0 ? -1 : 0,
+    screw: screw > 0 ? 1 : screw < 0 ? -1 : 0,
     crank,
     pullLever: leverPulls > 0,
     load: loads[0] ?? null,

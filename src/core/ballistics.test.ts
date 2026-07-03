@@ -38,6 +38,24 @@ describe("launch math (pure)", () => {
     expect(Math.hypot(v.x, v.y, v.z)).toBeCloseTo(launchSpeed(4), 10);
   });
 
+  it("frame tilt steepens the arc: same clicks, more up, less forward", () => {
+    const level = launchVelocity(0, 6); // notch 0: today's exact throw
+    expect(launchVelocity(0, 6, 0)).toEqual(level); // default = legacy
+    const tilted = launchVelocity(0, 6, 15);
+    expect(tilted.y).toBeGreaterThan(level.y);
+    expect(Math.abs(tilted.z)).toBeLessThan(Math.abs(level.z));
+    expect(Math.hypot(tilted.x, tilted.y, tilted.z)).toBeCloseTo(
+      launchSpeed(6),
+      10,
+    );
+  });
+
+  it("tilt 45 throws past vertical — gently BACKWARDS over the crew", () => {
+    const v = launchVelocity(0, 6, 45); // 55 + 45 = 100°
+    expect(v.z).toBeGreaterThan(0); // +Z: behind the machine
+    expect(v.y).toBeGreaterThan(0); // still mostly up (comedy, not a bug)
+  });
+
   it("positive traverse turns the shot left (-X), matching rotation.y", () => {
     const v = launchVelocity(30, 4);
     expect(v.x).toBeLessThan(0);

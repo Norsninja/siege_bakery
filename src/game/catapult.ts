@@ -29,9 +29,22 @@ export const TENSION_MAX_CLICKS = 8;
  * where the "takes real seconds" pressure comes from. Client enforces it. */
 export const CRANK_SECONDS_PER_CLICK = 0.75;
 
+/** The elevation screw AT THE FRONT tilts the frame back in notches
+ * (plans/04): notch 0 is the machine's natural throw — today's exact
+ * feel — and each notch steepens the arc by 15°. Ballistics adds the tilt
+ * to the arm's base elevation; notch 3 throws past vertical, gently
+ * backwards over the crew. Mistakes execute. */
+export const TILT_DEG_PER_NOTCH = 15;
+export const TILT_MAX_NOTCH = 3;
+/** Real seconds of screwing per notch — quicker than the winch, still
+ * held work. */
+export const SCREW_SECONDS_PER_NOTCH = 0.5;
+
 export interface CatapultState {
   /** Machine yaw in degrees, clamped to traverse limits. */
   traverseDeg: number;
+  /** Frame tilt, 0..TILT_MAX_NOTCH notches of TILT_DEG_PER_NOTCH each. */
+  tiltNotch: number;
   /** Stored power, 0..TENSION_MAX_CLICKS. */
   tensionClicks: number;
   /** Topping id sitting in the bucket, or null when empty. */
@@ -42,11 +55,12 @@ export interface CatapultState {
 export interface Shot {
   topping: string;
   traverseDeg: number;
+  tiltNotch: number;
   tensionClicks: number;
 }
 
 export function createCatapult(): CatapultState {
-  return { traverseDeg: 0, tensionClicks: 0, loaded: null };
+  return { traverseDeg: 0, tiltNotch: 0, tensionClicks: 0, loaded: null };
 }
 
 /** Turn the traverse wheel by deltaDeg, clamped to the machine's limits. */
@@ -67,6 +81,14 @@ export function crankTension(state: CatapultState): CatapultState {
   return {
     ...state,
     tensionClicks: Math.min(TENSION_MAX_CLICKS, state.tensionClicks + 1),
+  };
+}
+
+/** One notch of the elevation screw, clamped at both ends. */
+export function turnScrew(state: CatapultState, dir: -1 | 1): CatapultState {
+  return {
+    ...state,
+    tiltNotch: Math.min(TILT_MAX_NOTCH, Math.max(0, state.tiltNotch + dir)),
   };
 }
 
@@ -99,6 +121,7 @@ export function fire(state: CatapultState): {
       : {
           topping: state.loaded,
           traverseDeg: state.traverseDeg,
+          tiltNotch: state.tiltNotch,
           tensionClicks: state.tensionClicks,
         };
   return {
@@ -121,6 +144,10 @@ export function fire(state: CatapultState): {
 export const CRANK_TICKS_PER_CLICK = Math.round(
   CRANK_SECONDS_PER_CLICK / FIXED_DT,
 );
+/** Held ticks of screwing per tilt notch (30 at 60Hz / 0.5s). */
+export const SCREW_TICKS_PER_NOTCH = Math.round(
+  SCREW_SECONDS_PER_NOTCH / FIXED_DT,
+);
 /** Traverse degrees per held tick (0.5° at 60Hz / 30° per second). */
 export const TRAVERSE_DEG_PER_TICK = TRAVERSE_DEG_PER_SECOND * FIXED_DT;
 
@@ -131,6 +158,8 @@ export const TRAVERSE_DEG_PER_TICK = TRAVERSE_DEG_PER_SECOND * FIXED_DT;
 export interface MachineIntent {
   /** Traverse wheel: -1 (right), 0, +1 (left), while engaged. */
   turn: -1 | 0 | 1;
+  /** Elevation screw: -1 (lower), 0, +1 (raise), while engaged. */
+  screw: -1 | 0 | 1;
   /** Winch engaged this tick (hold-to-crank). */
   crank: boolean;
   /** Release lever pulled this tick (edge, not hold). */
@@ -141,6 +170,7 @@ export interface MachineIntent {
 
 export const IDLE_INTENT: MachineIntent = {
   turn: 0,
+  screw: 0,
   crank: false,
   pullLever: false,
   load: null,
@@ -151,6 +181,10 @@ export interface MachineTickResult {
   /** Progress toward the next tension click, 0..CRANK_TICKS_PER_CLICK-1.
    * Thread this back into the next tick; render it as winch motion. */
   crankTicks: number;
+  /** SIGNED progress toward the next tilt notch (positive raising,
+   * negative lowering). Thread back like crankTicks; render as the screw
+   * handle turning. */
+  screwTicks: number;
   /** Non-null exactly when the lever released a loaded bucket this tick. */
   shot: Shot | null;
 }
@@ -161,16 +195,32 @@ export interface MachineTickResult {
  * Crank law: letting go of the winch mid-click LOSES the partial progress —
  * winching is committed work, not a resumable meter. A full machine stops
  * accumulating (the ratchet just clacks).
+ *
+ * Screw law mirrors it: letting go drops partial progress, reversing
+ * direction restarts it, and at either limit the screw just clacks.
  */
 export function tickMachine(
   state: CatapultState,
   crankTicks: number,
   intent: MachineIntent,
+  screwTicks = 0,
 ): MachineTickResult {
   let s = state;
   if (intent.load !== null) s = loadTopping(s, intent.load);
   if (intent.turn !== 0)
     s = turnTraverse(s, intent.turn * TRAVERSE_DEG_PER_TICK);
+
+  let screw = 0;
+  const screwCanMove =
+    intent.screw > 0 ? s.tiltNotch < TILT_MAX_NOTCH : s.tiltNotch > 0;
+  if (intent.screw !== 0 && screwCanMove) {
+    screw =
+      (Math.sign(screwTicks) === intent.screw ? screwTicks : 0) + intent.screw;
+    if (Math.abs(screw) >= SCREW_TICKS_PER_NOTCH) {
+      s = turnScrew(s, intent.screw);
+      screw = 0;
+    }
+  }
 
   let progress = 0;
   if (intent.crank && s.tensionClicks < TENSION_MAX_CLICKS) {
@@ -183,7 +233,12 @@ export function tickMachine(
 
   if (intent.pullLever) {
     const released = fire(s);
-    return { state: released.state, crankTicks: progress, shot: released.shot };
+    return {
+      state: released.state,
+      crankTicks: progress,
+      screwTicks: screw,
+      shot: released.shot,
+    };
   }
-  return { state: s, crankTicks: progress, shot: null };
+  return { state: s, crankTicks: progress, screwTicks: screw, shot: null };
 }
