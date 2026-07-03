@@ -16,6 +16,7 @@
  * dying first is gate 1 failure — the patron goes hungry (lost, the sad
  * kind). Late shots after the verdict change nothing.
  */
+import type { FrostingField } from "../core/frosting";
 import {
   checkRequirements,
   judge,
@@ -67,15 +68,16 @@ export function tickOrder(state: OrderState): OrderState {
 export function evaluateOrder(
   state: OrderState,
   settled: readonly SettledTopping[],
+  frosting: FrostingField,
   shotsFired: number,
 ): { state: OrderState; checks: RequirementCheck[]; judgment?: Judgment } {
-  const checks = checkRequirements(state.requirements, settled);
+  const checks = checkRequirements(state.requirements, settled, frosting);
   if (
     state.status === "running" &&
     checks.length > 0 &&
     checks.every((c) => c.met)
   ) {
-    const judgment = judge(state, settled, shotsFired);
+    const judgment = judge(state, settled, frosting, shotsFired);
     return {
       state: { ...state, status: judgment.accepted ? "won" : "lost" },
       checks,

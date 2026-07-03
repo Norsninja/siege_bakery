@@ -23,6 +23,9 @@ const judgment: Judgment = {
   score: 100,
   stars: 3,
   checks: [],
+  coverage: 1,
+  neatness: 1,
+  integrity: 1,
   mess: 0,
   waste: 1,
 };

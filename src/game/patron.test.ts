@@ -5,6 +5,7 @@
  * before whimsy.
  */
 import { describe, it, expect } from "vitest";
+import { FrostingField } from "../core/frosting";
 import { createGiant, type PatronContext } from "./patron";
 import { createOrder, type OrderState } from "./order";
 import { checkRequirements, type Requirement } from "./judgment";
@@ -21,7 +22,11 @@ function ctx(
   currents: number[],
   over: Partial<PatronContext> = {},
 ): PatronContext {
-  const checks = checkRequirements(order.requirements, []).map((c, i) => {
+  const checks = checkRequirements(
+    order.requirements,
+    [],
+    new FrostingField(),
+  ).map((c, i) => {
     const current = currents[i] ?? 0;
     return { ...c, current, met: current >= c.target };
   });

@@ -130,7 +130,9 @@ describe("Room: the match, headless over protocol", () => {
     run(room, 600); // flight + skid + rest detection
     const scored = b.last("scored");
     expect(scored?.onCake).toBe(true); // 6 clicks is the pinned scoring window
-    const cherryRow = scored?.checks.find((c) => c.req.topping === "cherry");
+    const cherryRow = scored?.checks.find(
+      (c) => "topping" in c.req && c.req.topping === "cherry",
+    );
     expect(cherryRow?.current).toBe(1);
     expect(scored?.order.status).toBe("running"); // one cherry is not the order
   });

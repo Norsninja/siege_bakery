@@ -4,8 +4,18 @@
  */
 import { describe, it, expect } from "vitest";
 import { CAKE_TIERS, CAKE_Z } from "../core/arena";
+import { CAKE_SAMPLES, FrostingField } from "../core/frosting";
 import { createOrder, tickOrder, evaluateOrder } from "./order";
 import type { Requirement, SettledTopping } from "./judgment";
+
+/** A cake nobody frosted (these are row-law tests, not census tests). */
+const naked = () => new FrostingField();
+/** One perfect uniform coat — for the full-marks pins. */
+const fullCoat = () => {
+  const f = new FrostingField();
+  f.restore(new Array<number>(CAKE_SAMPLES.length).fill(1));
+  return f;
+};
 
 const LEDGE_Y = CAKE_TIERS[0]!.top + 0.3; // resting on the bottom tier
 const TOP_Y = CAKE_TIERS[2]!.top + 0.3; // resting on the summit
@@ -36,7 +46,7 @@ describe("orders with rows", () => {
     const o = createOrder(rows(), 5400);
     expect(o.status).toBe("running");
     expect(o.ticksLeft).toBe(5400);
-    const { checks } = evaluateOrder(o, [], 0);
+    const { checks } = evaluateOrder(o, [], naked(), 0);
     expect(checks.every((c) => !c.met && c.current === 0)).toBe(true);
   });
 
@@ -52,7 +62,7 @@ describe("orders with rows", () => {
 
   it("some rows met is still running; ALL rows met renders the Judgment", () => {
     const o = createOrder(rows(), 5400);
-    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", -3.5)], 2);
+    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", -3.5)], naked(), 2);
     expect(partial.checks[0]?.met).toBe(true);
     expect(partial.state.status).toBe("running");
     expect(partial.judgment).toBeUndefined();
@@ -60,6 +70,7 @@ describe("orders with rows", () => {
     const full = evaluateOrder(
       o,
       [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
+      fullCoat(),
       3,
     );
     expect(full.state.status).toBe("won");
@@ -77,7 +88,7 @@ describe("orders with rows", () => {
       onSummit("lime"),
       ...Array.from({ length: 9 }, () => onFloor("cherry")),
     ];
-    const r = evaluateOrder(o, settled, 24); // 12 toppings, 24 shots vs par 6
+    const r = evaluateOrder(o, settled, naked(), 24); // 12 toppings, 24 shots vs par 6
     expect(r.judgment?.met).toBe(true); // you did what was asked...
     expect(r.judgment?.accepted).toBe(false); // ...badly. REFUSED.
     expect(r.state.status).toBe("lost");
@@ -92,6 +103,7 @@ describe("orders with rows", () => {
         onFloor("cherry"),
         onCake("lime"), // on the cake but not the summit — no crown
       ],
+      naked(),
       2,
     );
     expect(checks.map((c) => c.current)).toEqual([0, 0]);
@@ -99,21 +111,22 @@ describe("orders with rows", () => {
   });
 
   it("an empty order cannot win — nothing was asked", () => {
-    const { state } = evaluateOrder(createOrder([], 5400), [], 0);
+    const { state } = evaluateOrder(createOrder([], 5400), [], naked(), 0);
     expect(state.status).toBe("running");
   });
 
   it("a finished order never un-finishes", () => {
     const o = createOrder([{ kind: "count-on-cake", topping: "cherry", needed: 1 }], 5400);
-    const won = evaluateOrder(o, [onCake("cherry")], 1).state;
+    const won = evaluateOrder(o, [onCake("cherry")], naked(), 1).state;
     expect(won.status).toBe("won");
-    expect(evaluateOrder(won, [], 1).state.status).toBe("won"); // even re-censused empty
+    expect(evaluateOrder(won, [], naked(), 1).state.status).toBe("won"); // even re-censused empty
     let lost = createOrder(rows(), 1);
     lost = tickOrder(lost);
     expect(
       evaluateOrder(
         lost,
         [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
+        naked(),
         3,
       ).state.status,
     ).toBe("lost");
@@ -122,15 +135,15 @@ describe("orders with rows", () => {
   it("the Patron may mutate rows mid-order: tightening un-meets, appending demands more", () => {
     const o = createOrder(rows(), 5400);
     const settled = [onCake("cherry"), onCake("cherry", -3.5)];
-    expect(evaluateOrder(o, settled, 2).checks[0]?.met).toBe(true);
+    expect(evaluateOrder(o, settled, naked(), 2).checks[0]?.met).toBe(true);
     // MORE. CHERRIES. (tighten row 0 in place — the array is deliberately mutable)
     const r0 = o.requirements[0];
     if (r0?.kind === "count-on-cake") r0.needed = 3;
-    const after = evaluateOrder(o, settled, 2);
+    const after = evaluateOrder(o, settled, naked(), 2);
     expect(after.checks[0]?.met).toBe(false);
     expect(after.checks[0]?.target).toBe(3);
     // ...IT NEEDS A CHERRY. ON THE VERY TOP. (append a row)
     o.requirements.push({ kind: "crown", topping: "cherry" });
-    expect(evaluateOrder(o, settled, 2).checks).toHaveLength(3);
+    expect(evaluateOrder(o, settled, naked(), 2).checks).toHaveLength(3);
   });
 });

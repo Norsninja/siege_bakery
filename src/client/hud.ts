@@ -17,6 +17,7 @@ import {
   type CatapultState,
 } from "../game/catapult";
 import {
+  describeProgress,
   describeRequirement,
   type Judgment,
   type RequirementCheck,
@@ -78,7 +79,7 @@ export function bannerText(
     .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
     .join("\n");
   const scoreLine = verdict
-    ? `assembly ${verdict.score}/100 — mess ${Math.round(verdict.mess * 100)}% · ${
+    ? `assembly ${verdict.score}/100 — coverage ${Math.round(verdict.coverage * 100)}% · neat ${Math.round(verdict.neatness * 100)}% · mess ${Math.round(verdict.mess * 100)}% · ${
         verdict.waste >= 1 ? "under par" : "over par"
       }`
     : "";
@@ -129,7 +130,7 @@ export function hudLines(v: HudView): string[] {
     `THE ORDER · ${clock}   [${who}]`,
     ...v.checks.map(
       (c) =>
-        `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${c.current}/${c.target}`,
+        `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${describeProgress(c)}`,
     ),
     v.locked
       ? "WASD move · Shift sprint · E interact · Esc frees the mouse"

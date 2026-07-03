@@ -18,7 +18,11 @@
  * Room creates a FRESH Patron with every deal.
  */
 import type { RandomFn } from "../core/rng";
-import { describeRequirement, type RequirementCheck } from "./judgment";
+import {
+  describeRequirement,
+  isCountRow,
+  type RequirementCheck,
+} from "./judgment";
 import type { OrderState } from "./order";
 
 /** Everything a Patron may observe (and, through `order`, mutate). */
@@ -66,13 +70,13 @@ export function createGiant(): Patron {
 
       // 2. A row stalling after two looks? He demands MORE of it (tightens
       //    the row in place, once). Only COUNT rows tighten — there is no
-      //    such thing as more crown.
+      //    such thing as more crown, and the frost fraction is a promise,
+      //    not a count.
       if (!nagged && ctx.look >= 2) {
         const stalled = ctx.checks.find(
-          (c) =>
-            c.req.kind !== "crown" && !c.met && c.current < c.target * 0.25,
+          (c) => isCountRow(c.req) && !c.met && c.current < c.target * 0.25,
         );
-        if (stalled && stalled.req.kind !== "crown") {
+        if (stalled && isCountRow(stalled.req)) {
           nagged = true;
           stalled.req.needed += 1;
           return {

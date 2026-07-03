@@ -18,6 +18,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
+import { FrostingField } from "../core/frosting";
 import { launchOrigin, launchVelocity } from "../core/ballistics";
 import { ProjectileManager } from "../core/projectiles";
 import {
@@ -91,6 +92,10 @@ export class Room {
    * Reset with the order: physical toppings stay in the world (the bakery
    * gets messier), but a fresh order counts fresh deliveries only. */
   private settled: SettledTopping[] = [];
+  /** The frosting field — paint events accumulate here (plans/07). Reset
+   * with the order: the Giant licks the cake clean between deals (paint is
+   * the scoreboard; a fresh FROST row must not start half-met). */
+  private readonly frosting = new FrostingField();
   /** Shots this order — the waste axis. Resets with each fresh deal. */
   private shotsFired = 0;
   /** The personality at the table. FRESH each deal — his nagged-once
@@ -216,7 +221,12 @@ export class Room {
     for (const s of ev.settled) {
       const onCake = isOnCake(s.pos);
       this.settled.push({ topping: s.topping, pos: s.pos, onCake });
-      const r = evaluateOrder(this.order, this.settled, this.shotsFired);
+      const r = evaluateOrder(
+        this.order,
+        this.settled,
+        this.frosting,
+        this.shotsFired,
+      );
       this.order = r.state;
       this.broadcast({
         t: "scored",
@@ -249,7 +259,7 @@ export class Room {
         t: "order",
         order: this.order,
         checks: this.currentChecks(),
-        judgment: judge(this.order, this.settled, this.shotsFired),
+        judgment: judge(this.order, this.settled, this.frosting, this.shotsFired),
       });
     }
 
@@ -283,7 +293,7 @@ export class Room {
   }
 
   private currentChecks(): RequirementCheck[] {
-    return checkRequirements(this.order.requirements, this.settled);
+    return checkRequirements(this.order.requirements, this.settled, this.frosting);
   }
 
   /** One Patron look: observe → act (may mutate rows) → patience lands on
