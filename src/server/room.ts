@@ -168,6 +168,18 @@ export class Room {
         .resting()
         .map((r) => ({ topping: r.topping, x: r.pos.x, y: r.pos.y, z: r.pos.z })),
       frosting: this.frosting.snapshot(),
+      // Mid-banner joiners need the verdict (audit 2026-07-03): without it
+      // a WON order renders as "TIME! the patron goes hungry".
+      ...(this.order.status !== "running"
+        ? {
+            judgment: judge(
+              this.order,
+              this.settled,
+              this.frosting,
+              this.shotsFired,
+            ),
+          }
+        : {}),
     });
     this.broadcast({ t: "join", id, name: member.name }, id);
     return id;

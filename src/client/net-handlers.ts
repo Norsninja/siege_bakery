@@ -41,6 +41,9 @@ export function applyServerMsg(
       view.screwTicks = msg.screwTicks;
       view.order = msg.order;
       view.checks = msg.checks;
+      // Joined mid-banner: adopt the verdict, or the banner words gate-1
+      // hunger over a WON order (audit 2026-07-03).
+      view.verdict = msg.judgment ?? null;
       for (const p of msg.poses) fx.upsertGhost(p);
       for (const t of msg.toppings) fx.spawnResting(t);
       fx.restoreFrosting(msg.frosting);

@@ -60,6 +60,10 @@ export type ServerMsg =
        * The one place a surface ever crosses the wire — in play, paint is
        * recomputed from shot events (sync-shots-not-surfaces). */
       frosting: number[];
+      /** Present exactly when the order is ENDED (the 10s banner linger):
+       * a joiner/refresher mid-banner needs the verdict or a WON order
+       * renders as the sad gate-1 loss (checkpoint audit 2026-07-03). */
+      judgment?: Judgment;
     }
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }

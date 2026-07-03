@@ -290,6 +290,28 @@ describe("Room: the match, headless over protocol", () => {
     expect(room.memberCount()).toBe(1);
   });
 
+  it("a joiner mid-banner is welcomed with the verdict (audit 2026-07-03)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    let guard = 0;
+    while (
+      (a.last("order")?.order.status ?? "running") === "running" &&
+      guard++ < 130 * 60
+    )
+      room.tick();
+    run(room, 100); // deep in the linger — the banner is up
+    const carol = connect(room, "carol");
+    const w = carol.last("welcome");
+    expect(w?.order.status).toBe("lost");
+    expect(w?.judgment?.met).toBe(false); // the verdict rides the welcome
+    expect(w?.judgment?.stars).toBe(0);
+    // Once the fresh order deals, welcomes stop carrying a verdict.
+    run(room, 600);
+    const dave = connect(room, "dave");
+    expect(dave.last("welcome")?.order.status).toBe("running");
+    expect(dave.last("welcome")?.judgment).toBeUndefined();
+  });
+
   it("a glob fired during the linger cannot paint the NEXT order (audit 2026-07-03)", () => {
     const room = new Room();
     const a = connect(room, "alice");
