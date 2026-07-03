@@ -186,10 +186,12 @@ function frostShot(
 console.log("\n=== single-splat coverage (live arena, fresh field each) ===");
 console.log("trav  notch clicks  impact  painted  coverage");
 for (const [trav, notch, clicks] of [
-  [0, 0, 5],
+  [0, 0, 4], // very short — ground splat, wall base if close enough
+  [0, 0, 5], // the visionary's "short" shot — should frost the wall base now
   [0, 0, 6],
   [0, 0, 7],
-  [0, 1, 7],
+  [0, 1, 6], // short splat at the foot
+  [0, 1, 7], // the bottom-ledge shot
   [0, 1, 8],
   [8, 0, 6],
   [8, 1, 8],

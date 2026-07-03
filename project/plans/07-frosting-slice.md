@@ -263,6 +263,50 @@ meaning 4, nag-able to 5 — becomes impossible by construction.
   the crown un-mets it (solid), a frosting splash on the summit does NOT
   (paint). Refresh mid-order: the painted cake comes back (welcome coats).
 
+## Amendment — the wall pass (visionary playtest notes, 2026-07-03)
+
+Three notes from the first playtest, answered the same day:
+
+1. **"Frosting must adhere to the vertical cake walls."** OVERRULES this
+   plan's "sides deliberately unsampled" call — and the playtest showed
+   why the original call was wrong: the visionary's 5-click shots were
+   smacking the bottom tier's wall FACE and paying pure mess for it. The
+   census now samples all three cylindrical wall faces (coarser rings —
+   WALL_SAMPLE_SPACING 0.65 — so the walls, two-thirds of the skin, don't
+   drown the tops in the denominator; 437 samples total, was 218). Each
+   sample carries a surface NORMAL (+y tops, radial walls); the client
+   flattens blobs against it, so frosting visibly clings to the walls.
+   The paint law needed NO change — the vertical band and radius checks
+   already catch wall points; the walls just needed points to catch.
+   THE FORGIVENESS RULE (pinned): a short shot at the cake's foot frosts
+   the wall base instead of counting for nothing.
+2. **"Frosting should splat on the ground."** Impacts below y 0.6 leave a
+   flattened splat disc — décor only (floor frosting stays mess, never
+   coverage; not on the wire, FIFO-capped at 40, persists across deals
+   like the litter). A shot the game eats without a mark reads as a bug,
+   not a miss.
+3. **"What power reaches the bottom tier?"** At traverse 0, NO level power
+   can top it — 5 clicks impacts short (z −25.3, and now smacks/frosts the
+   wall), 6 clicks descends past the 1 m ring onto the middle tier; the
+   integer click between doesn't exist. The shots that do it: **notch 1 ×
+   7 clicks** (drops onto the bottom ledge dead center) or **±8° traverse
+   × level 6** (the middle tier's round footprint narrows off-axis, so the
+   ring deepens and catches the arc). With walls in the census the notch-1
+   ×7 ledge shot is now the BEST single splash in the game (~10.3% —
+   ledge + wall wrap both ways), which makes the screw the answer to the
+   bottom tier in points as well as geometry.
+
+Re-pins from the wall census (research/04 §3 re-run): frac 0.3 → **0.25**
+— the four-shot line (bottom ledge 1×7, summit front 1×8, summit back 0×7,
+a flank ±8°×6) sums ~34% raw, ~28–30% after overlap tax; a quarter clears
+with margin and sloppy shots still contribute (short = wall base 2.5%,
+wide 14° = wall catch 3.2% — misses are productive now). Tests 142 → 145.
+Verified live: the 5-click shot paints 11 wall-base blobs and moves the
+frost row (2.5%/25%); a 4-click open-ground shot leaves its splat disc;
+the 5-click shot leaves NONE because it never touches the floor — it hits
+the wall face directly, which is the physically-correct answer arriving
+on its own.
+
 ## Exit
 
 The visionary's playtest: **does frosting-then-sprinkles-then-crown feel
