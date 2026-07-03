@@ -151,10 +151,14 @@ measurement bodies and the cadence change.
    timing meter manufactured one. In 3D the execution cost is PHYSICAL —
    cranking the winch takes real seconds under a real clock, drop the winch
    and lose progress, and you personally ran the ammo over. The machine IS
-   the meter. The per-payload escalation the meterBand bought (frost
-   forgiving → cherry brutal) should be re-earned physically instead if
-   playtests want it (e.g. cherry needs a slower, finer winch — a data row,
-   not a meter).
+   the meter — and so is the GAUGE (visionary, 2026-07-03): the throwing
+   arm visibly winches down and back as you crank (main.ts renders
+   continuous arm rotation from tensionClicks + partial crank progress),
+   so power is read diegetically off the machine's body, in the world,
+   not off a HUD bar. The per-payload escalation the meterBand bought
+   (frost forgiving → cherry brutal) should be re-earned physically
+   instead if playtests want it (e.g. cherry needs a slower, finer winch —
+   a data row, not a meter).
 3. **Turn structure entirely**: hotseat alternation, `nextActor`, the
    non-projectile turn-resolution path. Real time dissolves them; the Room
    tick + Patron cadence replace them.
