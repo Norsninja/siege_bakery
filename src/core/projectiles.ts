@@ -164,41 +164,47 @@ export class ProjectileManager {
     const consumed: number[] = []; // collider handles; removed AFTER the drain
     this.queue.drainCollisionEvents((h1, h2, started) => {
       if (!started) return;
-      const handle = this.tracked.has(h1) ? h1 : this.tracked.has(h2) ? h2 : null;
-      if (handle === null) return;
-      const shot = this.tracked.get(handle);
-      if (!shot || shot.impacted) return;
-      shot.impacted = true;
-      const p = shot.body.translation();
-      impacts.push({
-        pos: { x: p.x, y: p.y, z: p.z },
-        speed: shot.lastSpeed,
-        topping: shot.topping,
-      });
-      // Paint: the impact IS the landing — no absorption, no settle wait.
-      if (shot.consumeOnImpact) {
-        consumed.push(handle);
-        return;
+      // BOTH sides of the pair may be tracked shots — a glob landing on a
+      // still-rolling topping, two lobs kissing mid-air. Each un-impacted
+      // side gets its first impact HERE: examining only one handle silently
+      // dropped the other's event (checkpoint audit 2026-07-03) — a solid
+      // skipped its absorption and caromed at full speed; a paint glob was
+      // "consumed" at its SECOND contact and painted the wrong spot.
+      for (const handle of [h1, h2]) {
+        const shot = this.tracked.get(handle);
+        if (!shot || shot.impacted) continue;
+        shot.impacted = true;
+        const p = shot.body.translation();
+        impacts.push({
+          pos: { x: p.x, y: p.y, z: p.z },
+          speed: shot.lastSpeed,
+          topping: shot.topping,
+        });
+        // Paint: the impact IS the landing — no absorption, no settle wait.
+        if (shot.consumeOnImpact) {
+          consumed.push(handle);
+          continue;
+        }
+        // The soft landing: bleed off almost all momentum at first contact.
+        const v = shot.body.linvel();
+        shot.body.setLinvel(
+          {
+            x: v.x * IMPACT_ABSORPTION,
+            y: v.y * IMPACT_ABSORPTION,
+            z: v.z * IMPACT_ABSORPTION,
+          },
+          true,
+        );
+        const w = shot.body.angvel();
+        shot.body.setAngvel(
+          {
+            x: w.x * IMPACT_ABSORPTION,
+            y: w.y * IMPACT_ABSORPTION,
+            z: w.z * IMPACT_ABSORPTION,
+          },
+          true,
+        );
       }
-      // The soft landing: bleed off almost all momentum at first contact.
-      const v = shot.body.linvel();
-      shot.body.setLinvel(
-        {
-          x: v.x * IMPACT_ABSORPTION,
-          y: v.y * IMPACT_ABSORPTION,
-          z: v.z * IMPACT_ABSORPTION,
-        },
-        true,
-      );
-      const w = shot.body.angvel();
-      shot.body.setAngvel(
-        {
-          x: w.x * IMPACT_ABSORPTION,
-          y: w.y * IMPACT_ABSORPTION,
-          z: w.z * IMPACT_ABSORPTION,
-        },
-        true,
-      );
     });
 
     for (const handle of consumed) {

@@ -249,6 +249,53 @@ describe("the lob, end to end (headless Rapier)", () => {
     throw new Error("no rest");
   });
 
+  it("a shot whose FIRST contact is another still-rolling shot still impacts (audit 2026-07-03)", () => {
+    // Bare flat world — pure projectile law, no arena. A drops and is
+    // mid-settle (impacted, still tracked) when B lands squarely ON it:
+    // both sides of the collision pair are tracked shots, and BOTH must
+    // report. Pre-fix, only one handle was examined and B's first impact
+    // (with its absorption) could vanish — the full-speed-carom regression.
+    const world = new RAPIER.World(GRAVITY);
+    world.timestep = FIXED_DT;
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(20, 0.1, 20).setTranslation(0, -0.1, 0),
+    );
+    const shots = new ProjectileManager();
+    shots.spawn(world, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 0 }, "cherry");
+    shots.spawn(world, { x: 0, y: 3.2, z: 0 }, { x: 0, y: 0, z: 0 }, "lime");
+    const impactsBy = new Map<string, number>();
+    for (let i = 0; i < 1800; i++) {
+      for (const im of shots.step(world).impacts)
+        impactsBy.set(im.topping, (impactsBy.get(im.topping) ?? 0) + 1);
+    }
+    expect(impactsBy.get("cherry")).toBe(1);
+    expect(impactsBy.get("lime")).toBe(1); // exactly once — and not zero
+  });
+
+  it("a glob first-contacting a rolling shot is consumed THERE, not at a later bounce", () => {
+    // Same drop, but the upper shot is paint: its first contact is the
+    // cherry's crown, ~0.9m up — the splat must be painted at THAT height,
+    // and the glob must leave the world at that instant.
+    const world = new RAPIER.World(GRAVITY);
+    world.timestep = FIXED_DT;
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(20, 0.1, 20).setTranslation(0, -0.1, 0),
+    );
+    const shots = new ProjectileManager();
+    shots.spawn(world, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 0 }, "cherry");
+    shots.spawn(world, { x: 0, y: 3.2, z: 0 }, { x: 0, y: 0, z: 0 }, "frosting", {
+      consumeOnImpact: true,
+    });
+    let globImpact: Impact | undefined;
+    for (let i = 0; i < 1800; i++) {
+      for (const im of shots.step(world).impacts)
+        if (im.topping === "frosting") globImpact = im;
+    }
+    expect(globImpact).toBeDefined();
+    expect(globImpact!.pos.y).toBeGreaterThan(0.7); // atop the cherry, not the floor
+    expect(shots.bodies.map((b) => b.topping)).toEqual(["cherry"]); // glob gone
+  });
+
   it("the settle ladder, per tier × notch (round tiers, plans/07 study)", () => {
     // Scoring truth is final REST position (visionary's rule, 2026-07-02).
     // Level (notch 0), the click ladder reads one-click-per-tier; +15°
