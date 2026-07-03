@@ -6,8 +6,10 @@ all verified: 55 tests green incl. headless two-client Room match; browser
 verified solo-loopback AND ws-joined (synthetic second client: ghost
 rendering, remote co-op cranking, shot broadcast, authoritative scoring
 and clock, loss banner over the network, room auto-deals a fresh order 10s
-after win/loss). REMAINING: the real two-tab human test, then (on demand)
-the tunneled friend test. Comedy note from verification: the synthetic
+after win/loss). TWO-TAB HUMAN TEST PASSED (visionary, 2026-07-03): both
+tabs load from http://localhost:5175 and share the room. REMAINING: the
+tunneled PC-to-PC friend test — the literal success test of the pivot.
+Comedy note from verification: the synthetic
 second baker overcranked to 8 clicks while unattended and the cherry sailed
 clean over the cake — the co-op failure mode works.*
 
