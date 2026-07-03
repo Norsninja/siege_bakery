@@ -20,13 +20,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
-import {
-  Baker,
-  EYE_HEIGHT_OFFSET,
-  CAPSULE_HALF_HEIGHT,
-  CAPSULE_RADIUS,
-  type BakerInput,
-} from "../core/baker";
+import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { SPLAT_SPEED, launchOrigin, launchVelocity } from "../core/ballistics";
 import { ProjectileManager, PROJECTILE_RADIUS } from "../core/projectiles";
 import {
@@ -44,25 +38,16 @@ import {
   buildArenaColliders,
 } from "../core/arena";
 import {
-  createCatapult,
-  TENSION_MAX_CLICKS,
   CRANK_TICKS_PER_CLICK,
+  TENSION_MAX_CLICKS,
   SCREW_TICKS_PER_NOTCH,
   TILT_DEG_PER_NOTCH,
   TILT_MAX_NOTCH,
-  type CatapultState,
 } from "../game/catapult";
-import { createOrder, tickOrder, type OrderState } from "../game/order";
-import type { Judgment, RequirementCheck } from "../game/judgment";
-import type { ServerMsg, HeldOp, PlayerPose } from "../game/protocol";
+import { tickOrder } from "../game/order";
+import type { ServerMsg, HeldOp } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
-import {
-  arcGlyph,
-  bannerText,
-  hudLines,
-  type InteractableKind,
-  type NetStatus,
-} from "./hud";
+import { arcGlyph, bannerText, hudLines, type InteractableKind } from "./hud";
 import {
   InputTracker,
   updateGrip,
@@ -70,6 +55,9 @@ import {
   deriveMove,
   machineEngaged,
 } from "./input";
+import { createMatchView } from "./state";
+import { applyServerMsg, type NetFx } from "./net-handlers";
+import { GhostManager } from "./ghosts";
 
 const REACH_M = 2.8; // how far the baker can reach an interactable
 const POSE_SEND_EVERY = 3; // ticks → 20Hz
@@ -78,7 +66,6 @@ const TOPPING_COLORS: Record<string, number> = {
   cherry: 0xc23b4e,
   lime: 0x77c34f,
 };
-const GHOST_COLORS = [0xe6b455, 0x6fb1e0, 0xc580d1, 0x7fcf9a, 0xd98f6d];
 
 async function main(): Promise<void> {
   await RAPIER.init();
@@ -90,17 +77,8 @@ async function main(): Promise<void> {
   const baker = new Baker(physics, BAKER_SPAWN);
   const shots = new ProjectileManager();
 
-  // --- Server-echoed match state (placeholders until `welcome`) ---
-  let machineState: CatapultState = createCatapult();
-  let crankTicks = 0;
-  let screwTicks = 0;
-  let order: OrderState = createOrder([], 90 * 60); // rows arrive with `welcome`
-  let checks: RequirementCheck[] = [];
-  let verdict: Judgment | null = null; // rides the order message that ENDS it
-  let lastPatron: { text: string; seq: number } | null = null;
-  let myId: number | null = null;
-  let carrying: string | null = null; // client-local inventory (plans/02)
-  let netStatus: NetStatus = "loopback";
+  // --- The match, as this client knows it (state.ts) ---
+  const view = createMatchView();
 
   // --- Three.js scene ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
@@ -277,36 +255,8 @@ async function main(): Promise<void> {
         (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x443300);
   };
 
-  // --- Other bakers: interpolated ghosts, client-auth poses relayed ---
-  interface Ghost {
-    group: THREE.Group;
-    target: PlayerPose;
-  }
-  const ghosts = new Map<number, Ghost>();
-  const upsertGhost = (pose: PlayerPose): void => {
-    const existing = ghosts.get(pose.id);
-    if (existing) {
-      existing.target = pose;
-      return;
-    }
-    const color = GHOST_COLORS[pose.id % GHOST_COLORS.length] ?? 0xe6b455;
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(CAPSULE_RADIUS, CAPSULE_HALF_HEIGHT * 2, 6, 12),
-      new THREE.MeshStandardMaterial({ color }),
-    );
-    group.add(body);
-    box(0.3, 0.08, 0.12, 0x222222, 0, 0.45, -CAPSULE_RADIUS, group); // visor
-    group.position.set(pose.x, pose.y, pose.z);
-    scene.add(group);
-    ghosts.set(pose.id, { group, target: pose });
-  };
-  const removeGhost = (id: number): void => {
-    const g = ghosts.get(id);
-    if (!g) return;
-    scene.remove(g.group);
-    ghosts.delete(id);
-  };
+  // --- Other bakers: interpolated ghosts (ghosts.ts) ---
+  const ghosts = new GhostManager(scene);
 
   // Projectiles in flight / at rest, and landing markers.
   const shotMeshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> = [];
@@ -333,85 +283,36 @@ async function main(): Promise<void> {
     flashUntil = performance.now() + ms;
   };
 
-  // --- Every word the room says ---
-  const handleServerMsg = (msg: ServerMsg): void => {
-    switch (msg.t) {
-      case "welcome":
-        myId = msg.id;
-        machineState = msg.machine;
-        crankTicks = msg.crankTicks;
-        screwTicks = msg.screwTicks;
-        order = msg.order;
-        checks = msg.checks;
-        for (const p of msg.poses) upsertGhost(p);
-        break;
-      case "join":
-        flash(`${msg.name} ran into the bakery!`);
-        break;
-      case "leave":
-        removeGhost(msg.id);
-        flash("a baker left");
-        break;
-      case "poses":
-        for (const p of msg.poses) upsertGhost(p);
-        break;
-      case "machine":
-        machineState = msg.state;
-        crankTicks = msg.crankTicks;
-        screwTicks = msg.screwTicks;
-        break;
-      case "shot": {
-        // Everyone simulates the same deterministic lob locally.
-        const body = shots.spawn(
-          physics,
-          launchOrigin(MACHINE_BASE, msg.traverseDeg),
-          launchVelocity(
-            msg.traverseDeg,
-            msg.tensionClicks,
-            msg.tiltNotch * TILT_DEG_PER_NOTCH,
-          ),
-          msg.topping,
-        );
-        const mesh = sphere(
-          PROJECTILE_RADIUS,
-          TOPPING_COLORS[msg.topping] ?? 0xc23b4e,
-          0,
-          -5,
-          0,
-        );
-        shotMeshes.push({ body, mesh });
-        flash(
-          `LOOSED! ${msg.topping} · ${msg.tensionClicks} clicks · ${msg.traverseDeg.toFixed(0)}°${msg.tiltNotch > 0 ? ` · arc +${msg.tiltNotch * TILT_DEG_PER_NOTCH}°` : ""}`,
-          2500,
-        );
-        break;
-      }
-      case "scored": {
-        // Did the checklist actually advance? (A lime ON the cake but
-        // outside the bullseye is on-cake yet counts for nothing.)
-        const sum = (cs: RequirementCheck[]): number =>
-          cs.reduce((n, c) => n + Math.min(c.current, c.target), 0);
-        const progressed = sum(msg.checks) > sum(checks);
-        order = msg.order;
-        checks = msg.checks;
-        if (progressed) flash(`✓ the patron counts the ${msg.topping}!`);
-        else if (msg.onCake)
-          flash(`the ${msg.topping} rests on the cake — but that's not what was asked`);
-        else flash(`no good — the ${msg.topping} didn't stay on the cake`);
-        break;
-      }
-      case "order":
-        order = msg.order;
-        checks = msg.checks;
-        if (msg.judgment) verdict = msg.judgment;
-        else if (msg.order.status === "running") verdict = null; // fresh deal
-        break;
-      case "patron":
-        lastPatron = { text: msg.text, seq: msg.seq };
-        flash(`THE GIANT — ${msg.text}`, 6000);
-        break;
-    }
+  // --- Every word the room says (net-handlers.ts); side effects live
+  // here, where the scene and the local physics world are. ---
+  const fx: NetFx = {
+    spawnShot: (msg) => {
+      // Everyone simulates the same deterministic lob locally.
+      const body = shots.spawn(
+        physics,
+        launchOrigin(MACHINE_BASE, msg.traverseDeg),
+        launchVelocity(
+          msg.traverseDeg,
+          msg.tensionClicks,
+          msg.tiltNotch * TILT_DEG_PER_NOTCH,
+        ),
+        msg.topping,
+      );
+      const mesh = sphere(
+        PROJECTILE_RADIUS,
+        TOPPING_COLORS[msg.topping] ?? 0xc23b4e,
+        0,
+        -5,
+        0,
+      );
+      shotMeshes.push({ body, mesh });
+    },
+    upsertGhost: (p) => ghosts.upsert(p),
+    removeGhost: (id) => ghosts.remove(id),
+    flash,
   };
+  const handleServerMsg = (msg: ServerMsg): void =>
+    applyServerMsg(view, msg, fx);
 
   // --- Transport pick: explicit ?join, room-server origin, else loopback ---
   const joinParam = new URLSearchParams(location.search).get("join");
@@ -420,9 +321,9 @@ async function main(): Promise<void> {
   let transport: Transport;
   let tickRoom: (() => void) | null = null;
   if (wsUrl) {
-    netStatus = "connecting";
+    view.netStatus = "connecting";
     transport = connectWs(wsUrl, handleServerMsg, (s) => {
-      netStatus = s;
+      view.netStatus = s;
     });
   } else {
     const loop = connectLoopback(handleServerMsg);
@@ -437,7 +338,7 @@ async function main(): Promise<void> {
   window.addEventListener("keydown", (e) => {
     // Greybox restart: reload is the honest reset. Game-flow, not input
     // mechanics — stays with the order state it reads.
-    if (e.code === "KeyR" && order.status !== "running")
+    if (e.code === "KeyR" && view.order.status !== "running")
       window.location.reload();
   });
   window.addEventListener("resize", () => {
@@ -490,9 +391,9 @@ async function main(): Promise<void> {
       const grip = heldTarget ?? target;
 
       // Pantry pickup: hands must be empty, one topping at a time.
-      if (eEdge && carrying === null) {
-        if (target === "shelf-cherry") carrying = "cherry";
-        else if (target === "shelf-lime") carrying = "lime";
+      if (eEdge && view.carrying === null) {
+        if (target === "shelf-cherry") view.carrying = "cherry";
+        else if (target === "shelf-lime") view.carrying = "lime";
       }
 
       // Hold state on the machine → send only on change. HOLD ops read the
@@ -509,17 +410,17 @@ async function main(): Promise<void> {
       // Edges.
       if (eEdge && target === "lever") {
         transport.send({ t: "lever" });
-        if (machineState.loaded === null)
+        if (view.machine.loaded === null)
           flash("dry release — the crank was for nothing", 2500);
       }
       if (
         eEdge &&
         target === "bucket" &&
-        carrying !== null &&
-        machineState.loaded === null
+        view.carrying !== null &&
+        view.machine.loaded === null
       ) {
-        transport.send({ t: "load", topping: carrying });
-        carrying = null;
+        transport.send({ t: "load", topping: view.carrying });
+        view.carrying = null;
       }
 
       // Hands on the machine = feet planted. Otherwise, normal movement.
@@ -540,7 +441,7 @@ async function main(): Promise<void> {
       if (tickRoom) tickRoom();
 
       // Local clock prediction between authoritative order messages.
-      order = tickOrder(order);
+      view.order = tickOrder(view.order);
 
       // Local visual projectile sim: markers + splat readout only.
       const ev = shots.step(physics);
@@ -552,11 +453,11 @@ async function main(): Promise<void> {
         );
       }
 
-      if (order.status !== "running" && !bannerShown && banner) {
+      if (view.order.status !== "running" && !bannerShown && banner) {
         bannerShown = true;
-        banner.textContent = bannerText(order, checks, verdict);
+        banner.textContent = bannerText(view.order, view.checks, view.verdict);
         banner.style.display = "flex";
-      } else if (order.status === "running" && bannerShown && banner) {
+      } else if (view.order.status === "running" && bannerShown && banner) {
         // The room dealt a fresh order — clear the slate.
         bannerShown = false;
         banner.style.display = "none";
@@ -569,7 +470,7 @@ async function main(): Promise<void> {
     camera.position.set(p.x, p.y + EYE_HEIGHT_OFFSET, p.z);
     camera.rotation.set(input.pitch, input.yaw, 0);
 
-    machine.rotation.y = (machineState.traverseDeg * Math.PI) / 180;
+    machine.rotation.y = (view.machine.traverseDeg * Math.PI) / 180;
     // The frame tilts around its planted REAR; partial screw progress
     // previews the coming notch. The jack post extends to hold the nose —
     // its height is the analog gauge.
@@ -577,7 +478,7 @@ async function main(): Promise<void> {
       TILT_MAX_NOTCH * TILT_DEG_PER_NOTCH,
       Math.max(
         0,
-        (machineState.tiltNotch + screwTicks / SCREW_TICKS_PER_NOTCH) *
+        (view.machine.tiltNotch + view.screwTicks / SCREW_TICKS_PER_NOTCH) *
           TILT_DEG_PER_NOTCH,
       ),
     );
@@ -588,46 +489,37 @@ async function main(): Promise<void> {
     screwPost.scale.y = postScale;
     screwPost.position.y = 0.3 * postScale;
     screwHandle.position.y = 0.6 * postScale + 0.02;
-    screwHandle.rotation.y = screwTicks * 0.3; // the jack handle works
+    screwHandle.rotation.y = view.screwTicks * 0.3; // the jack handle works
     // The moment a notch engages, say so — the CLUNK is the readout.
-    if (machineState.tiltNotch !== lastTiltNotch) {
-      const dir = machineState.tiltNotch > lastTiltNotch ? "raised" : "lowered";
+    if (view.machine.tiltNotch !== lastTiltNotch) {
+      const dir = view.machine.tiltNotch > lastTiltNotch ? "raised" : "lowered";
       flash(
-        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(machineState.tiltNotch)}`,
+        `CLUNK — arc ${dir} to +${view.machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(view.machine.tiltNotch)}`,
         2500,
       );
-      lastTiltNotch = machineState.tiltNotch;
+      lastTiltNotch = view.machine.tiltNotch;
     }
     const tensionFrac =
-      (machineState.tensionClicks + crankTicks / CRANK_TICKS_PER_CLICK) /
+      (view.machine.tensionClicks + view.crankTicks / CRANK_TICKS_PER_CLICK) /
       TENSION_MAX_CLICKS;
     armPivot.rotation.x = 0.5 + tensionFrac * 0.7; // arm winches down and back
-    if (crankTicks !== lastCrankTicks) {
+    if (view.crankTicks !== lastCrankTicks) {
       totalCrankSpins += 1;
-      lastCrankTicks = crankTicks;
+      lastCrankTicks = view.crankTicks;
     }
     drumMesh.rotation.x = totalCrankSpins * 0.05;
-    toppingMesh.visible = machineState.loaded !== null;
-    if (machineState.loaded !== null)
+    toppingMesh.visible = view.machine.loaded !== null;
+    if (view.machine.loaded !== null)
       (toppingMesh.material as THREE.MeshStandardMaterial).color.setHex(
-        TOPPING_COLORS[machineState.loaded] ?? 0xc23b4e,
+        TOPPING_COLORS[view.machine.loaded] ?? 0xc23b4e,
       );
-    heldMesh.visible = carrying !== null;
-    if (carrying !== null)
+    heldMesh.visible = view.carrying !== null;
+    if (view.carrying !== null)
       (heldMesh.material as THREE.MeshStandardMaterial).color.setHex(
-        TOPPING_COLORS[carrying] ?? 0xffffff,
+        TOPPING_COLORS[view.carrying] ?? 0xffffff,
       );
 
-    for (const g of ghosts.values()) {
-      g.group.position.lerp(
-        new THREE.Vector3(g.target.x, g.target.y, g.target.z),
-        0.25,
-      );
-      const dy =
-        ((g.target.yaw - g.group.rotation.y + Math.PI * 3) % (Math.PI * 2)) -
-        Math.PI;
-      g.group.rotation.y += dy * 0.25;
-    }
+    ghosts.update();
 
     for (const s of shotMeshes) {
       const t = s.body.translation();
@@ -636,14 +528,14 @@ async function main(): Promise<void> {
 
     if (hud) {
       hud.textContent = hudLines({
-        order,
-        checks,
-        machine: machineState,
-        crankTicks,
-        carrying,
-        netStatus,
-        ghostCount: ghosts.size,
-        myId,
+        order: view.order,
+        checks: view.checks,
+        machine: view.machine,
+        crankTicks: view.crankTicks,
+        carrying: view.carrying,
+        netStatus: view.netStatus,
+        ghostCount: ghosts.count,
+        myId: view.myId,
         locked: document.pointerLockElement === canvas,
         target,
         flash: now < flashUntil ? flashMsg : null,
@@ -664,19 +556,19 @@ async function main(): Promise<void> {
       baker,
       shots,
       send: (m: Parameters<Transport["send"]>[0]) => transport.send(m),
-      getMachine: () => ({ ...machineState, crankTicks }),
+      getMachine: () => ({ ...view.machine, crankTicks: view.crankTicks }),
       getTarget: () => target,
-      getOrder: () => ({ ...order }),
-      getChecks: () => checks.map((c) => ({ ...c })),
-      getJudgment: () => (verdict ? { ...verdict } : null),
-      getLastPatron: () => (lastPatron ? { ...lastPatron } : null),
-      getCarrying: () => carrying,
+      getOrder: () => ({ ...view.order }),
+      getChecks: () => view.checks.map((c) => ({ ...c })),
+      getJudgment: () => (view.verdict ? { ...view.verdict } : null),
+      getLastPatron: () => (view.lastPatron ? { ...view.lastPatron } : null),
+      getCarrying: () => view.carrying,
       setCarrying: (t: string | null) => {
-        carrying = t;
+        view.carrying = t;
       },
-      getGhosts: () => [...ghosts.keys()],
-      getNetStatus: () => netStatus,
-      getMyId: () => myId,
+      getGhosts: () => ghosts.ids(),
+      getNetStatus: () => view.netStatus,
+      getMyId: () => view.myId,
       setDebugInput: (i: BakerInput | null) => {
         debugInput = i;
       },
