@@ -20,7 +20,7 @@ import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
 import { FrostingField } from "../core/frosting";
 import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
-import { isPaint } from "../game/toppings";
+import { isPaint, TOPPINGS } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
 import {
   createCatapult,
@@ -172,24 +172,56 @@ export class Room {
     this.broadcast({ t: "leave", id });
   }
 
+  /** The Room's FIELD-validation boundary (checkpoint audit, 2026-07-03).
+   * The wire is typed but the internet is not: every field is re-checked
+   * here, unknown fields are dropped by copying only the known ones, and
+   * anything malformed is ignored whole. main.ts owns transport HEALTH
+   * (frame size, heartbeats, member cap); this owns message TRUTH. */
   onMessage(id: number, msg: ClientMsg): void {
     const m = this.members.get(id);
     if (!m) return;
     switch (msg.t) {
       case "hello":
-        m.name = msg.name || m.name;
+        if (typeof msg.name === "string")
+          m.name = msg.name.slice(0, 24) || m.name;
         break;
-      case "pose":
-        m.pose = msg.pose;
+      case "pose": {
+        // Copy the four known fields only: a spread would re-broadcast any
+        // junk a client packed in (20Hz amplification); a missing pose or a
+        // non-finite coordinate would NaN-poison every ghost mesh.
+        const p = msg.pose as Partial<Pose> | undefined;
+        if (
+          p != null &&
+          Number.isFinite(p.x) &&
+          Number.isFinite(p.y) &&
+          Number.isFinite(p.z) &&
+          Number.isFinite(p.yaw)
+        )
+          m.pose = { x: p.x!, y: p.y!, z: p.z!, yaw: p.yaw! };
         break;
+      }
       case "op":
-        m.held = { turn: msg.turn, screw: msg.screw, crank: msg.crank };
+        m.held = {
+          turn: msg.turn === 1 || msg.turn === -1 ? msg.turn : 0,
+          screw: msg.screw === 1 || msg.screw === -1 ? msg.screw : 0,
+          crank: msg.crank === true,
+        };
         break;
       case "lever":
         m.leverPulls++;
         break;
       case "load":
-        if (m.loads.length < 2) m.loads.push(msg.topping);
+        // The pantry table is the whitelist. Mistakes-execute is about
+        // grabbing the wrong CRATE — every crate is in the table; a string
+        // that isn't came from a hostile client, and it would live forever
+        // in the ledger and every welcome snapshot. hasOwn, not `in`:
+        // "__proto__" and "toString" are in every record's chain.
+        if (
+          typeof msg.topping === "string" &&
+          Object.prototype.hasOwnProperty.call(TOPPINGS, msg.topping) &&
+          m.loads.length < 2
+        )
+          m.loads.push(msg.topping);
         break;
     }
   }

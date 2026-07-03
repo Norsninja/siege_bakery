@@ -289,4 +289,53 @@ describe("Room: the match, headless over protocol", () => {
     expect(b.inbox.length).toBe(before);
     expect(room.memberCount()).toBe(1);
   });
+
+  // The wire is typed but the internet is not (checkpoint audit 2026-07-03):
+  // the friend test exposes the room to every port-scanner on earth, so the
+  // Room's field boundary is part of the match rules now.
+  describe("hostile wire input stops at the Room's boundary", () => {
+    it("a malformed pose is dropped whole; junk fields never ride the relay", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      const b = connect(room, "bob");
+      room.onMessage(a.id, { t: "pose" } as never); // no pose at all
+      room.onMessage(a.id, { t: "pose", pose: { x: NaN, y: 0, z: 0, yaw: 0 } });
+      run(room, 6);
+      expect(b.last("poses")).toBeUndefined(); // neither one survived
+      room.onMessage(a.id, {
+        t: "pose",
+        pose: { x: 1, y: 2, z: 3, yaw: 0.5, junk: "x".repeat(64) } as never,
+      });
+      run(room, 3);
+      // Exactly the four known fields relay — nothing a client packed in.
+      expect(b.last("poses")?.poses).toEqual([
+        { id: a.id, x: 1, y: 2, z: 3, yaw: 0.5 },
+      ]);
+    });
+
+    it("an off-table load never reaches the bucket (or the eternal ledger)", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      for (const topping of ["__proto__", "toString", "anvil", 7 as never])
+        room.onMessage(a.id, { t: "load", topping: topping as string });
+      run(room, 6);
+      expect(a.last("machine")?.state.loaded ?? null).toBeNull();
+    });
+
+    it("garbage op fields normalize to idle, not to motion", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      room.onMessage(a.id, {
+        t: "op",
+        turn: 5,
+        screw: -9,
+        crank: "yes",
+      } as never);
+      run(room, 120);
+      const m = a.last("machine");
+      expect(m?.state.traverseDeg).toBe(0);
+      expect(m?.state.tiltNotch).toBe(0);
+      expect(m?.state.tensionClicks).toBe(0);
+    });
+  });
 });
