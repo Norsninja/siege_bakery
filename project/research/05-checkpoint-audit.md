@@ -92,3 +92,37 @@ keep their body and every census re-reads position + onCake. Consequences:
 - Process law stands: splat-constant changes re-run research/04 §3 and
   re-pin frac/par/clock together; the 437 count is now a pinned wire
   format — census changes re-pin it consciously.
+
+## Structural feedback (same session, discussed with the visionary)
+
+DONE (STRUCT commits):
+1. **game/tuning.ts** — THE economy dashboard: order clock/par/linger/look
+   cadence, frost frac, sprinkle count, patience burns, plus the
+   effective-clock and shot-cycle math in the header. The economy redesign
+   is now one legible diff. Row SHAPES stay in room.ts; splat radii stay
+   with the paint law in core/frosting.ts (dashboard points at them).
+2. **The ledger seam** — every scoring READ of the settled ledger flows
+   through Room.ledger(), which does the live-truth refresh: the
+   "remember to call refreshLedger first" trap is gone; a new census site
+   cannot forget.
+3. **tsconfig.headless.json** — core/game/server compile WITHOUT the DOM
+   lib (lib ES2022, node types) as part of `npm run check`. Verified: a
+   deliberate `window` in core/ passes root tsc (DOM lib — the old blind
+   spot) and FAILS the fence.
+
+PARKED, in priority order:
+4. **Room.tick() decomp** — it is at the size main.ts was when the decomp
+   phase was ordered (intent merge, load arbitration, machine, scoring,
+   patron cadence, clock, re-deal, three broadcast cadences). Give the
+   order lifecycle an explicit state machine and split roster/relay from
+   match rules BEFORE the second catapult / towns slice.
+5. **Patron amendments-as-data** — patron.act mutates order rows in place
+   (2D law); returning amendments the Room applies would make message flow
+   honest end-to-end. Do when a second patron type arrives.
+6. **Shared scripted-baker test driver** — crankTo/screw/fire helpers are
+   copy-pasted across room tests; extract when next touched.
+
+Deliberately left alone: full-checks-per-message protocol (simplicity is
+why net-handlers is testable), InstancedMesh full-matrix refresh (the
+blob-per-sample "you see the census" property is a design asset), litter
+body accumulation (now load-bearing gameplay via live-truth).

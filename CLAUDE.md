@@ -47,8 +47,11 @@ Assets: Blender → glTF export → `GLTFLoader`. Blender is the level/prop edit
 - `src/server/` — Room (THE match implementation, transport-agnostic) +
   Node ws entry. Imports `core/` + `game/` only.
 
-**LAW:** `core/` and `game/` must run headless in Node — vitest is the
-tripwire. Only `client/` may touch `window`/DOM/three.js.
+**LAW:** `core/` and `game/` must run headless in Node — enforced TWICE:
+`tsconfig.headless.json` compiles core/game/server WITHOUT the DOM lib
+(part of `npm run check` — `window` in core is a type error), and vitest
+runs them in Node (plus src/determinism-tripwire.test.ts scans for
+clocks/randomness). Only `client/` may touch `window`/DOM/three.js.
 
 **Determinism:** seeded RNG only (`core/rng.ts`) — never `Math.random()`;
 no wall-clock reads in `core/`/`game/`; fixed 60Hz timestep decoupled from

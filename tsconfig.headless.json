@@ -1,0 +1,14 @@
+{
+  // THE LAYERING FENCE, compiler-enforced (structural feedback session,
+  // 2026-07-03): core/ + game/ + server/ must run headless in Node, so
+  // they compile WITHOUT the DOM lib — `window` in core/ is now a type
+  // error, not a hope that some test executes the offending line. The
+  // root tsconfig still covers everything (client included) with DOM.
+  // Run via `npm run check` (tsc -p tsconfig.headless.json).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src/core", "src/game", "src/server"]
+}
