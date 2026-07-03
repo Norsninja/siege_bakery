@@ -57,14 +57,14 @@ export const PATRON_LOOK_EVERY = 12 * 60;
 
 export const ORDER_SECONDS = 90;
 
-/** The standing toy order until the Patron deals real ones (Step 3):
- * cherries anywhere on the top, one lime in the bullseye. Fresh rows every
- * deal — orders are mutable and must never share requirement objects. */
+/** The standing toy order until frosting lands: cherries on the cake.
+ * LIMES ARE NEVER ORDERED — the lime is the pantry DECOY (visionary,
+ * 2026-07-03): grab the wrong crate under pressure and it fires anyway,
+ * lands anyway, counts only as mess. Real orders follow the decorating
+ * truth — frosting, sprinkles, cherries on top — as those toppings land.
+ * Fresh rows every deal — orders are mutable, never share row objects. */
 export function standardRequirements(): Requirement[] {
-  return [
-    { kind: "count-on-cake", topping: "cherry", needed: 2 },
-    { kind: "count-in-zone", topping: "lime", zone: "peak", needed: 1 },
-  ];
+  return [{ kind: "count-on-cake", topping: "cherry", needed: 3 }];
 }
 
 interface Member {

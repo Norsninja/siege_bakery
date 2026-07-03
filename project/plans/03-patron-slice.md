@@ -148,3 +148,33 @@ Visionary verdict after Step 4: is the Patron's presence net fun — tension
 and comedy, not noise? Record verdict + which rules landed flat (they're
 data rows; retuning is cheap). Then the fork continues per the port-gap doc:
 frosting + census next.
+
+**VERDICT (2026-07-03): SUCCESS.** Playtested over the restarted room
+server: "it was fun. The Giant's comments are great." Notes to fold in:
+1. **The dead-center cherry is very hard for testing** — with no frosting
+   or sprinkles yet, every row is a placement exam; there is no forgiving
+   work to alternate with, and the peak's depth window is essentially one
+   tension click wide.
+2. **The pennant belongs near the MACHINE, not on the cake** — it is the
+   wind instrument you read from the firing position (design lineage:
+   "read the pennant and the last splat"); planting it in the cake
+   conflated the wind-reading prop with the bullseye marker.
+3. **LIMES ARE A DECOY** — never ordered; the lime crate exists so hurried
+   hands grab the wrong thing (mistakes execute). Real orders follow the
+   decorating truth: frosting, sprinkles, cherries ON TOP.
+4. **The cherry rule is the CROWN, not a floor zone** — "cherry should be
+   the uppermost topping." The test cake must grow to THREE TIERS; the top
+   tier gives "on top" honest geometry and honest difficulty.
+5. **The arc must be shapeable** — the 2D catapult could raise trajectory
+   into the sky (artillery term: ELEVATION; high-angle fire). Fixed 55°
+   can't drop onto a top tier or trade speed for steepness. Needs design
+   discussion (recorded as the "high arc" question).
+
+**NOTES PASS (built 2026-07-03, same session):** standing order → 3 ×
+cherry ON the cake (no lime rows, ever); Giant's demand trigger became
+progress-based (total delivered ≥ half asked — a fully-met single-row
+order ends before he can speak otherwise); PEAK_HALF 1.5 → 2.25 and the
+peak explicitly re-labeled the future top tier's footprint (the crown's
+stand-in until tiers); pennant moved to stand beside the machine plinth.
+72 tests green; browser-verified (pennant by the machine, cherries-only
+checklist, the Giant grumbling on cadence).

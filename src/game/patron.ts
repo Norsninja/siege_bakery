@@ -80,12 +80,20 @@ export function createGiant(): Patron {
         }
       }
 
-      // 3. Half the boxes ticked and no crown promised? He wants one NOW.
-      //    (Appends a row — the order is deliberately mutable.)
+      // 3. The bake half done and no crown promised? He wants one NOW.
+      //    Progress-based (not rows-met — a fully met order ENDS before he
+      //    can speak): total delivered ≥ half of total asked. The demand
+      //    appends a row — the order is deliberately mutable. DEAD CENTER
+      //    is the crown's stand-in until the cake grows tiers (plans/03).
+      const asked = ctx.checks.reduce((n, c) => n + c.target, 0);
+      const delivered = ctx.checks.reduce(
+        (n, c) => n + Math.min(c.current, c.target),
+        0,
+      );
       if (
         !demanded &&
-        ctx.checks.length > 0 &&
-        ctx.checks.filter((c) => c.met).length * 2 >= ctx.checks.length &&
+        asked > 0 &&
+        delivered * 2 >= asked &&
         !ctx.order.requirements.some(
           (r) => r.kind === "count-in-zone" && r.topping === "cherry",
         )

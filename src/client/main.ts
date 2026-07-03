@@ -176,11 +176,12 @@ async function main(): Promise<void> {
   peakZone.rotation.x = -Math.PI / 2;
   peakZone.position.set(CAKE_POS.x, CAKE_POS.y + CAKE_HALF.y + 0.01, CAKE_POS.z);
   scene.add(peakZone);
-  // From the ground the painted square is invisible (grazing angle), so the
-  // bullseye also flies a marker pennant readable from the catapult.
-  const cakeTopY = CAKE_POS.y + CAKE_HALF.y;
-  box(0.06, 1.6, 0.06, 0xefe3d0, CAKE_POS.x, cakeTopY + 0.8, CAKE_POS.z);
-  box(0.7, 0.3, 0.02, 0xd8452e, CAKE_POS.x + 0.38, cakeTopY + 1.35, CAKE_POS.z);
+  // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): it is
+  // the wind instrument you read from the firing position — when wind
+  // arrives, this flag is the forecast. The painted square on the cake top
+  // stays for the spotter to call.
+  box(0.06, 2.4, 0.06, 0xefe3d0, PLINTH_POS.x + 1.8, 1.2, PLINTH_POS.z - 0.6);
+  box(0.7, 0.3, 0.02, 0xd8452e, PLINTH_POS.x + 2.18, 2.2, PLINTH_POS.z - 0.6);
   for (let z = -CROSS_HALF; z <= CROSS_HALF; z += 6)
     box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z); // crossing stripes
 

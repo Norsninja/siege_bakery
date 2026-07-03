@@ -80,11 +80,12 @@ export function isOnCake(pos: Vec3): boolean {
 }
 
 /** Named scoring zones orders can demand (slice 2). "cake" = anywhere on
- * the top; "peak" = the bullseye square at the top's center — "one lime,
- * dead center" is now orderable. More zones (tiers, town roofs) come with
- * their slices. */
+ * the top; "peak" = the top-center square — the FUTURE TOP TIER's
+ * footprint (visionary, 2026-07-03: the real rule is the CROWN — cherry
+ * as uppermost topping; peak is its stand-in until the cake goes three
+ * tiers and "on top" gets honest geometry). */
 export type ZoneId = "cake" | "peak";
-export const PEAK_HALF = 1.5;
+export const PEAK_HALF = 2.25;
 
 export function isInZone(zone: ZoneId, pos: Vec3): boolean {
   if (zone === "cake") return isOnCake(pos);
