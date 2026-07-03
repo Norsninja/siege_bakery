@@ -16,6 +16,7 @@ import {
   SPLAT_SPEED,
 } from "./ballistics";
 import { ProjectileManager, type Impact } from "./projectiles";
+import { Baker } from "./baker";
 import {
   buildArenaColliders,
   MACHINE_BASE,
@@ -168,6 +169,32 @@ describe("the lob, end to end (headless Rapier)", () => {
     expect(impacts).toBe(1); // bounces and skids don't re-report
     expect(settles).toBe(1); // rest is reported once, then untracked
     expect(shots.bodies.length).toBe(1); // and the topping stays in the world
+  });
+
+  it("a baker under the arc never perturbs the shot (F3: shots ignore bakers)", () => {
+    // Each client's world holds its OWN baker; the Room's holds none. If a
+    // capsule could touch a lob, arcs would land differently per machine.
+    // The flop is the harshest case — it drops exactly where operators
+    // stand. Same arc, capsule or no capsule, byte-identical rest.
+    const flopWithout = fireAndSettle(0);
+    const sixWithout = fireAndSettle(6);
+    const settleWithBaker = (clicks: number) => {
+      const { world, shots } = makeRange();
+      new Baker(world, { x: 0, y: 0.85, z: MACHINE_BASE.z - 0.5 }); // in the drop zone
+      shots.spawn(
+        world,
+        launchOrigin(MACHINE_BASE, 0),
+        launchVelocity(0, clicks),
+        "cherry",
+      );
+      for (let i = 0; i < 1800; i++) {
+        const first = shots.step(world).settled[0];
+        if (first) return first.pos;
+      }
+      throw new Error("no rest");
+    };
+    expect(settleWithBaker(0)).toEqual(flopWithout);
+    expect(settleWithBaker(6)).toEqual(sixWithout);
   });
 
   it("the settle ladder, per tier × notch (plans/05 study, re-pinned)", () => {

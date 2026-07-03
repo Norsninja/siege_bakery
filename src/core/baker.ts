@@ -12,7 +12,7 @@
  * the two speeds below brackets exactly that window; baker.test.ts pins it.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
-import { FIXED_DT } from "./constants";
+import { BAKER_COLLISION_GROUPS, FIXED_DT } from "./constants";
 
 /** Pantry-to-catapult crossing distance the speeds are tuned against. */
 export const ARENA_CROSSING_M = 24;
@@ -69,7 +69,10 @@ export class Baker {
       ),
     );
     this.collider = world.createCollider(
-      RAPIER.ColliderDesc.capsule(CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS),
+      // Bakers never touch shots (F3, see constants.ts) — the client's
+      // local capsule must not contaminate the deterministic arcs.
+      RAPIER.ColliderDesc.capsule(CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS)
+        .setCollisionGroups(BAKER_COLLISION_GROUPS),
       this.body,
     );
     this.controller = world.createCharacterController(0.01);

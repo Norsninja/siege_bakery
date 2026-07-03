@@ -18,6 +18,7 @@
  * that will one day be broadcast to clients.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
+import { SHOT_COLLISION_GROUPS } from "./constants";
 import type { Vec3 } from "./ballistics";
 
 export const PROJECTILE_RADIUS = 0.3;
@@ -89,6 +90,9 @@ export class ProjectileManager {
       RAPIER.ColliderDesc.ball(PROJECTILE_RADIUS)
         .setRestitution(0.1) // toppings land, they don't bounce
         .setFriction(0.9)
+        // Shots never touch bakers (F3, see constants.ts): arcs must land
+        // identically in every world, with or without a capsule under them.
+        .setCollisionGroups(SHOT_COLLISION_GROUPS)
         .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
       body,
     );
