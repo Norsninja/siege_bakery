@@ -12,8 +12,10 @@
  *      or shed them? (Squares had corners to wedge against; circles don't.)
  *
  * Reproducible: `npx tsx project/research/04-cylinder-tier-study.mts`.
- * A third section (single-splat coverage per landing) joins once
- * core/frosting.ts exists — see plans/07 phase R.
+ *
+ *   3. (Added with phase F, as planned) Single-splat coverage per on-cake
+ *      landing: each impact painted onto a fresh FrostingField — the data
+ *      that pins the standing order's frac and parShots (phase O).
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../../src/core/constants";
@@ -145,6 +147,60 @@ function row(
 }
 
 await RAPIER.init();
+
+// --- Section 3: single-splat coverage (frosting, phase F) -----------------
+// Frosting scores at IMPACT, so we fire the LIVE arena (core/arena, the
+// study winner now shipped) and paint each impact onto a fresh field.
+// eslint-disable-next-line import/first
+const { buildArenaColliders } = await import("../../src/core/arena");
+const { FrostingField } = await import("../../src/core/frosting");
+
+function frostShot(
+  traverseDeg: number,
+  clicks: number,
+  notch: number,
+): { painted: number; coverage: number; speed: number } {
+  const world = new RAPIER.World(GRAVITY);
+  world.timestep = FIXED_DT;
+  buildArenaColliders(world);
+  const shots = new ProjectileManager();
+  shots.spawn(
+    world,
+    launchOrigin(MACHINE_BASE, traverseDeg),
+    launchVelocity(traverseDeg, clicks, notch * TILT_DEG_PER_NOTCH),
+    "frosting",
+    { consumeOnImpact: true },
+  );
+  for (let i = 0; i < 3600; i++) {
+    const ev = shots.step(world);
+    const im = ev.impacts[0];
+    if (im) {
+      const field = new FrostingField();
+      const painted = field.paint(im.pos, im.speed);
+      return { painted, coverage: field.coverage(), speed: im.speed };
+    }
+  }
+  return { painted: 0, coverage: 0, speed: 0 };
+}
+
+console.log("\n=== single-splat coverage (live arena, fresh field each) ===");
+console.log("trav  notch clicks  impact  painted  coverage");
+for (const [trav, notch, clicks] of [
+  [0, 0, 5],
+  [0, 0, 6],
+  [0, 0, 7],
+  [0, 1, 7],
+  [0, 1, 8],
+  [8, 0, 6],
+  [8, 1, 8],
+  [14, 0, 6],
+  [-11, 0, 6],
+] as const) {
+  const r = frostShot(trav, clicks, notch);
+  console.log(
+    `${String(trav).padStart(4)}   ${notch}     ${clicks}     ${r.speed.toFixed(1).padStart(5)}   ${String(r.painted).padStart(4)}    ${(r.coverage * 100).toFixed(1).padStart(5)}%`,
+  );
+}
 
 for (const [name, tiers] of Object.entries(CANDIDATES)) {
   console.log(`\n=== ${name} ===`);

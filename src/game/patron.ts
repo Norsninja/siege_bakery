@@ -88,19 +88,23 @@ export function createGiant(): Patron {
 
       // 3. The bake half done and no crown promised? He wants one NOW.
       //    Progress-based (not rows-met — a fully met order ENDS before he
-      //    can speak): total delivered ≥ half of total asked. The demand
-      //    appends a row — the order is deliberately mutable. The crown is
-      //    the REAL rule (plans/05): a cherry as the uppermost topping,
-      //    resting on the top tier — the peak-zone stand-in retired.
-      const asked = ctx.checks.reduce((n, c) => n + c.target, 0);
-      const delivered = ctx.checks.reduce(
-        (n, c) => n + Math.min(c.current, c.target),
+      //    can speak), NORMALIZED per row (plans/07): each row contributes
+      //    its own fraction done, so the frost row's 0.3 target weighs the
+      //    same as a 3-sprinkle row — raw sums would let fractions poison
+      //    the arithmetic. Coverage now feeds the trigger: he demands the
+      //    crown when the cake is actually getting dressed (the 2D
+      //    "cherry when the cake looks good" rule, real at last). The
+      //    demand appends the ONLY cherry row that ever exists — the
+      //    one-number law's enforcement half.
+      const rows = ctx.checks.length;
+      const progress = ctx.checks.reduce(
+        (n, c) => n + Math.min(1, c.current / Math.max(c.target, 1e-9)),
         0,
       );
       if (
         !demanded &&
-        asked > 0 &&
-        delivered * 2 >= asked &&
+        rows > 0 &&
+        progress * 2 >= rows &&
         !ctx.order.requirements.some((r) => r.kind === "crown")
       ) {
         demanded = true;

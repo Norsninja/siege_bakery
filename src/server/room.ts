@@ -58,16 +58,29 @@ const ORDER_RESET_TICKS = 600; // 10s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = 12 * 60;
 
-export const ORDER_SECONDS = 90;
+/** 120s: the honest order asks ~7–8 good shots (3–4 varied frosting
+ * splashes + sprinkles + the crown) where the toy order asked 4 in 90s.
+ * First knob the playtest turns if the bakery feels rushed or slack. */
+export const ORDER_SECONDS = 120;
+/** Par: the good-shot count of a clean line (research/04 §3). */
+export const ORDER_PAR_SHOTS = 8;
 
-/** The standing toy order until frosting lands: cherries on the cake.
- * LIMES ARE NEVER ORDERED — the lime is the pantry DECOY (visionary,
- * 2026-07-03): grab the wrong crate under pressure and it fires anyway,
- * lands anyway, counts only as mess. Real orders follow the decorating
- * truth — frosting, sprinkles, cherries on top — as those toppings land.
+/** THE HONEST ORDER (plans/07 phase O) — the decorating truth as a ticket:
+ * frost the cake, sprinkles on the frosting, and the Giant's mid-order
+ * demand is the ONLY cherry row that ever exists. THE ONE-NUMBER LAW:
+ * every row is one number of one thing, and a topping appears in at most
+ * one row per order — the "is it 4 cherries or 5" arithmetic is impossible
+ * by construction. LIMES ARE NEVER ORDERED — the lime is the pantry DECOY
+ * (visionary, 2026-07-03): grab the wrong crate under pressure and it
+ * fires anyway, lands anyway, counts only as mess. frac 0.3 = 3–4 varied
+ * splashes (research/04 §3: a good splash covers 8–12%, and identical
+ * arcs re-coat the SAME spot — spreading demands the traverse wheel).
  * Fresh rows every deal — orders are mutable, never share row objects. */
 export function standardRequirements(): Requirement[] {
-  return [{ kind: "count-on-cake", topping: "cherry", needed: 3 }];
+  return [
+    { kind: "frost-coverage", frac: 0.3 },
+    { kind: "on-frosting", topping: "sprinkles", needed: 3 },
+  ];
 }
 
 interface Member {
@@ -88,6 +101,7 @@ export class Room {
   private order: OrderState = createOrder(
     standardRequirements(),
     ORDER_SECONDS * 60,
+    { parShots: ORDER_PAR_SHOTS },
   );
   /** Everything at rest THIS order — the census the checklist counts from.
    * Reset with the order: physical toppings stay in the world (the bakery
@@ -265,7 +279,9 @@ export class Room {
         // Solid litter stays where it lies; the Giant licks the FROSTING
         // clean between deals — paint is the scoreboard (plans/07).
         this.frosting.reset();
-        this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60);
+        this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60, {
+          parShots: ORDER_PAR_SHOTS,
+        });
         this.broadcast({
           t: "order",
           order: this.order,

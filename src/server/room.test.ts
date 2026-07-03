@@ -129,12 +129,38 @@ describe("Room: the match, headless over protocol", () => {
     expect(shotB).toEqual(shotA); // everyone spawns the same deterministic lob
     run(room, 600); // flight + skid + rest detection
     const scored = b.last("scored");
+    expect(scored?.topping).toBe("cherry");
     expect(scored?.onCake).toBe(true); // 6 clicks is the pinned scoring window
-    const cherryRow = scored?.checks.find(
-      (c) => "topping" in c.req && c.req.topping === "cherry",
-    );
-    expect(cherryRow?.current).toBe(1);
-    expect(scored?.order.status).toBe("running"); // one cherry is not the order
+    // The honest order has NO standing cherry row (the crown demand is the
+    // only cherry row that ever exists, plans/07): the cherry rests on the
+    // cake and counts for nothing — mistakes execute, they never block.
+    expect(scored?.checks.every((c) => c.current === 0)).toBe(true);
+    expect(scored?.order.status).toBe("running");
+  });
+
+  it("a sprinkle bag counts once the ground under it is frosted (plans/07)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const fire = (topping: string): void => {
+      room.onMessage(a.id, { t: "load", topping });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600); // to rest (paint scores earlier; extra ticks harmless)
+    };
+    // Frost the tier-2 landing first, then drop sprinkles on the same arc —
+    // the decorating order IS the strategy (frost first, then sprinkle).
+    fire("frosting");
+    const frostRow = a
+      .last("scored")
+      ?.checks.find((c) => c.req.kind === "frost-coverage");
+    expect(frostRow?.current).toBeGreaterThan(0);
+    fire("sprinkles");
+    const sprinkleRow = a
+      .last("scored")
+      ?.checks.find((c) => c.req.kind === "on-frosting");
+    expect(sprinkleRow?.current).toBe(1); // same spot, freshly painted
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
@@ -193,7 +219,7 @@ describe("Room: the match, headless over protocol", () => {
     room.onMessage(a.id, { t: "lever" });
     run(room, 300);
     expect(connect(room, "peek").last("welcome")?.frosting.some((c) => c > 0)).toBe(true);
-    run(room, 90 * 60); // long enough to lose AND re-deal
+    run(room, 140 * 60); // long enough to lose AND re-deal (120s order + burn + linger)
     const fresh = a.all("order").find((m) => m.fresh);
     expect(fresh).toBeDefined();
     expect(fresh?.order.status).toBe("running");
@@ -204,9 +230,9 @@ describe("Room: the match, headless over protocol", () => {
   it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    // 90s of untouched machine: grumbles eat the clock, so the loss lands
-    // well before the nominal 90*60 ticks. Everyone hears the verdict.
-    run(room, 90 * 60);
+    // 130s of untouched machine: grumbles eat the clock, so the loss lands
+    // well before the nominal 120*60 ticks. Everyone hears the verdict.
+    run(room, 130 * 60);
     const msgs = a.all("order");
     const endIdx = msgs.findIndex((m) => m.order.status !== "running");
     expect(endIdx).toBeGreaterThanOrEqual(0);
@@ -223,7 +249,7 @@ describe("Room: the match, headless over protocol", () => {
   it("a finished order lingers, then the patron orders again with a clean slate", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    run(room, 90 * 60); // long enough to lose AND re-deal
+    run(room, 140 * 60); // long enough to lose AND re-deal
     const msgs = a.all("order");
     const endIdx = msgs.findIndex((m) => m.order.status !== "running");
     expect(endIdx).toBeGreaterThanOrEqual(0);

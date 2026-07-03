@@ -81,6 +81,27 @@ describe("The Giant", () => {
     expect(again.utterance).not.toContain("NEEDS A CHERRY");
   });
 
+  it("the crown demand normalizes per row — fractions can't poison the arithmetic", () => {
+    const g = createGiant();
+    const honest = (): Requirement[] => [
+      { kind: "frost-coverage", frac: 0.3 },
+      { kind: "on-frosting", topping: "sprinkles", needed: 3 },
+    ];
+    const order = createOrder(honest(), 5400);
+    // Frost 80% of the way, no sprinkles: 0.8 + 0 of 2 rows — not half done.
+    // (Raw sums would read 0.24 of 3.3 asked and never fire at all.)
+    const early = g.act(ctx(order, [0.24, 0], { look: 1 }));
+    expect(early.utterance).not.toContain("NEEDS A CHERRY");
+    // Frost row met + one sprinkle: 1 + ⅓ ≥ half of 2 rows → the demand,
+    // and it appends the ONLY cherry row that ever exists (one-number law).
+    const act = g.act(ctx(order, [0.3, 1], { look: 1 }));
+    expect(act.utterance).toContain("ON THE VERY TOP");
+    expect(order.requirements[order.requirements.length - 1]).toEqual({
+      kind: "crown",
+      topping: "cherry",
+    });
+  });
+
   it("clock low + a box empty → a reminder that NAMES the row", () => {
     const g = createGiant();
     // A crown row already exists, so the demand rule stays quiet and

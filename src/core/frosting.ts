@@ -24,15 +24,18 @@ import { SPLAT_SPEED, type Vec3 } from "./ballistics";
 /** Target spacing between sample points (m) — ring gap and arc step. */
 export const SAMPLE_SPACING = 0.45;
 
-/** Dollop (a gentle landing, below SPLAT_SPEED): thick, tidy, small. */
-export const FROST_DOLLOP_RADIUS = 0.9;
+/** Dollop (a gentle landing, below SPLAT_SPEED): thick, tidy, small.
+ * Sizes pinned by the study's coverage table (research/04 §3): a good
+ * splash covers 15–30% of the sampled skin, so a 40% frost row reads as
+ * 2–3 well-aimed frosting shots — decorating, not grinding. */
+export const FROST_DOLLOP_RADIUS = 1.1;
 export const FROST_DOLLOP_COATS = 2;
 /** Splash (at/above SPLAT_SPEED): wide, thin, growing with landing energy.
  * Frosting WANTS to arrive hot — coverage per shot scales with impact
  * speed, at neatness cost (splat-vs-place as CONSEQUENCE, port map C7). */
-export const FROST_SPLASH_BASE_RADIUS = 1.2;
-export const FROST_SPLASH_RADIUS_PER_SPEED = 0.09;
-export const FROST_SPLASH_MAX_RADIUS = 2.4;
+export const FROST_SPLASH_BASE_RADIUS = 1.8;
+export const FROST_SPLASH_RADIUS_PER_SPEED = 0.12;
+export const FROST_SPLASH_MAX_RADIUS = 3.0;
 /** A splash paints one story: it may drip to the ADJACENT ledge (tier gaps
  * are 1.5m) but never two tiers down. */
 export const FROST_VERTICAL_BAND = 1.2;
