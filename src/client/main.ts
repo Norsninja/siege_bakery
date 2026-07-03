@@ -94,6 +94,7 @@ async function main(): Promise<void> {
   let order: OrderState = createOrder([], 90 * 60); // rows arrive with `welcome`
   let checks: RequirementCheck[] = [];
   let verdict: Judgment | null = null; // rides the order message that ENDS it
+  let lastPatron: { text: string; seq: number } | null = null;
   let myId: number | null = null;
   let carrying: string | null = null; // client-local inventory (plans/02)
   let netStatus: "loopback" | "connecting" | "open" | "closed" = "loopback";
@@ -379,6 +380,10 @@ async function main(): Promise<void> {
         checks = msg.checks;
         if (msg.judgment) verdict = msg.judgment;
         else if (msg.order.status === "running") verdict = null; // fresh deal
+        break;
+      case "patron":
+        lastPatron = { text: msg.text, seq: msg.seq };
+        flash(`THE GIANT — ${msg.text}`, 6000);
         break;
     }
   };
@@ -683,6 +688,7 @@ async function main(): Promise<void> {
       getOrder: () => ({ ...order }),
       getChecks: () => checks.map((c) => ({ ...c })),
       getJudgment: () => (verdict ? { ...verdict } : null),
+      getLastPatron: () => (lastPatron ? { ...lastPatron } : null),
       getCarrying: () => carrying,
       setCarrying: (t: string | null) => {
         carrying = t;

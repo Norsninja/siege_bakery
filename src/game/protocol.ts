@@ -67,7 +67,10 @@ export type ServerMsg =
       order: OrderState;
       checks: RequirementCheck[];
       judgment?: Judgment;
-    };
+    }
+  /** The Patron spoke. Any rows/clock he changed follow in an `order`
+   * message; this is the voice. `seq` marks distinct utterances. */
+  | { t: "patron"; text: string; seq: number };
 
 /** One player's standing hold on the machine. */
 export interface HeldOp {

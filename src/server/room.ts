@@ -33,6 +33,8 @@ import {
   type SettledTopping,
 } from "../game/judgment";
 import { createOrder, tickOrder, evaluateOrder, type OrderState } from "../game/order";
+import { createGiant, type Patron } from "../game/patron";
+import { mulberry32 } from "../core/rng";
 import {
   mergeIntents,
   IDLE_OP,
@@ -50,6 +52,8 @@ const ORDER_CLOCK_EVERY = 60; // ticks → 1Hz clock correction
  * (Clients can't reset a shared room by reloading; the room resets itself.
  * Landed toppings stay where they lie — the bakery gets messier. Good.) */
 const ORDER_RESET_TICKS = 600; // 10s
+/** The Patron looks at the cake every N ticks of ORDER time (12s). */
+export const PATRON_LOOK_EVERY = 12 * 60;
 
 export const ORDER_SECONDS = 90;
 
@@ -87,6 +91,14 @@ export class Room {
   private settled: SettledTopping[] = [];
   /** Shots this order — the waste axis. Resets with each fresh deal. */
   private shotsFired = 0;
+  /** The personality at the table. FRESH each deal — his nagged-once
+   * flags live in his closure. Whim rng persists across deals. */
+  private patron: Patron = createGiant();
+  private readonly rng = mulberry32(0xcafe);
+  private orderTicks = 0;
+  private looks = 0;
+  private prevMess = 0;
+  private patronSeq = 0;
   private readonly members = new Map<number, Member>();
   private nextId = 1;
   private tickCount = 0;
@@ -211,6 +223,12 @@ export class Room {
         });
     }
 
+    // The Patron looks at the cake every 12s of order time.
+    if (this.order.status === "running") {
+      this.orderTicks++;
+      if (this.orderTicks % PATRON_LOOK_EVERY === 0) this.patronLooks();
+    }
+
     const statusBefore = this.order.status;
     this.order = tickOrder(this.order);
     if (this.order.status !== statusBefore) {
@@ -230,6 +248,10 @@ export class Room {
         this.endedTicks = 0;
         this.settled = [];
         this.shotsFired = 0;
+        this.patron = createGiant();
+        this.orderTicks = 0;
+        this.looks = 0;
+        this.prevMess = 0;
         this.order = createOrder(standardRequirements(), ORDER_SECONDS * 60);
         this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
       }
@@ -250,6 +272,36 @@ export class Room {
 
   private currentChecks(): RequirementCheck[] {
     return checkRequirements(this.order.requirements, this.settled);
+  }
+
+  /** One Patron look: observe → act (may mutate rows) → patience lands on
+   * the clock → everyone hears the voice, then the amended order. */
+  private patronLooks(): void {
+    const total = this.settled.length;
+    const mess =
+      total > 0 ? this.settled.filter((s) => !s.onCake).length / total : 0;
+    const act = this.patron.act({
+      order: this.order,
+      checks: this.currentChecks(),
+      mess,
+      prevMess: this.prevMess,
+      secondsLeft: this.order.ticksLeft / 60,
+      look: this.looks,
+      rng: this.rng,
+    });
+    this.prevMess = mess;
+    this.looks++;
+    if (act.patienceDeltaSeconds !== 0) {
+      // Patience IS the clock. Clamp to one tick — the loss itself must
+      // arrive through tickOrder, so the ending broadcast stays singular.
+      const ticksLeft = Math.max(
+        1,
+        this.order.ticksLeft + Math.round(act.patienceDeltaSeconds * 60),
+      );
+      this.order = { ...this.order, ticksLeft };
+    }
+    this.broadcast({ t: "patron", text: act.utterance, seq: ++this.patronSeq });
+    this.broadcast({ t: "order", order: this.order, checks: this.currentChecks() });
   }
 
   memberCount(): number {

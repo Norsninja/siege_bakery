@@ -1,7 +1,8 @@
 # Slice 2 — The Patron (v1)
 
-*Status: Steps 1–2 BUILT + browser-verified 2026-07-03 (see step records
-below). Planned 2026-07-03, decided at the fork recorded in
+*Status: Steps 1–4 BUILT + browser-verified 2026-07-03 (see step records
+below); REMAINING: the Step 4 human playtest — the slice verdict is the
+visionary's. Planned 2026-07-03, decided at the fork recorded in
 research/01-port-gap-analysis.md (visionary picked Patron + gate-1 Judgment
 over frosting / second catapult / art). Slice order going forward: Patron →
 frosting+census → second catapult+towns → art.*
@@ -105,6 +106,32 @@ the Patron is a BANNER VOICE this slice, zero geometry.
   mid-order. Checklist and banner update over the wire. Then the playtest:
   solo AND two tabs — does the scramble after "...IT NEEDS A CHERRY. NOW."
   produce the laugh? **← Slice verdict recorded here.**
+
+  *Steps 3+4 RECORD (built 2026-07-03): game/patron.ts — Patron/
+  PatronContext/PatronAct + createGiant(), the 2D rule list translated:
+  (1) thunder at NEW mess only (prevMess grudge fix carried; the Bite
+  waits for cake deformation), (2) stalled-row nag tightens the row IN
+  PLACE once from look 2, (3) half-boxes-ticked cherry demand appends a
+  DEAD CENTER row once, (4) clock-low reminder NAMES the missing row
+  (urgency outranks whimsy), (5) harmless whim (the Sneeze waits for
+  wind), (6) grumble burns the fuse. LOOK cadence: Room.tick lets the
+  Patron look every 12s of order time (PATRON_LOOK_EVERY); patienceDelta
+  lands as SECONDS on the order clock, clamped so the loss itself always
+  arrives through tickOrder. Patron is FRESH each deal (once-flags live
+  in his closure); whim rng = mulberry32(0xcafe) owned by the Room.
+  Protocol: `patron {text, seq}`, always followed by the amended order.
+  Client: "THE GIANT — …" flash (6s), __game.getLastPatron(). 72 tests
+  green, tsc clean. Browser-verified LIVE: grumble burned the clock
+  (73s on the HUD after the 12s look — patience IS the clock); the nag
+  tightened cherry 2→3 one round and lime 1→2 the next; the reminder
+  named the tightened row verbatim; the cherry demand appended its row
+  and the checklist grew mid-order. PLAYTEST WATCH ITEMS: (a) the demand
+  can be pre-satisfied — a cherry already resting dead center makes the
+  new row instantly ✓ (the Giant demands what he can already see; guard
+  needs a settled-census observable in PatronContext if it lands flat);
+  (b) difficulty stacks fast — 12s looks × −4s grumbles ≈ a ~66s
+  effective order BEFORE nag tightening; knobs: PATRON_LOOK_EVERY,
+  grumble/thunder deltas, nag threshold (25%), ORDER_SECONDS.*
 
 ## Verification
 

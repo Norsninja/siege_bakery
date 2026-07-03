@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Room } from "./room";
+import { PATRON_LOOK_EVERY, Room } from "./room";
 import { CRANK_TICKS_PER_CLICK } from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 
@@ -125,29 +125,55 @@ describe("Room: the match, headless over protocol", () => {
     expect(scored?.order.status).toBe("running"); // one cherry is not the order
   });
 
-  it("the clock is authoritative: order runs out and everyone hears it", () => {
+  it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    // 90s of untouched machine: grumbles eat the clock, so the loss lands
+    // well before the nominal 90*60 ticks. Everyone hears the verdict.
     run(room, 90 * 60);
-    const order = a.last("order");
-    expect(order?.order.status).toBe("lost");
-    expect(order?.order.ticksLeft).toBe(0);
+    const msgs = a.all("order");
+    const endIdx = msgs.findIndex((m) => m.order.status !== "running");
+    expect(endIdx).toBeGreaterThanOrEqual(0);
+    const ended = msgs[endIdx];
+    expect(ended?.order.status).toBe("lost");
+    expect(ended?.order.ticksLeft).toBe(0);
     // The clock died first: the verdict rides along, and it's the sad kind.
-    expect(order?.judgment?.met).toBe(false);
-    expect(order?.judgment?.stars).toBe(0);
+    expect(ended?.judgment?.met).toBe(false);
+    expect(ended?.judgment?.stars).toBe(0);
+    // Patience burned: the ending arrived measurably before nominal time.
+    expect(a.all("patron").length).toBeGreaterThan(2);
   });
 
-  it("a finished order lingers ~10s, then the patron orders again", () => {
+  it("a finished order lingers, then the patron orders again with a clean slate", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    run(room, 90 * 60); // lost
-    run(room, 550);
-    expect(a.last("order")?.order.status).toBe("lost"); // still lingering
-    run(room, 60);
-    const fresh = a.last("order");
-    expect(fresh?.order.status).toBe("running");
+    run(room, 90 * 60); // long enough to lose AND re-deal
+    const msgs = a.all("order");
+    const endIdx = msgs.findIndex((m) => m.order.status !== "running");
+    expect(endIdx).toBeGreaterThanOrEqual(0);
+    const fresh = msgs.slice(endIdx + 1).find((m) => m.order.status === "running");
+    expect(fresh).toBeDefined();
     // The ledger reset with the order: a fresh deal counts fresh deliveries.
     expect(fresh?.checks.every((c) => c.current === 0)).toBe(true);
+  });
+
+  it("the Patron looks on cadence and everyone hears the same words", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const b = connect(room, "bob");
+    run(room, PATRON_LOOK_EVERY - 2);
+    expect(a.all("patron")).toHaveLength(0); // he hasn't looked yet
+    run(room, 4);
+    expect(a.all("patron")).toHaveLength(1);
+    const heardA = a.last("patron");
+    const heardB = b.last("patron");
+    expect(heardA?.text.length).toBeGreaterThan(0);
+    expect(heardB).toEqual(heardA); // one voice, every ear
+    // The amended/corrected order follows the voice immediately.
+    expect(a.last("order")?.order.status).toBe("running");
+    run(room, PATRON_LOOK_EVERY);
+    expect(a.all("patron")).toHaveLength(2);
+    expect(a.all("patron")[1]?.seq).toBe(2);
   });
 
   it("leavers stop receiving; the rest are told", () => {
