@@ -23,12 +23,17 @@ import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import { isPaint } from "../game/toppings";
 import type { RestingTopping } from "../game/protocol";
 import type { ShotMsg } from "./net-handlers";
-import { sphere, TOPPING_COLORS } from "./scene";
+import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
+
+/** Landing rings are breadcrumbs, not a permanent record: FIFO-capped like
+ * the ground splats (audit 2026-07-03 — they used to accumulate forever). */
+const LANDING_MARKER_MAX = 30;
 
 export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
     [];
+  private readonly markers: THREE.Mesh[] = [];
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). */
   onPaintImpact: ((pos: Vec3, speed: number) => void) | null = null;
@@ -114,7 +119,7 @@ export class ShotsView {
     for (let i = this.meshes.length - 1; i >= 0; i--) {
       const s = this.meshes[i]!;
       if (!s.body.isValid()) {
-        this.scene.remove(s.mesh);
+        removeAndDispose(s.mesh);
         this.meshes.splice(i, 1);
         continue;
       }
@@ -139,5 +144,8 @@ export class ShotsView {
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, Math.max(0.02, y - PROJECTILE_RADIUS + 0.03), z);
     this.scene.add(ring);
+    this.markers.push(ring);
+    if (this.markers.length > LANDING_MARKER_MAX)
+      removeAndDispose(this.markers.shift()!);
   }
 }

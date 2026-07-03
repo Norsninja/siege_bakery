@@ -75,6 +75,25 @@ export const sphere = (
   return m;
 };
 
+/** Remove a TRANSIENT object from its parent and free its GPU resources
+ * (checkpoint audit 2026-07-03: nothing in the client disposed anything —
+ * consumed globs, evicted ground splats, landing rings, and departed
+ * ghosts churned geometries for the whole session). Traverses children;
+ * every transient mesh in this client owns its own geometry/material, so
+ * disposal is safe. Session-lifetime objects (arena, rig, the frosting
+ * InstancedMesh) never come through here. */
+export function removeAndDispose(obj: THREE.Object3D): void {
+  obj.parent?.remove(obj);
+  obj.traverse((o) => {
+    if (o instanceof THREE.Mesh) {
+      o.geometry.dispose();
+      const mat: THREE.Material | THREE.Material[] = o.material;
+      if (Array.isArray(mat)) for (const m of mat) m.dispose();
+      else mat.dispose();
+    }
+  });
+}
+
 export class MachineRig {
   readonly group: THREE.Group; // yaw (traverse) only
   private readonly tiltFrame: THREE.Group;

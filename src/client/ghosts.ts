@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { CAPSULE_HALF_HEIGHT, CAPSULE_RADIUS } from "../core/baker";
 import type { PlayerPose } from "../game/protocol";
+import { removeAndDispose } from "./scene";
 
 const GHOST_COLORS = [0xe6b455, 0x6fb1e0, 0xc580d1, 0x7fcf9a, 0xd98f6d];
 
@@ -45,7 +46,7 @@ export class GhostManager {
   remove(id: number): void {
     const g = this.ghosts.get(id);
     if (!g) return;
-    this.scene.remove(g.group);
+    removeAndDispose(g.group); // capsule + visor own their geo/materials
     this.ghosts.delete(id);
   }
 

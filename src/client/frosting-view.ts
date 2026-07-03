@@ -19,6 +19,7 @@
 import * as THREE from "three";
 import { CAKE_SAMPLES, FrostingField, splatRadius } from "../core/frosting";
 import type { Vec3 } from "../core/ballistics";
+import { removeAndDispose } from "./scene";
 
 const FROSTING_COLOR = 0xfff0f5;
 const GROUND_SPLAT_MAX = 40;
@@ -29,6 +30,10 @@ export class FrostingView {
   private readonly field = new FrostingField();
   private readonly blobs: THREE.InstancedMesh;
   private readonly groundSplats: THREE.Mesh[] = [];
+  /** Monotonic — the stagger must keep cycling once the FIFO is full
+   * (audit 2026-07-03: array length pins at the cap, so length%7 froze
+   * and every post-cap disc z-fought at the same height). */
+  private splatCount = 0;
 
   constructor(private readonly scene: THREE.Scene) {
     this.blobs = new THREE.InstancedMesh(
@@ -67,11 +72,11 @@ export class FrostingView {
     );
     disc.rotation.x = -Math.PI / 2;
     // Stagger heights a hair so overlapping splats don't z-fight.
-    disc.position.set(pos.x, 0.02 + (this.groundSplats.length % 7) * 0.004, pos.z);
+    disc.position.set(pos.x, 0.02 + (this.splatCount++ % 7) * 0.004, pos.z);
     this.scene.add(disc);
     this.groundSplats.push(disc);
     if (this.groundSplats.length > GROUND_SPLAT_MAX)
-      this.scene.remove(this.groundSplats.shift()!);
+      removeAndDispose(this.groundSplats.shift()!);
   }
 
   private refresh(): void {
