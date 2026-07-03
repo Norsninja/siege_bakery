@@ -14,6 +14,17 @@ gained an optional 4th screwTicks param so every pre-existing crank-law
 test stood unchanged; notch-0 ballistics pins untouched (tilt defaults
 to 0 everywhere).*
 
+*FEEL CHECK (visionary, 2026-07-03): "it feels good" — but the notch had
+no visible readout and the tilt looked glitchy: the frame rotated around
+its CENTER (nose up, tail digging into the plinth — no planted reference
+point), so only 0 and max read correctly. FIXED same session: the tilt
+pivot moved to the REAR ground contact (tail stays planted, nose lifts
+with air under it); the jack post EXTENDS to hold the nose (post height
+is the analog gauge); a "CLUNK — arc raised to +15° (notch 1/3)" flash
+fires the moment a notch engages; the screw prompt and the HUD machine
+line both show "notch n/3 (+N°)". Verified at notches 0/1/3 from a side
+view: level → visibly tipped → dramatically reared, unambiguous steps.*
+
 ## The one question
 
 **"Does a shapeable arc deepen dead reckoning without breaking the feel we

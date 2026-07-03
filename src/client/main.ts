@@ -191,15 +191,21 @@ async function main(): Promise<void> {
     box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z); // crossing stripes
 
   // --- The machine greybox, on the plinth. Group yaw = traverseDeg. ---
-  const machine = new THREE.Group();
-  machine.rotation.order = "YXZ"; // traverse (yaw) first, then frame tilt
+  const machine = new THREE.Group(); // yaw (traverse) only
   machine.position.set(MACHINE_BASE.x, MACHINE_BASE.y, MACHINE_BASE.z);
   scene.add(machine);
 
-  box(1.4, 0.25, 1.4, 0x6e5233, 0, 0.125, 0, machine); // carriage
+  // The FRAME tilts; its pivot sits at the REAR ground contact so the tail
+  // stays planted on the plinth and the NOSE visibly lifts (a jacked-up
+  // machine, not a see-saw — playtest note 2026-07-03).
+  const tiltFrame = new THREE.Group();
+  tiltFrame.position.set(0, 0, 0.7);
+  machine.add(tiltFrame);
+
+  box(1.4, 0.25, 1.4, 0x6e5233, 0, 0.125, -0.7, tiltFrame); // carriage
   const armPivot = new THREE.Group();
-  armPivot.position.set(0, 0.3, 0.45);
-  machine.add(armPivot);
+  armPivot.position.set(0, 0.3, -0.25);
+  tiltFrame.add(armPivot);
   box(0.12, 1.5, 0.12, 0x8a6b45, 0, 0.75, 0, armPivot); // throwing arm
   const bucketMesh = box(0.34, 0.16, 0.34, 0x4a4a55, 0, 1.5, 0, armPivot);
   const toppingMesh = sphere(0.16, 0xc23b4e, 0, 1.66, 0, armPivot);
@@ -209,12 +215,12 @@ async function main(): Promise<void> {
     new THREE.MeshStandardMaterial({ color: 0x8a6b3d }),
   );
   wheelMesh.rotation.z = Math.PI / 2;
-  wheelMesh.position.set(-0.8, 0.45, 0);
-  machine.add(wheelMesh);
+  wheelMesh.position.set(-0.8, 0.45, -0.7);
+  tiltFrame.add(wheelMesh);
 
   const winchGroup = new THREE.Group();
-  winchGroup.position.set(0.8, 0.45, 0.15);
-  machine.add(winchGroup);
+  winchGroup.position.set(0.8, 0.45, -0.55);
+  tiltFrame.add(winchGroup);
   const drumMesh = new THREE.Mesh(
     new THREE.CylinderGeometry(0.16, 0.16, 0.4, 12),
     new THREE.MeshStandardMaterial({ color: 0x50505c }),
@@ -224,15 +230,16 @@ async function main(): Promise<void> {
   const winchHandle = box(0.05, 0.3, 0.05, 0x8a6b3d, 0.24, 0.15, 0, winchGroup);
 
   const leverGroup = new THREE.Group();
-  leverGroup.position.set(0.55, 0.15, -0.75);
-  machine.add(leverGroup);
+  leverGroup.position.set(0.55, 0.15, -1.45);
+  tiltFrame.add(leverGroup);
   const leverStick = box(0.06, 0.55, 0.06, 0x777788, 0, 0.28, 0, leverGroup);
   const leverKnob = sphere(0.09, 0xc23b4e, 0, 0.58, 0, leverGroup);
 
-  // The elevation screw AT THE FRONT (plans/04): a great ugly dwarven jack
-  // that tilts the whole frame back. E + W/S, notched like the crank.
+  // The elevation screw AT THE FRONT (plans/04): a great ugly dwarven jack.
+  // It stays PLANTED on the plinth (child of machine, not frame) and its
+  // post EXTENDS to hold the lifted nose — post height IS the notch gauge.
   const screwGroup = new THREE.Group();
-  screwGroup.position.set(-0.55, 0.1, -0.75);
+  screwGroup.position.set(-0.55, 0, -0.75);
   machine.add(screwGroup);
   const screwPost = box(0.1, 0.6, 0.1, 0x5a5a66, 0, 0.3, 0, screwGroup);
   const screwHandle = box(0.4, 0.06, 0.06, 0x8a6b3d, 0, 0.62, 0, screwGroup);
@@ -481,7 +488,7 @@ async function main(): Promise<void> {
       case "winch":
         return "hold E — crank the winch";
       case "screw":
-        return "hold E + W/S — elevation screw";
+        return `hold E + W/S — elevation screw · notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH} (+${machineState.tiltNotch * TILT_DEG_PER_NOTCH}°)`;
       case "lever":
         return "E — pull the release lever!";
       case "bucket":
@@ -498,6 +505,7 @@ async function main(): Promise<void> {
 
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
+  let lastTiltNotch = 0;
   let totalCrankSpins = 0; // visual-only: winch drum angle
   let lastCrankTicks = 0;
   let tickCounter = 0;
@@ -642,8 +650,9 @@ async function main(): Promise<void> {
     camera.rotation.set(pitch, yaw, 0);
 
     machine.rotation.y = (machineState.traverseDeg * Math.PI) / 180;
-    // The frame leans back as the front screw rises — traverse first, then
-    // tilt (YXZ). Partial screw progress previews the coming notch.
+    // The frame tilts around its planted REAR; partial screw progress
+    // previews the coming notch. The jack post extends to hold the nose —
+    // its height is the analog gauge.
     const tiltDeg = Math.min(
       TILT_MAX_NOTCH * TILT_DEG_PER_NOTCH,
       Math.max(
@@ -652,8 +661,23 @@ async function main(): Promise<void> {
           TILT_DEG_PER_NOTCH,
       ),
     );
-    machine.rotation.x = (tiltDeg * Math.PI) / 180;
+    const tiltRad = (tiltDeg * Math.PI) / 180;
+    tiltFrame.rotation.x = tiltRad;
+    const noseLift = 1.45 * Math.sin(tiltRad); // nose height at the screw
+    const postScale = (0.6 + noseLift) / 0.6;
+    screwPost.scale.y = postScale;
+    screwPost.position.y = 0.3 * postScale;
+    screwHandle.position.y = 0.6 * postScale + 0.02;
     screwHandle.rotation.y = screwTicks * 0.3; // the jack handle works
+    // The moment a notch engages, say so — the CLUNK is the readout.
+    if (machineState.tiltNotch !== lastTiltNotch) {
+      const dir = machineState.tiltNotch > lastTiltNotch ? "raised" : "lowered";
+      flash(
+        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° (notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH})`,
+        2500,
+      );
+      lastTiltNotch = machineState.tiltNotch;
+    }
     const tensionFrac =
       (machineState.tensionClicks + crankTicks / CRANK_TICKS_PER_CLICK) /
       TENSION_MAX_CLICKS;
@@ -712,7 +736,7 @@ async function main(): Promise<void> {
         locked
           ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
           : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
+        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc notch ${machineState.tiltNotch}/${TILT_MAX_NOTCH} (+${machineState.tiltNotch * TILT_DEG_PER_NOTCH}°) · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
       ];
       if (target) lines.push(`▸ ${promptFor(target)}`);
       if (now < flashUntil) lines.push(flashMsg);
