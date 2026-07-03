@@ -216,9 +216,12 @@ export function describeRequirement(req: Requirement): string {
 
 /** One row's live numbers — counts as counts, the frost fraction as
  * percent. Shared by the HUD checklist; the ONE-NUMBER LAW's display half
- * (plans/07: every row reads as one number of one thing). */
+ * (plans/07: every row reads as one number of one thing). The current
+ * side FLOORS (audit 2026-07-03): met is computed on the raw fraction,
+ * and 24.96% rounding up would read "✗ 25%/25%" — the numbers claiming
+ * done while the checkmark says no. */
 export function describeProgress(c: RequirementCheck): string {
   if (c.req.kind === "frost-coverage")
-    return `${Math.round(c.current * 100)}%/${Math.round(c.target * 100)}%`;
+    return `${Math.floor(c.current * 100)}%/${Math.round(c.target * 100)}%`;
   return `${c.current}/${c.target}`;
 }

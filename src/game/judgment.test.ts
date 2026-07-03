@@ -105,6 +105,17 @@ describe("checkRequirements", () => {
     expect(describeProgress(frost!)).toBe("0%/50%");
     expect(describeProgress(sprinkles!)).toBe("0/2");
   });
+
+  it("the current %% FLOORS — the numbers never claim done beside an ✗ (audit 2026-07-03)", () => {
+    // met compares raw fractions; 0.4996 rounding up would read "✗ 50%/50%".
+    const check = {
+      req: FROST_HALF,
+      current: 0.4996,
+      target: 0.5,
+      met: false,
+    };
+    expect(describeProgress(check)).toBe("49%/50%");
+  });
 });
 
 describe("the frost row — the one fractional requirement (plans/07)", () => {

@@ -96,6 +96,11 @@ export class InputTracker {
     document.addEventListener("mousemove", (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.yaw -= e.movementX * MOUSE_SENSITIVITY;
+      // Wrap to (-π, π]: unbounded accumulation broke the ghosts'
+      // shortest-path turn after ~2 clockwise spins (audit 2026-07-03).
+      // One step suffices — a single mousemove is a fraction of a turn.
+      if (this.yaw > Math.PI) this.yaw -= 2 * Math.PI;
+      else if (this.yaw <= -Math.PI) this.yaw += 2 * Math.PI;
       this.pitch = Math.max(
         -MAX_PITCH,
         Math.min(MAX_PITCH, this.pitch - e.movementY * MOUSE_SENSITIVITY),
@@ -106,7 +111,11 @@ export class InputTracker {
       if (e.code === "KeyE" && !e.repeat) this.ePressed = true;
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
-    window.addEventListener("blur", () => this.keys.clear());
+    window.addEventListener("blur", () => {
+      this.keys.clear();
+      // A stale E edge must not fire a lever pull on refocus (audit).
+      this.ePressed = false;
+    });
   }
 
   /** The E edge since the last take — consumed by exactly one sim tick. */

@@ -28,10 +28,16 @@ export function connectLoopback(
   onMsg: (m: ServerMsg) => void,
 ): LoopbackConnection {
   const room = new Room();
-  const id = room.join(onMsg);
+  // Clone at the boundary (checkpoint audit 2026-07-03): over ws every
+  // message is JSON-round-tripped; the loopback must not hand the client
+  // LIVE room objects. The Patron mutates order rows in place — an aliased
+  // view would change mid-flight, and any future client-side mutation
+  // would corrupt the authority. One match implementation, one message
+  // semantics, whichever the pipe.
+  const id = room.join((m) => onMsg(structuredClone(m)));
   return {
     transport: {
-      send: (msg) => room.onMessage(id, msg),
+      send: (msg) => room.onMessage(id, structuredClone(msg)),
       close: () => room.leave(id),
     },
     tickRoom: () => room.tick(),
@@ -55,11 +61,17 @@ export function connectWs(
   ws.addEventListener("message", (e) => {
     onMsg(JSON.parse(String(e.data)) as ServerMsg);
   });
-  ws.addEventListener("close", () => onStatus("closed"));
+  ws.addEventListener("close", () => {
+    open = false; // sends now drop instead of hitting a CLOSED socket
+    onStatus("closed");
+  });
   return {
     send: (msg) => {
       if (open) ws.send(JSON.stringify(msg));
-      else queue.push(msg);
+      // Pre-open: keep edges/holds, skip poses (stale on arrival anyway),
+      // and cap hard — a never-connecting URL must not accumulate 20Hz
+      // messages forever (checkpoint audit 2026-07-03).
+      else if (msg.t !== "pose" && queue.length < 32) queue.push(msg);
     },
     close: () => ws.close(),
   };

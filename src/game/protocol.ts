@@ -58,7 +58,11 @@ export type ServerMsg =
       toppings: RestingTopping[];
       /** The frosting field as it lies: coats per sample point (plans/07).
        * The one place a surface ever crosses the wire — in play, paint is
-       * recomputed from shot events (sync-shots-not-surfaces). */
+       * recomputed from shot events (sync-shots-not-surfaces). ACCEPTED
+       * GAP (audit 2026-07-03): a glob IN FLIGHT at join time is not
+       * carried (its shot event predates the joiner), so the joiner's
+       * local field misses that one splat until the next fresh deal —
+       * visual only; scoring truth is the Room's and arrives in checks. */
       frosting: number[];
       /** Present exactly when the order is ENDED (the 10s banner linger):
        * a joiner/refresher mid-banner needs the verdict or a WON order
