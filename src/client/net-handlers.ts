@@ -7,7 +7,7 @@
  */
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import type { RequirementCheck } from "../game/judgment";
-import type { PlayerPose, ServerMsg } from "../game/protocol";
+import type { PlayerPose, RestingTopping, ServerMsg } from "../game/protocol";
 import type { MatchView } from "./state";
 
 export type ShotMsg = Extract<ServerMsg, { t: "shot" }>;
@@ -16,6 +16,8 @@ export interface NetFx {
   /** Simulate the lob locally — deterministic ballistics land identically
    * everywhere (sync-shots-not-surfaces). */
   spawnShot(msg: ShotMsg): void;
+  /** Recreate a topping already at rest (welcome world-sync, F2). */
+  spawnResting(t: RestingTopping): void;
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
@@ -35,6 +37,7 @@ export function applyServerMsg(
       view.order = msg.order;
       view.checks = msg.checks;
       for (const p of msg.poses) fx.upsertGhost(p);
+      for (const t of msg.toppings) fx.spawnResting(t);
       break;
     case "join":
       fx.flash(`${msg.name} ran into the bakery!`);

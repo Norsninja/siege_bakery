@@ -107,6 +107,43 @@ export class ProjectileManager {
     return body;
   }
 
+  /** Everything at rest RIGHT NOW — the world-sync a late joiner needs
+   * (F2, plans/06). In-flight shots are excluded: they were announced by
+   * their own `shot` events and a mid-flight snapshot could not rejoin
+   * their deterministic arcs. */
+  resting(): Array<{ topping: string; pos: Vec3 }> {
+    const inFlight = new Set<number>();
+    for (const t of this.tracked.values()) inFlight.add(t.body.handle);
+    return this.bodies
+      .filter((b) => !inFlight.has(b.body.handle))
+      .map((b) => {
+        const p = b.body.translation();
+        return { topping: b.topping, pos: { x: p.x, y: p.y, z: p.z } };
+      });
+  }
+
+  /** Spawn a topping ALREADY at rest (a late joiner recreating the world):
+   * same body and collider as a flown shot — prior settled toppings are
+   * OBSTACLES for later shots, so every world must contain them — but
+   * untracked: its landing was scored long ago, it reports nothing. */
+  spawnAtRest(world: RAPIER.World, pos: Vec3, topping: string): RAPIER.RigidBody {
+    const body = world.createRigidBody(
+      RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(pos.x, pos.y, pos.z)
+        .setAngularDamping(2.0)
+        .setCcdEnabled(true),
+    );
+    world.createCollider(
+      RAPIER.ColliderDesc.ball(PROJECTILE_RADIUS)
+        .setRestitution(0.1)
+        .setFriction(0.9)
+        .setCollisionGroups(SHOT_COLLISION_GROUPS),
+      body,
+    );
+    this.bodies.push({ body, topping });
+    return body;
+  }
+
   /** Step the world one fixed tick; returns impact and settle events. */
   step(world: RAPIER.World): StepEvents {
     for (const shot of this.tracked.values()) {

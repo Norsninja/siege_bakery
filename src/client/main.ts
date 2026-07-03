@@ -75,6 +75,7 @@ async function main(): Promise<void> {
   // --- Every word the room says (net-handlers.ts) ---
   const fx: NetFx = {
     spawnShot: (msg) => shotsView.spawn(msg),
+    spawnResting: (t) => shotsView.spawnResting(t),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,

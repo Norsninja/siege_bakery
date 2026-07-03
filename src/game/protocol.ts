@@ -22,6 +22,16 @@ export interface PlayerPose extends Pose {
   id: number;
 }
 
+/** A topping at rest, as the welcome snapshot carries it (F2, plans/06):
+ * late joiners must recreate the SAME obstacle set — prior settled
+ * toppings shape later shots' landings, this is determinism, not décor. */
+export interface RestingTopping {
+  topping: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
 // --- client → server ---
 export type ClientMsg =
   | { t: "hello"; name: string }
@@ -43,6 +53,9 @@ export type ServerMsg =
       order: OrderState;
       checks: RequirementCheck[];
       poses: PlayerPose[];
+      /** The world as it lies: every settled topping (F2 — refresh and
+       * late join recreate the same litter and the same obstacles). */
+      toppings: RestingTopping[];
     }
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }

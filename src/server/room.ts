@@ -133,6 +133,9 @@ export class Room {
       order: this.order,
       checks: this.currentChecks(),
       poses: this.poseList(id),
+      toppings: this.shots
+        .resting()
+        .map((r) => ({ topping: r.topping, x: r.pos.x, y: r.pos.y, z: r.pos.z })),
     });
     this.broadcast({ t: "join", id, name: member.name }, id);
     return id;

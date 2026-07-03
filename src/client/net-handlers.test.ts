@@ -44,6 +44,7 @@ function harness(): {
     ghosts,
     fx: {
       spawnShot: (m) => spawned.push(m.topping),
+      spawnResting: (t) => spawned.push(`rest:${t.topping}`),
       upsertGhost: (p) => ghosts.push(`+${p.id}`),
       removeGhost: (id) => ghosts.push(`-${id}`),
       flash: (msg) => flashes.push(msg),
@@ -74,6 +75,7 @@ describe("applyServerMsg", () => {
         order: createOrder([], 42),
         checks: [check(1)],
         poses: [{ id: 2, x: 0, y: 0, z: 0, yaw: 0 }],
+        toppings: [{ topping: "cherry", x: 0, y: 3.8, z: -30 }],
       },
       h.fx,
     );
@@ -83,6 +85,8 @@ describe("applyServerMsg", () => {
     expect(h.view.screwTicks).toBe(12);
     expect(h.view.checks[0]?.current).toBe(1);
     expect(h.ghosts).toEqual(["+2"]);
+    // The world as it lies: the settled cherry is recreated locally (F2).
+    expect(h.spawned).toEqual(["rest:cherry"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {

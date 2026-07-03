@@ -46,6 +46,7 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.order.status).toBe("running");
     expect(w?.checks.length).toBeGreaterThan(0); // the standing order has rows
     expect(w?.checks.every((c) => !c.met)).toBe(true);
+    expect(w?.toppings).toEqual([]); // a fresh world has no litter yet
     const b = connect(room, "bob");
     expect(a.last("join")?.id).toBe(b.id);
     expect(b.last("welcome")?.id).toBe(b.id);
@@ -132,6 +133,32 @@ describe("Room: the match, headless over protocol", () => {
     const cherryRow = scored?.checks.find((c) => c.req.topping === "cherry");
     expect(cherryRow?.current).toBe(1);
     expect(scored?.order.status).toBe("running"); // one cherry is not the order
+  });
+
+  it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    // Land one cherry (the pinned 6-click tier-2 shot), then fire a second
+    // and join Carol MID-FLIGHT: the welcome must carry the settled topping
+    // and NOT the one still in the air (its own `shot` event announced it).
+    room.onMessage(a.id, { t: "load", topping: "cherry" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 600); // flight + rest
+    room.onMessage(a.id, { t: "load", topping: "lime" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 30); // the lime is airborne
+    const carol = connect(room, "carol");
+    const w = carol.last("welcome");
+    expect(w?.toppings).toHaveLength(1);
+    expect(w?.toppings[0]?.topping).toBe("cherry");
+    // Resting on the middle tier, where the pinned ladder put it.
+    expect(w?.toppings[0]?.y).toBeGreaterThan(3.4);
   });
 
   it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {

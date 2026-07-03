@@ -15,6 +15,7 @@ import { launchOrigin, launchVelocity, SPLAT_SPEED } from "../core/ballistics";
 import { ProjectileManager, PROJECTILE_RADIUS } from "../core/projectiles";
 import { MACHINE_BASE } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
+import type { RestingTopping } from "../game/protocol";
 import type { ShotMsg } from "./net-handlers";
 import { sphere, TOPPING_COLORS } from "./scene";
 
@@ -46,6 +47,25 @@ export class ShotsView {
       0,
       -5,
       0,
+      this.scene,
+    );
+    this.meshes.push({ body, mesh });
+  }
+
+  /** Recreate a topping already at rest (welcome world-sync, F2): a live
+   * obstacle for later shots, but no markers — its landing is old news. */
+  spawnResting(t: RestingTopping): void {
+    const body = this.shots.spawnAtRest(
+      this.world,
+      { x: t.x, y: t.y, z: t.z },
+      t.topping,
+    );
+    const mesh = sphere(
+      PROJECTILE_RADIUS,
+      TOPPING_COLORS[t.topping] ?? 0xc23b4e,
+      t.x,
+      t.y,
+      t.z,
       this.scene,
     );
     this.meshes.push({ body, mesh });
