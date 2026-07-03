@@ -236,13 +236,18 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     PANTRY_POS.x, PANTRY_POS.y, PANTRY_POS.z, scene);
   box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
     PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z, scene);
-  // The Test Cake (plans/05): three tiers straight from core/arena, sponge
-  // paling toward the summit so the climb is READABLE from the catapult.
+  // The cake: three ROUND tiers straight from core/arena (plans/07 phase R),
+  // sponge paling toward the summit so the climb is READABLE from the
+  // catapult.
   const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a];
-  CAKE_TIERS.forEach((t, i) =>
-    box(t.half * 2, t.top - t.bottom, t.half * 2, TIER_COLORS[i] ?? 0xefd39a,
-      0, (t.top + t.bottom) / 2, CAKE_Z, scene),
-  );
+  CAKE_TIERS.forEach((t, i) => {
+    const m = new THREE.Mesh(
+      new THREE.CylinderGeometry(t.radius, t.radius, t.top - t.bottom, 48),
+      new THREE.MeshStandardMaterial({ color: TIER_COLORS[i] ?? 0xefd39a }),
+    );
+    m.position.set(0, (t.top + t.bottom) / 2, CAKE_Z);
+    scene.add(m);
+  });
   // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): the
   // wind instrument you read from the firing position — when wind arrives,
   // this flag is the forecast.

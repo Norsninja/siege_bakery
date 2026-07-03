@@ -67,8 +67,8 @@ describe("launch math (pure)", () => {
 
 // The REAL arena (core/arena.ts) — no duplicated geometry. The shots fly
 // from the actual plinth over the actual wall onto the actual tiers.
-const CAKE_FRONT_Z = CAKE_Z + CAKE_TIERS[0]!.half;
-const CAKE_BACK_Z = CAKE_Z - CAKE_TIERS[0]!.half;
+const CAKE_FRONT_Z = CAKE_Z + CAKE_TIERS[0]!.radius;
+const CAKE_BACK_Z = CAKE_Z - CAKE_TIERS[0]!.radius;
 const TOP_TIER_Y = CAKE_TIERS[2]!.top;
 
 function makeRange(): { world: RAPIER.World; shots: ProjectileManager } {
@@ -197,12 +197,13 @@ describe("the lob, end to end (headless Rapier)", () => {
     expect(settleWithBaker(6)).toEqual(sixWithout);
   });
 
-  it("the settle ladder, per tier × notch (plans/05 study, re-pinned)", () => {
+  it("the settle ladder, per tier × notch (round tiers, plans/07 study)", () => {
     // Scoring truth is final REST position (visionary's rule, 2026-07-02).
     // Level (notch 0), the click ladder reads one-click-per-tier; +15°
     // (notch 1) trades reach for steepness — its 8-click ceiling drops onto
-    // the summit. If tuning moves these rows, move them on purpose and
-    // re-run research/03-tier-ladder-study.mts.
+    // the summit. The cylinder study confirmed these rungs survive the
+    // square→round change verbatim. If tuning moves these rows, move them
+    // on purpose and re-run research/04-cylinder-tier-study.mts.
     expect(tierOf(fireAndSettle(5))).toBeNull(); // short, on the ground
     expect(tierOf(fireAndSettle(6))).toBe(1); // middle-tier ledge
     expect(tierOf(fireAndSettle(7))).toBe(2); // the flat crown

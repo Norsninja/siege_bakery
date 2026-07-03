@@ -25,26 +25,28 @@ export const PLINTH_POS: Vec3 = { x: 0, y: 0.5, z: -CROSS_HALF };
 export const PLINTH_HALF: Vec3 = { x: 1, y: 0.5, z: 1 };
 export const BAKER_SPAWN: Vec3 = { x: 0, y: 1.2, z: CROSS_HALF - 2 };
 
-/** The TEST CAKE (slice 3, plans/05): three concentric square tiers at the
- * old cake spot — plinth to center still 18 m. Dimensions are the winner of
- * the headless ballistics study (research/03-tier-ladder-study.mts): every
- * tier reachable, notch 0 reads one-click-per-tier (6 → tier 2, 7 → tier 3),
- * and notch 1 + full crank is the tier-clearing crown shot that cannot
- * overshoot (the winch clamps at 8). Top tier half = the retired peak
- * zone's 2.25, honored verbatim — "on top" now has honest geometry. */
+/** The cake: three concentric ROUND tiers at the old cake spot — plinth to
+ * center still 18 m. Square (plans/05) went cylindrical at the front of the
+ * frosting slice (plans/07 phase R) so the coverage census is built once
+ * against final geometry. Radii = the pinned square half-extents verbatim:
+ * the cylinder study (research/04-cylinder-tier-study.mts) confirmed the
+ * centerline settle ladder survives unchanged (6 → tier 2, 7 → tier 3,
+ * notch 1 + full crank = the tier-clearing crown shot that cannot overshoot)
+ * and the curved ledges still catch at moderate traverse (±8°); the summit
+ * demands a centered shot, which is the crown earning its name. */
 export const CAKE_Z = -CROSS_HALF - 18; // -30
 
 export interface CakeTier {
-  /** x/z half-extent (tiers are square and concentric on CAKE_Z). */
-  half: number;
+  /** x/z radius (tiers are cylinders, concentric on CAKE_Z). */
+  radius: number;
   bottom: number;
   top: number;
 }
 
 export const CAKE_TIERS: readonly CakeTier[] = [
-  { half: 4, bottom: 0, top: 2 },
-  { half: 3, bottom: 2, top: 3.5 },
-  { half: 2.25, bottom: 3.5, top: 5 },
+  { radius: 4, bottom: 0, top: 2 },
+  { radius: 3, bottom: 2, top: 3.5 },
+  { radius: 2.25, bottom: 3.5, top: 5 },
 ];
 
 /** Index of the summit tier — where a crown must rest (game/judgment). */
@@ -89,7 +91,7 @@ export function buildArenaColliders(world: RAPIER.World): void {
   for (const t of CAKE_TIERS) {
     const hy = (t.top - t.bottom) / 2;
     world.createCollider(
-      RAPIER.ColliderDesc.cuboid(t.half, hy, t.half).setTranslation(
+      RAPIER.ColliderDesc.cylinder(hy, t.radius).setTranslation(
         0,
         t.bottom + hy,
         CAKE_Z,
@@ -99,20 +101,16 @@ export function buildArenaColliders(world: RAPIER.World): void {
 }
 
 /**
- * Which tier a rest position sits ON — the TOPMOST tier whose footprint
- * holds it at (or a wedge-slack 0.1 below) its top level. A topping on the
- * tier-2 ledge pressed against the tier-3 wall is on tier 2; a topping atop
+ * Which tier a rest position sits ON — the TOPMOST tier whose disc holds it
+ * at (or a wedge-slack 0.1 below) its top level. A topping on the tier-2
+ * ledge pressed against the tier-3 wall is on tier 2; a topping atop
  * another topping still reads the tier under the stack. null = not on the
  * cake. Scoring truth is REST position; this is its geometry oracle.
  */
 export function tierOf(pos: Vec3): number | null {
   for (let i = CAKE_TIERS.length - 1; i >= 0; i--) {
     const t = CAKE_TIERS[i]!;
-    if (
-      Math.abs(pos.x) <= t.half &&
-      Math.abs(pos.z - CAKE_Z) <= t.half &&
-      pos.y > t.top - 0.1
-    )
+    if (Math.hypot(pos.x, pos.z - CAKE_Z) <= t.radius && pos.y > t.top - 0.1)
       return i;
   }
   return null;
