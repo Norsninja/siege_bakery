@@ -53,27 +53,21 @@ import {
   type CatapultState,
 } from "../game/catapult";
 import { createOrder, tickOrder, type OrderState } from "../game/order";
-import {
-  describeRequirement,
-  type Judgment,
-  type RequirementCheck,
-} from "../game/judgment";
+import type { Judgment, RequirementCheck } from "../game/judgment";
 import type { ServerMsg, HeldOp, PlayerPose } from "../game/protocol";
 import { connectLoopback, connectWs, type Transport } from "./net";
+import {
+  arcGlyph,
+  bannerText,
+  hudLines,
+  type InteractableKind,
+  type NetStatus,
+} from "./hud";
 
 const MOUSE_SENSITIVITY = 0.0022;
 const MAX_PITCH = (85 * Math.PI) / 180;
 const REACH_M = 2.8; // how far the baker can reach an interactable
 const POSE_SEND_EVERY = 3; // ticks → 20Hz
-
-type InteractableKind =
-  | "wheel"
-  | "winch"
-  | "screw"
-  | "lever"
-  | "bucket"
-  | "shelf-cherry"
-  | "shelf-lime";
 
 const TOPPING_COLORS: Record<string, number> = {
   cherry: 0xc23b4e,
@@ -101,7 +95,7 @@ async function main(): Promise<void> {
   let lastPatron: { text: string; seq: number } | null = null;
   let myId: number | null = null;
   let carrying: string | null = null; // client-local inventory (plans/02)
-  let netStatus: "loopback" | "connecting" | "open" | "closed" = "loopback";
+  let netStatus: NetStatus = "loopback";
 
   // --- Three.js scene ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
@@ -478,34 +472,6 @@ async function main(): Promise<void> {
     }
   };
 
-  /** The arc position as a filled ladder — "notch 1/3" read as a THREE-
-   * notch ladder in playtest; the glyph shows all four positions at once. */
-  const arcGlyph = (): string =>
-    "▮".repeat(machineState.tiltNotch + 1) +
-    "▯".repeat(TILT_MAX_NOTCH - machineState.tiltNotch);
-
-  const promptFor = (kind: InteractableKind): string => {
-    switch (kind) {
-      case "wheel":
-        return "hold E + A/D — traverse wheel";
-      case "winch":
-        return "hold E — crank the winch";
-      case "screw":
-        return `hold E + W/S — elevation screw · +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()}`;
-      case "lever":
-        return "E — pull the release lever!";
-      case "bucket":
-        if (machineState.loaded !== null) return "bucket is full — fire it!";
-        return carrying !== null
-          ? `E — load the ${carrying}`
-          : "hands empty — fetch a topping from the pantry";
-      case "shelf-cherry":
-        return carrying !== null ? "hands full — one at a time" : "E — take a cherry";
-      case "shelf-lime":
-        return carrying !== null ? "hands full — one at a time" : "E — take a lime";
-    }
-  };
-
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
   let lastTiltNotch = 0;
@@ -627,28 +593,7 @@ async function main(): Promise<void> {
 
       if (order.status !== "running" && !bannerShown && banner) {
         bannerShown = true;
-        // The checklist names the culprit — a lost order must say WHICH row
-        // failed, never contradict the player's memory (2D playtest lesson).
-        const list = checks
-          .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
-          .join("\n");
-        const scoreLine = verdict
-          ? `assembly ${verdict.score}/100 — mess ${Math.round(verdict.mess * 100)}% · ${
-              verdict.waste >= 1 ? "under par" : "over par"
-            }`
-          : "";
-        let text: string;
-        if (order.status === "won" && verdict) {
-          // Both gates cleared: tiered delight.
-          text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}\n${list}\n${scoreLine}`;
-        } else if (verdict?.met) {
-          // Gate 2 refusal — the insulting kind: every box ticked, badly.
-          text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
-        } else {
-          // Gate 1 failure: the clock died first.
-          text = `TIME!\n${list}\nthe patron goes hungry`;
-        }
-        banner.textContent = `${text}\n\na new order is coming…`;
+        banner.textContent = bannerText(order, checks, verdict);
         banner.style.display = "flex";
       } else if (order.status === "running" && bannerShown && banner) {
         // The room dealt a fresh order — clear the slate.
@@ -687,7 +632,7 @@ async function main(): Promise<void> {
     if (machineState.tiltNotch !== lastTiltNotch) {
       const dir = machineState.tiltNotch > lastTiltNotch ? "raised" : "lowered";
       flash(
-        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()}`,
+        `CLUNK — arc ${dir} to +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(machineState.tiltNotch)}`,
         2500,
       );
       lastTiltNotch = machineState.tiltNotch;
@@ -729,32 +674,19 @@ async function main(): Promise<void> {
     }
 
     if (hud) {
-      const locked = document.pointerLockElement === canvas;
-      const crankPct = Math.round((crankTicks / CRANK_TICKS_PER_CLICK) * 100);
-      const secsLeft = Math.ceil(order.ticksLeft * FIXED_DT);
-      const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
-      const who =
-        netStatus === "loopback"
-          ? "solo bakery"
-          : netStatus === "open"
-            ? `co-op bakery · ${ghosts.size + 1} baking · you are baker ${myId ?? "?"}`
-            : netStatus === "connecting"
-              ? "joining the bakery…"
-              : "CONNECTION LOST — refresh to rejoin";
-      const lines = [
-        `THE ORDER · ${clock}   [${who}]`,
-        ...checks.map(
-          (c) =>
-            `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${c.current}/${c.target}`,
-        ),
-        locked
-          ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
-          : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-        `machine — traverse ${machineState.traverseDeg.toFixed(0)}° · arc +${machineState.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph()} · tension ${machineState.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${machineState.loaded ?? "empty"} · hands: ${carrying ?? "empty"}`,
-      ];
-      if (target) lines.push(`▸ ${promptFor(target)}`);
-      if (now < flashUntil) lines.push(flashMsg);
-      hud.textContent = lines.join("\n");
+      hud.textContent = hudLines({
+        order,
+        checks,
+        machine: machineState,
+        crankTicks,
+        carrying,
+        netStatus,
+        ghostCount: ghosts.size,
+        myId,
+        locked: document.pointerLockElement === canvas,
+        target,
+        flash: now < flashUntil ? flashMsg : null,
+      }).join("\n");
     }
 
     renderer.render(scene, camera);

@@ -1,0 +1,142 @@
+/**
+ * HUD + banner text — PURE string builders, no DOM, no three.js (M1 of the
+ * decomp phase, plans/06). Extracted verbatim from main.ts so the words the
+ * player reads are unit-testable: the culprit-naming law (a failed order
+ * must NAME the row that failed — 2D playtest lesson), the three verdict
+ * branches, the arc glyph, the interactable prompts.
+ *
+ * main.ts owns the DOM elements and WHEN to render; this module owns WHAT
+ * the text says.
+ */
+import { FIXED_DT } from "../core/constants";
+import {
+  CRANK_TICKS_PER_CLICK,
+  TENSION_MAX_CLICKS,
+  TILT_DEG_PER_NOTCH,
+  TILT_MAX_NOTCH,
+  type CatapultState,
+} from "../game/catapult";
+import {
+  describeRequirement,
+  type Judgment,
+  type RequirementCheck,
+} from "../game/judgment";
+import type { OrderState } from "../game/order";
+
+/** Everything the crosshair can engage. (Lives here for now; the decomp's
+ * input/scene modules share it — re-home if it ever grows legs.) */
+export type InteractableKind =
+  | "wheel"
+  | "winch"
+  | "screw"
+  | "lever"
+  | "bucket"
+  | "shelf-cherry"
+  | "shelf-lime";
+
+export type NetStatus = "loopback" | "connecting" | "open" | "closed";
+
+/** The arc position as a filled ladder — "notch 1/3" read as a THREE-
+ * notch ladder in playtest; the glyph shows all four positions at once. */
+export const arcGlyph = (tiltNotch: number): string =>
+  "▮".repeat(tiltNotch + 1) + "▯".repeat(TILT_MAX_NOTCH - tiltNotch);
+
+export function promptFor(
+  kind: InteractableKind,
+  machine: CatapultState,
+  carrying: string | null,
+): string {
+  switch (kind) {
+    case "wheel":
+      return "hold E + A/D — traverse wheel";
+    case "winch":
+      return "hold E — crank the winch";
+    case "screw":
+      return `hold E + W/S — elevation screw · +${machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(machine.tiltNotch)}`;
+    case "lever":
+      return "E — pull the release lever!";
+    case "bucket":
+      if (machine.loaded !== null) return "bucket is full — fire it!";
+      return carrying !== null
+        ? `E — load the ${carrying}`
+        : "hands empty — fetch a topping from the pantry";
+    case "shelf-cherry":
+      return carrying !== null ? "hands full — one at a time" : "E — take a cherry";
+    case "shelf-lime":
+      return carrying !== null ? "hands full — one at a time" : "E — take a lime";
+  }
+}
+
+/** The end-of-order banner. The checklist names the culprit — a lost order
+ * must say WHICH row failed, never contradict the player's memory. */
+export function bannerText(
+  order: OrderState,
+  checks: readonly RequirementCheck[],
+  verdict: Judgment | null,
+): string {
+  const list = checks
+    .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
+    .join("\n");
+  const scoreLine = verdict
+    ? `assembly ${verdict.score}/100 — mess ${Math.round(verdict.mess * 100)}% · ${
+        verdict.waste >= 1 ? "under par" : "over par"
+      }`
+    : "";
+  let text: string;
+  if (order.status === "won" && verdict) {
+    // Both gates cleared: tiered delight.
+    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}\n${list}\n${scoreLine}`;
+  } else if (verdict?.met) {
+    // Gate 2 refusal — the insulting kind: every box ticked, badly.
+    text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
+  } else {
+    // Gate 1 failure: the clock died first.
+    text = `TIME!\n${list}\nthe patron goes hungry`;
+  }
+  return `${text}\n\na new order is coming…`;
+}
+
+export interface HudView {
+  order: OrderState;
+  checks: readonly RequirementCheck[];
+  machine: CatapultState;
+  crankTicks: number;
+  carrying: string | null;
+  netStatus: NetStatus;
+  /** Other bakers visible (me excluded). */
+  ghostCount: number;
+  myId: number | null;
+  /** Pointer lock engaged? */
+  locked: boolean;
+  target: InteractableKind | null;
+  /** Active flash message, or null once expired. */
+  flash: string | null;
+}
+
+export function hudLines(v: HudView): string[] {
+  const crankPct = Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100);
+  const secsLeft = Math.ceil(v.order.ticksLeft * FIXED_DT);
+  const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
+  const who =
+    v.netStatus === "loopback"
+      ? "solo bakery"
+      : v.netStatus === "open"
+        ? `co-op bakery · ${v.ghostCount + 1} baking · you are baker ${v.myId ?? "?"}`
+        : v.netStatus === "connecting"
+          ? "joining the bakery…"
+          : "CONNECTION LOST — refresh to rejoin";
+  const lines = [
+    `THE ORDER · ${clock}   [${who}]`,
+    ...v.checks.map(
+      (c) =>
+        `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${c.current}/${c.target}`,
+    ),
+    v.locked
+      ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
+      : "Click to grab the mouse · WASD move · Shift sprint · E interact",
+    `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(v.machine.tiltNotch)} · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
+  ];
+  if (v.target) lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying)}`);
+  if (v.flash) lines.push(v.flash);
+  return lines;
+}
