@@ -1,9 +1,22 @@
 # The Decomp Phase — client/main.ts + audit fixes (housekeeping slice)
 
-*Status: PLANNED 2026-07-03, from the Senior Dev audit (same date). The
-visionary's call: friend test deferred (2D-parity features first), audit
-items now. This phase clears F1/F3/F5/F6/F2 and leaves client/ ready to
-absorb the frosting slice — the most client-heavy work remaining.*
+*Status: BUILT + verified 2026-07-03, same day as planned. The visionary's
+call: friend test deferred (2D-parity features first), audit items now.
+This phase cleared F1/F3/F5/F6/F2 and leaves client/ ready to absorb the
+frosting slice — the most client-heavy work remaining.*
+
+*Build record: ten commits exactly as planned (C1, M1–M4, X1–X4), each
+gated by `npm run check`. main.ts 802 → ~310 lines across seven new
+client modules. Tests 86 → 115 (hud strings, grip law regression,
+net-handler message law, predictClock clamp, F3 baker-under-the-arc
+byte-identical settle, F2 late-join welcome). Smoke protocol ran after
+M2 and M4 — outcomes identical to the Test Cake baseline (6cl tier 2,
+7cl tier 3 + crown demand, notch-1 max-crank crown, WON 100/3★). F2
+verified over REAL ws: land a cherry, refresh, rejoin as a new baker —
+checklist 1/3 and the cherry still sitting on the middle tier. Known
+quirk reconfirmed: the preview tab can go visibilityState=hidden after
+reload and freeze the rAF-driven loopback sim — restart the preview
+server, it is not a game bug.*
 
 ## The one question
 
