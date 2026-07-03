@@ -62,12 +62,17 @@ interface TrackedShot {
   /** First contact already reported; now waiting for rest. */
   impacted: boolean;
   stillTicks: number;
+  /** Paint-form toppings (frosting, plans/07): the first impact is the
+   * whole story — report it, then leave the world. No settle, no litter,
+   * no obstacle. */
+  consumeOnImpact: boolean;
 }
 
 export class ProjectileManager {
   private readonly queue = new RAPIER.EventQueue(true);
   private readonly tracked = new Map<number, TrackedShot>();
-  /** Every body ever spawned, in flight or at rest — the client renders these. */
+  /** Every body still in the world, in flight or at rest — the client
+   * renders these. Consumed paint globs leave on impact. */
   readonly bodies: Array<{ body: RAPIER.RigidBody; topping: string }> = [];
 
   spawn(
@@ -75,6 +80,7 @@ export class ProjectileManager {
     origin: Vec3,
     velocity: Vec3,
     topping: string,
+    opts?: { consumeOnImpact?: boolean },
   ): RAPIER.RigidBody {
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -102,6 +108,7 @@ export class ProjectileManager {
       lastSpeed: 0,
       impacted: false,
       stillTicks: 0,
+      consumeOnImpact: opts?.consumeOnImpact ?? false,
     });
     this.bodies.push({ body, topping });
     return body;
@@ -154,6 +161,7 @@ export class ProjectileManager {
     world.step(this.queue);
 
     const impacts: Impact[] = [];
+    const consumed: number[] = []; // collider handles; removed AFTER the drain
     this.queue.drainCollisionEvents((h1, h2, started) => {
       if (!started) return;
       const handle = this.tracked.has(h1) ? h1 : this.tracked.has(h2) ? h2 : null;
@@ -167,6 +175,11 @@ export class ProjectileManager {
         speed: shot.lastSpeed,
         topping: shot.topping,
       });
+      // Paint: the impact IS the landing — no absorption, no settle wait.
+      if (shot.consumeOnImpact) {
+        consumed.push(handle);
+        return;
+      }
       // The soft landing: bleed off almost all momentum at first contact.
       const v = shot.body.linvel();
       shot.body.setLinvel(
@@ -187,6 +200,14 @@ export class ProjectileManager {
         true,
       );
     });
+
+    for (const handle of consumed) {
+      const shot = this.tracked.get(handle)!;
+      world.removeRigidBody(shot.body); // colliders go with it
+      this.tracked.delete(handle);
+      const i = this.bodies.findIndex((b) => b.body === shot.body);
+      if (i >= 0) this.bodies.splice(i, 1);
+    }
 
     const settled: Settled[] = [];
     for (const [handle, shot] of this.tracked) {

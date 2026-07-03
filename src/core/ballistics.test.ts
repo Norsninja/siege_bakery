@@ -197,6 +197,58 @@ describe("the lob, end to end (headless Rapier)", () => {
     expect(settleWithBaker(6)).toEqual(sixWithout);
   });
 
+  it("a consumed glob reports its impact once, then leaves the world (F2, plans/07)", () => {
+    const { world, shots } = makeRange();
+    shots.spawn(
+      world,
+      launchOrigin(MACHINE_BASE, 0),
+      launchVelocity(0, 6),
+      "frosting",
+      { consumeOnImpact: true },
+    );
+    let impacts = 0;
+    let settles = 0;
+    for (let i = 0; i < 1800; i++) {
+      const ev = shots.step(world);
+      impacts += ev.impacts.length;
+      settles += ev.settled.length;
+    }
+    expect(impacts).toBe(1); // the impact IS the landing...
+    expect(settles).toBe(0); // ...there is no rest to report
+    expect(shots.bodies.length).toBe(0); // and the glob is gone
+    expect(shots.resting()).toEqual([]); // never an obstacle, never litter
+  });
+
+  it("a consumed glob never perturbs a later shot (paint is not an obstacle)", () => {
+    // Same arc twice: once over a clean range, once after a frosting glob
+    // landed exactly where the cherry will. Byte-identical rest — the
+    // consumed glob left nothing behind for determinism to trip on.
+    const clean = fireAndSettle(6);
+    const { world, shots } = makeRange();
+    shots.spawn(
+      world,
+      launchOrigin(MACHINE_BASE, 0),
+      launchVelocity(0, 6),
+      "frosting",
+      { consumeOnImpact: true },
+    );
+    for (let i = 0; i < 600; i++) shots.step(world);
+    shots.spawn(
+      world,
+      launchOrigin(MACHINE_BASE, 0),
+      launchVelocity(0, 6),
+      "cherry",
+    );
+    for (let i = 0; i < 1800; i++) {
+      const first = shots.step(world).settled[0];
+      if (first) {
+        expect(first.pos).toEqual(clean);
+        return;
+      }
+    }
+    throw new Error("no rest");
+  });
+
   it("the settle ladder, per tier × notch (round tiers, plans/07 study)", () => {
     // Scoring truth is final REST position (visionary's rule, 2026-07-02).
     // Level (notch 0), the click ladder reads one-click-per-tier; +15°
