@@ -71,6 +71,9 @@ event-based cake sync possible. Guard it like the 2D project did.
 ## Session protocol
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
-`project/research/` (per the global CLAUDE.md workflow). Current slice:
-`project/plans/07-frosting-slice.md` — BUILT, awaiting the visionary's
-playtest (port map: research/01-port-gap-analysis.md).
+`project/research/` (per the global CLAUDE.md workflow). Current state:
+frosting slice (plans/07) BUILT + playtested; checkpoint audit DONE
+(research/05-checkpoint-audit.md — 12 fix commits, determinism tripwire
+is now a test). NEXT: the frosting-economy redesign (handoff §6 notes +
+research/05 pre-work; re-run research/04 §3, re-pin frac/par/clock
+together). Port map: research/01-port-gap-analysis.md.
