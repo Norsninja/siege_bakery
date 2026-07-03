@@ -1,0 +1,20 @@
+# The tripwire, mechanized (audit F6, plans/06): the vitest suite is the
+# project's constitution — layering law, determinism, the settle ladder,
+# the crown law — and nothing should guard it but a robot.
+# Activates the moment this repo gets a GitHub remote.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
