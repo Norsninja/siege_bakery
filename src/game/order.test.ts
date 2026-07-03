@@ -3,14 +3,21 @@
  * dying first → lost; the Patron may mutate the rows mid-order.
  */
 import { describe, it, expect } from "vitest";
-import { CAKE_POS } from "../core/arena";
+import { CAKE_TIERS, CAKE_Z } from "../core/arena";
 import { createOrder, tickOrder, evaluateOrder } from "./order";
 import type { Requirement, SettledTopping } from "./judgment";
 
-const yTop = CAKE_POS.y + 1.6;
-const onCake = (topping: string, x = 0, z = CAKE_POS.z): SettledTopping => ({
+const LEDGE_Y = CAKE_TIERS[0]!.top + 0.3; // resting on the bottom tier
+const TOP_Y = CAKE_TIERS[2]!.top + 0.3; // resting on the summit
+
+const onCake = (topping: string, x = 3.5): SettledTopping => ({
   topping,
-  pos: { x, y: yTop, z },
+  pos: { x, y: LEDGE_Y, z: CAKE_Z },
+  onCake: true,
+});
+const onSummit = (topping: string): SettledTopping => ({
+  topping,
+  pos: { x: 0, y: TOP_Y, z: CAKE_Z },
   onCake: true,
 });
 const onFloor = (topping: string): SettledTopping => ({
@@ -21,7 +28,7 @@ const onFloor = (topping: string): SettledTopping => ({
 
 const rows = (): Requirement[] => [
   { kind: "count-on-cake", topping: "cherry", needed: 2 },
-  { kind: "count-in-zone", topping: "lime", zone: "peak", needed: 1 },
+  { kind: "crown", topping: "lime" },
 ];
 
 describe("orders with rows", () => {
@@ -45,14 +52,14 @@ describe("orders with rows", () => {
 
   it("some rows met is still running; ALL rows met renders the Judgment", () => {
     const o = createOrder(rows(), 5400);
-    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", 3)], 2);
+    const partial = evaluateOrder(o, [onCake("cherry"), onCake("cherry", -3.5)], 2);
     expect(partial.checks[0]?.met).toBe(true);
     expect(partial.state.status).toBe("running");
     expect(partial.judgment).toBeUndefined();
     // A clean bake, under par: both gates clear — delighted, full marks.
     const full = evaluateOrder(
       o,
-      [onCake("cherry"), onCake("cherry", 3), onCake("lime", 0.5)],
+      [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
       3,
     );
     expect(full.state.status).toBe("won");
@@ -66,8 +73,8 @@ describe("orders with rows", () => {
     const o = createOrder(rows(), 5400); // passScore 50
     const settled = [
       onCake("cherry"),
-      onCake("cherry", 3),
-      onCake("lime", 0.5),
+      onCake("cherry", -3.5),
+      onSummit("lime"),
       ...Array.from({ length: 9 }, () => onFloor("cherry")),
     ];
     const r = evaluateOrder(o, settled, 24); // 12 toppings, 24 shots vs par 6
@@ -77,13 +84,13 @@ describe("orders with rows", () => {
     expect(r.judgment?.stars).toBe(0);
   });
 
-  it("floor cherries and wrong toppings move no row", () => {
+  it("floor cherries and lower-tier limes move no row", () => {
     const o = createOrder(rows(), 5400);
     const { state, checks } = evaluateOrder(
       o,
       [
         onFloor("cherry"),
-        onCake("lime", 3.5), // on the cake but not DEAD CENTER
+        onCake("lime"), // on the cake but not the summit — no crown
       ],
       2,
     );
@@ -104,14 +111,17 @@ describe("orders with rows", () => {
     let lost = createOrder(rows(), 1);
     lost = tickOrder(lost);
     expect(
-      evaluateOrder(lost, [onCake("cherry"), onCake("cherry", 3), onCake("lime")], 3)
-        .state.status,
+      evaluateOrder(
+        lost,
+        [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
+        3,
+      ).state.status,
     ).toBe("lost");
   });
 
   it("the Patron may mutate rows mid-order: tightening un-meets, appending demands more", () => {
     const o = createOrder(rows(), 5400);
-    const settled = [onCake("cherry"), onCake("cherry", 3)];
+    const settled = [onCake("cherry"), onCake("cherry", -3.5)];
     expect(evaluateOrder(o, settled, 2).checks[0]?.met).toBe(true);
     // MORE. CHERRIES. (tighten row 0 in place — the array is deliberately mutable)
     const r0 = o.requirements[0];
@@ -119,8 +129,8 @@ describe("orders with rows", () => {
     const after = evaluateOrder(o, settled, 2);
     expect(after.checks[0]?.met).toBe(false);
     expect(after.checks[0]?.target).toBe(3);
-    // ...IT NEEDS A CHERRY DEAD CENTER. NOW. (append a row)
-    o.requirements.push({ kind: "count-in-zone", topping: "cherry", zone: "peak", needed: 1 });
+    // ...IT NEEDS A CHERRY. ON THE VERY TOP. (append a row)
+    o.requirements.push({ kind: "crown", topping: "cherry" });
     expect(evaluateOrder(o, settled, 2).checks).toHaveLength(3);
   });
 });

@@ -13,12 +13,17 @@
  *
  * game/ law: pure data + pure functions, imports core/ only.
  */
-import { isInZone, type ZoneId } from "../core/arena";
+import { isInZone, tierOf, TOP_TIER, type ZoneId } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
 
 export type Requirement =
   | { kind: "count-on-cake"; topping: string; needed: number }
-  | { kind: "count-in-zone"; topping: string; zone: ZoneId; needed: number };
+  | { kind: "count-in-zone"; topping: string; zone: ZoneId; needed: number }
+  /** THE CROWN (plans/05): the uppermost settled topping on the cake must
+   * be this topping, resting on the TOP TIER — the summit claimed, nothing
+   * above it. Physicalizes the 2D countCrown support-chain. A wrong topping
+   * landing higher LATER un-mets the row — the pantry decoy is a hazard. */
+  | { kind: "crown"; topping: string };
 
 /** One topping at rest — the Room's ledger entry, the census unit. */
 export interface SettledTopping {
@@ -41,7 +46,22 @@ export function checkRequirements(
   reqs: readonly Requirement[],
   settled: readonly SettledTopping[],
 ): RequirementCheck[] {
+  // The crown cares about the WHOLE cake, not just its own topping: the
+  // uppermost on-cake settler (strictly greatest rest y; ledger order
+  // breaks exact ties) — computed once, shared by every crown row.
+  let uppermost: SettledTopping | null = null;
+  for (const s of settled) {
+    if (s.onCake && (uppermost === null || s.pos.y > uppermost.pos.y))
+      uppermost = s;
+  }
   return reqs.map((req) => {
+    if (req.kind === "crown") {
+      const met =
+        uppermost !== null &&
+        uppermost.topping === req.topping &&
+        tierOf(uppermost.pos) === TOP_TIER;
+      return { req, current: met ? 1 : 0, target: 1, met };
+    }
     let current = 0;
     for (const s of settled) {
       if (s.topping !== req.topping) continue;
@@ -110,12 +130,15 @@ export function judge(
 
 const ZONE_LABELS: Record<ZoneId, string> = {
   cake: "ON the cake",
-  peak: "DEAD CENTER",
+  tier1: "on the BOTTOM TIER",
+  tier2: "on the MIDDLE TIER",
+  tier3: "on the TOP TIER",
 };
 
 /** One row's words — shared by the HUD checklist and the end banner.
  * "×" dodges pluralization (cherry/cherries) in a data-driven pantry. */
 export function describeRequirement(req: Requirement): string {
+  if (req.kind === "crown") return `1 × ${req.topping} AS THE CROWN`;
   const where =
     req.kind === "count-on-cake" ? ZONE_LABELS.cake : ZONE_LABELS[req.zone];
   return `${req.needed} × ${req.topping} ${where}`;

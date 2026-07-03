@@ -19,13 +19,36 @@ export const WALL_HEIGHT = 1;
 
 /** The machine's floor point: top of the plinth. */
 export const MACHINE_BASE: Vec3 = { x: 0, y: 1, z: -CROSS_HALF };
-export const CAKE_POS: Vec3 = { x: 0, y: 1.5, z: -CROSS_HALF - 18 };
-export const CAKE_HALF: Vec3 = { x: 4, y: 1.5, z: 4 };
 export const PANTRY_POS: Vec3 = { x: 0, y: 0.75, z: CROSS_HALF };
 export const PANTRY_HALF: Vec3 = { x: 2, y: 0.75, z: 0.5 };
 export const PLINTH_POS: Vec3 = { x: 0, y: 0.5, z: -CROSS_HALF };
 export const PLINTH_HALF: Vec3 = { x: 1, y: 0.5, z: 1 };
 export const BAKER_SPAWN: Vec3 = { x: 0, y: 1.2, z: CROSS_HALF - 2 };
+
+/** The TEST CAKE (slice 3, plans/05): three concentric square tiers at the
+ * old cake spot — plinth to center still 18 m. Dimensions are the winner of
+ * the headless ballistics study (research/03-tier-ladder-study.mts): every
+ * tier reachable, notch 0 reads one-click-per-tier (6 → tier 2, 7 → tier 3),
+ * and notch 1 + full crank is the tier-clearing crown shot that cannot
+ * overshoot (the winch clamps at 8). Top tier half = the retired peak
+ * zone's 2.25, honored verbatim — "on top" now has honest geometry. */
+export const CAKE_Z = -CROSS_HALF - 18; // -30
+
+export interface CakeTier {
+  /** x/z half-extent (tiers are square and concentric on CAKE_Z). */
+  half: number;
+  bottom: number;
+  top: number;
+}
+
+export const CAKE_TIERS: readonly CakeTier[] = [
+  { half: 4, bottom: 0, top: 2 },
+  { half: 3, bottom: 2, top: 3.5 },
+  { half: 2.25, bottom: 3.5, top: 5 },
+];
+
+/** Index of the summit tier — where a crown must rest (game/judgment). */
+export const TOP_TIER = CAKE_TIERS.length - 1;
 
 export interface WallDef {
   hx: number;
@@ -63,35 +86,56 @@ export function buildArenaColliders(world: RAPIER.World): void {
     RAPIER.ColliderDesc.cuboid(PLINTH_HALF.x, PLINTH_HALF.y, PLINTH_HALF.z)
       .setTranslation(PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z),
   );
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(CAKE_HALF.x, CAKE_HALF.y, CAKE_HALF.z)
-      .setTranslation(CAKE_POS.x, CAKE_POS.y, CAKE_POS.z),
-  );
+  for (const t of CAKE_TIERS) {
+    const hy = (t.top - t.bottom) / 2;
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(t.half, hy, t.half).setTranslation(
+        0,
+        t.bottom + hy,
+        CAKE_Z,
+      ),
+    );
+  }
 }
 
-/** Scoring geometry: is a rest position ON the cake? (top surface, with a
- * little slack below it so wedged-against-the-lip cases don't count). */
+/**
+ * Which tier a rest position sits ON — the TOPMOST tier whose footprint
+ * holds it at (or a wedge-slack 0.1 below) its top level. A topping on the
+ * tier-2 ledge pressed against the tier-3 wall is on tier 2; a topping atop
+ * another topping still reads the tier under the stack. null = not on the
+ * cake. Scoring truth is REST position; this is its geometry oracle.
+ */
+export function tierOf(pos: Vec3): number | null {
+  for (let i = CAKE_TIERS.length - 1; i >= 0; i--) {
+    const t = CAKE_TIERS[i]!;
+    if (
+      Math.abs(pos.x) <= t.half &&
+      Math.abs(pos.z - CAKE_Z) <= t.half &&
+      pos.y > t.top - 0.1
+    )
+      return i;
+  }
+  return null;
+}
+
+/** Scoring geometry: is a rest position ON the cake (any tier's top)? */
 export function isOnCake(pos: Vec3): boolean {
-  return (
-    Math.abs(pos.x - CAKE_POS.x) <= CAKE_HALF.x &&
-    Math.abs(pos.z - CAKE_POS.z) <= CAKE_HALF.z &&
-    pos.y > CAKE_POS.y + CAKE_HALF.y - 0.1
-  );
+  return tierOf(pos) !== null;
 }
 
-/** Named scoring zones orders can demand (slice 2). "cake" = anywhere on
- * the top; "peak" = the top-center square — the FUTURE TOP TIER's
- * footprint (visionary, 2026-07-03: the real rule is the CROWN — cherry
- * as uppermost topping; peak is its stand-in until the cake goes three
- * tiers and "on top" gets honest geometry). */
-export type ZoneId = "cake" | "peak";
-export const PEAK_HALF = 2.25;
+/** Named scoring zones orders can demand. "peak" retired with the box cake
+ * (plans/05) — the crown requirement took its job, and the tiers themselves
+ * are the zones now: order vocabulary like "2 × cherry on the MIDDLE TIER". */
+export type ZoneId = "cake" | "tier1" | "tier2" | "tier3";
+
+const ZONE_TIER: Record<Exclude<ZoneId, "cake">, number> = {
+  tier1: 0,
+  tier2: 1,
+  tier3: 2,
+};
 
 export function isInZone(zone: ZoneId, pos: Vec3): boolean {
-  if (zone === "cake") return isOnCake(pos);
-  return (
-    isOnCake(pos) &&
-    Math.abs(pos.x - CAKE_POS.x) <= PEAK_HALF &&
-    Math.abs(pos.z - CAKE_POS.z) <= PEAK_HALF
-  );
+  const tier = tierOf(pos);
+  if (tier === null) return false;
+  return zone === "cake" || tier === ZONE_TIER[zone];
 }

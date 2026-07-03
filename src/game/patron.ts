@@ -65,12 +65,14 @@ export function createGiant(): Patron {
       }
 
       // 2. A row stalling after two looks? He demands MORE of it (tightens
-      //    the row in place, once).
+      //    the row in place, once). Only COUNT rows tighten — there is no
+      //    such thing as more crown.
       if (!nagged && ctx.look >= 2) {
         const stalled = ctx.checks.find(
-          (c) => !c.met && c.current < c.target * 0.25,
+          (c) =>
+            c.req.kind !== "crown" && !c.met && c.current < c.target * 0.25,
         );
-        if (stalled) {
+        if (stalled && stalled.req.kind !== "crown") {
           nagged = true;
           stalled.req.needed += 1;
           return {
@@ -83,8 +85,9 @@ export function createGiant(): Patron {
       // 3. The bake half done and no crown promised? He wants one NOW.
       //    Progress-based (not rows-met — a fully met order ENDS before he
       //    can speak): total delivered ≥ half of total asked. The demand
-      //    appends a row — the order is deliberately mutable. DEAD CENTER
-      //    is the crown's stand-in until the cake grows tiers (plans/03).
+      //    appends a row — the order is deliberately mutable. The crown is
+      //    the REAL rule (plans/05): a cherry as the uppermost topping,
+      //    resting on the top tier — the peak-zone stand-in retired.
       const asked = ctx.checks.reduce((n, c) => n + c.target, 0);
       const delivered = ctx.checks.reduce(
         (n, c) => n + Math.min(c.current, c.target),
@@ -94,19 +97,12 @@ export function createGiant(): Patron {
         !demanded &&
         asked > 0 &&
         delivered * 2 >= asked &&
-        !ctx.order.requirements.some(
-          (r) => r.kind === "count-in-zone" && r.topping === "cherry",
-        )
+        !ctx.order.requirements.some((r) => r.kind === "crown")
       ) {
         demanded = true;
-        ctx.order.requirements.push({
-          kind: "count-in-zone",
-          topping: "cherry",
-          zone: "peak",
-          needed: 1,
-        });
+        ctx.order.requirements.push({ kind: "crown", topping: "cherry" });
         return {
-          utterance: "...IT NEEDS A CHERRY. DEAD CENTER. NOW.",
+          utterance: "...IT NEEDS A CHERRY. ON THE VERY TOP. NOTHING ABOVE IT.",
           patienceDeltaSeconds: 0,
         };
       }

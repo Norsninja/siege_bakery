@@ -34,14 +34,13 @@ import {
   WALLS,
   WALL_HEIGHT,
   MACHINE_BASE,
-  CAKE_POS,
-  CAKE_HALF,
+  CAKE_Z,
+  CAKE_TIERS,
   PANTRY_POS,
   PANTRY_HALF,
   PLINTH_POS,
   PLINTH_HALF,
   BAKER_SPAWN,
-  PEAK_HALF,
   buildArenaColliders,
 } from "../core/arena";
 import {
@@ -170,17 +169,15 @@ async function main(): Promise<void> {
     PANTRY_POS.x, PANTRY_POS.y, PANTRY_POS.z);
   box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
     PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z);
-  box(CAKE_HALF.x * 2, CAKE_HALF.y * 2, CAKE_HALF.z * 2, 0xd8a45c,
-    CAKE_POS.x, CAKE_POS.y, CAKE_POS.z);
-  // The bullseye: the peak zone painted on the cake top ("dead center"
-  // orders must be READABLE from the catapult). Square, matching isInZone.
-  const peakZone = new THREE.Mesh(
-    new THREE.PlaneGeometry(PEAK_HALF * 2, PEAK_HALF * 2),
-    new THREE.MeshBasicMaterial({ color: 0xf2e3c2, transparent: true, opacity: 0.4 }),
+  // The Test Cake (plans/05): three tiers straight from core/arena, sponge
+  // paling toward the summit so the climb is READABLE from the catapult.
+  // The peak-zone painted square retired with the box cake — the top tier
+  // IS the target now, and the crown rule owns "on top".
+  const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a];
+  CAKE_TIERS.forEach((t, i) =>
+    box(t.half * 2, t.top - t.bottom, t.half * 2, TIER_COLORS[i] ?? 0xefd39a,
+      0, (t.top + t.bottom) / 2, CAKE_Z),
   );
-  peakZone.rotation.x = -Math.PI / 2;
-  peakZone.position.set(CAKE_POS.x, CAKE_POS.y + CAKE_HALF.y + 0.01, CAKE_POS.z);
-  scene.add(peakZone);
   // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): it is
   // the wind instrument you read from the firing position — when wind
   // arrives, this flag is the forecast. The painted square on the cake top

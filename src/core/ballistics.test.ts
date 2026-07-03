@@ -19,8 +19,9 @@ import { ProjectileManager, type Impact } from "./projectiles";
 import {
   buildArenaColliders,
   MACHINE_BASE,
-  CAKE_POS,
-  CAKE_HALF,
+  CAKE_Z,
+  CAKE_TIERS,
+  tierOf,
 } from "./arena";
 
 describe("launch math (pure)", () => {
@@ -64,10 +65,10 @@ describe("launch math (pure)", () => {
 });
 
 // The REAL arena (core/arena.ts) — no duplicated geometry. The shots fly
-// from the actual plinth over the actual wall onto the actual cake.
-const CAKE_FRONT_Z = CAKE_POS.z + CAKE_HALF.z;
-const CAKE_BACK_Z = CAKE_POS.z - CAKE_HALF.z;
-const CAKE_TOP_Y = CAKE_POS.y + CAKE_HALF.y;
+// from the actual plinth over the actual wall onto the actual tiers.
+const CAKE_FRONT_Z = CAKE_Z + CAKE_TIERS[0]!.half;
+const CAKE_BACK_Z = CAKE_Z - CAKE_TIERS[0]!.half;
+const TOP_TIER_Y = CAKE_TIERS[2]!.top;
 
 function makeRange(): { world: RAPIER.World; shots: ProjectileManager } {
   const world = new RAPIER.World(GRAVITY);
@@ -76,12 +77,12 @@ function makeRange(): { world: RAPIER.World; shots: ProjectileManager } {
   return { world, shots: new ProjectileManager() };
 }
 
-function fireAndLand(clicks: number): Impact {
+function fireAndLand(clicks: number, tiltDeg = 0): Impact {
   const { world, shots } = makeRange();
   shots.spawn(
     world,
     launchOrigin(MACHINE_BASE, 0),
-    launchVelocity(0, clicks),
+    launchVelocity(0, clicks, tiltDeg),
     "cherry",
   );
   for (let i = 0; i < 600; i++) {
@@ -92,12 +93,15 @@ function fireAndLand(clicks: number): Impact {
 }
 
 /** Fire and run until the topping comes to rest; return where it settled. */
-function fireAndSettle(clicks: number): { x: number; y: number; z: number } {
+function fireAndSettle(
+  clicks: number,
+  tiltDeg = 0,
+): { x: number; y: number; z: number } {
   const { world, shots } = makeRange();
   shots.spawn(
     world,
     launchOrigin(MACHINE_BASE, 0),
-    launchVelocity(0, clicks),
+    launchVelocity(0, clicks, tiltDeg),
     "cherry",
   );
   for (let i = 0; i < 1800; i++) {
@@ -112,12 +116,22 @@ describe("the lob, end to end (headless Rapier)", () => {
     await RAPIER.init();
   });
 
-  it("7 clicks lands ON the cake top, hot enough to splat", () => {
+  it("7 clicks level lands on the TOP TIER, gently enough to place", () => {
+    // The knife-edge flat crown (plans/05): one click from raining past
+    // the cake, but the gentlest road to the summit.
     const hit = fireAndLand(7);
     expect(hit.pos.z).toBeLessThan(CAKE_FRONT_Z);
     expect(hit.pos.z).toBeGreaterThan(CAKE_BACK_Z);
-    expect(hit.pos.y).toBeGreaterThan(CAKE_TOP_Y - 0.1); // on top, not the face
-    expect(hit.speed).toBeGreaterThan(SPLAT_SPEED); // overkill splats
+    expect(hit.pos.y).toBeGreaterThan(TOP_TIER_Y - 0.1); // the summit itself
+    expect(hit.speed).toBeLessThan(SPLAT_SPEED);
+  });
+
+  it("8 clicks at +15° tilt is the tier-clearing shot: rests on the top tier", () => {
+    // Full crank + one screw notch — the crown shot that CANNOT overshoot,
+    // because the winch clamps at 8 (plans/05 design finding). It arrives
+    // steep and hot: a splat, not a placement.
+    expect(tierOf(fireAndSettle(8, 15))).toBe(2);
+    expect(fireAndLand(8, 15).speed).toBeGreaterThan(SPLAT_SPEED);
   });
 
   it("3 clicks falls short onto the ground, gently enough to place", () => {
@@ -156,19 +170,17 @@ describe("the lob, end to end (headless Rapier)", () => {
     expect(shots.bodies.length).toBe(1); // and the topping stays in the world
   });
 
-  it("the scoring window: 6-7 clicks STAY on the cake, 5 short, 8 over", () => {
-    // Scoring truth is final REST position (visionary's rule, 2026-07-02):
-    // hit the cake and roll off → the patron gets nothing. With soft-landing
-    // absorption the click ladder gives a two-click window — this is the
-    // dead-reckoning game. If tuning moves this window, move it on purpose.
-    const onCake = (p: { x: number; y: number; z: number }): boolean =>
-      Math.abs(p.x) <= 4 &&
-      p.z <= CAKE_FRONT_Z &&
-      p.z >= CAKE_BACK_Z &&
-      p.y > 2.9;
-    expect(onCake(fireAndSettle(5))).toBe(false); // short, on the ground
-    expect(onCake(fireAndSettle(6))).toBe(true);
-    expect(onCake(fireAndSettle(7))).toBe(true);
-    expect(onCake(fireAndSettle(8))).toBe(false); // skids off the back
+  it("the settle ladder, per tier × notch (plans/05 study, re-pinned)", () => {
+    // Scoring truth is final REST position (visionary's rule, 2026-07-02).
+    // Level (notch 0), the click ladder reads one-click-per-tier; +15°
+    // (notch 1) trades reach for steepness — its 8-click ceiling drops onto
+    // the summit. If tuning moves these rows, move them on purpose and
+    // re-run research/03-tier-ladder-study.mts.
+    expect(tierOf(fireAndSettle(5))).toBeNull(); // short, on the ground
+    expect(tierOf(fireAndSettle(6))).toBe(1); // middle-tier ledge
+    expect(tierOf(fireAndSettle(7))).toBe(2); // the flat crown
+    expect(tierOf(fireAndSettle(8))).toBeNull(); // clean over the whole cake
+    expect(tierOf(fireAndSettle(7, 15))).toBe(0); // steep, bottom ledge
+    expect(tierOf(fireAndSettle(8, 15))).toBe(2); // the tier-clearing shot
   });
 });
