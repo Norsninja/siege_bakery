@@ -29,19 +29,20 @@ are great.
    (Design consequence: notch/click granularity no longer needs to be
    optimized for shoutable corrections — it needs to be optimized for
    FEEL.)
-2. **Elevation = a screw that tilts the catapult frame back**, making the
-   arc more parabolic. Notched like the crank — 15° increments, possibly
-   up to 90° (straight up; mistakes execute — a vertical lob comes back
-   down on the crew, which is comedy, not a bug).
-3. **A trajectory HINT exists — this REVISES the no-prediction-UI law.**
-   Visionary's call, explicitly: "some small indicator of where the
-   trajectory will go, maybe a short arc that dissolves after some time —
-   it just hints at the direction." Dead reckoning must stay fun; the hint
-   is a short, dissolving STUB (direction and arc shape near the machine),
-   never the landing point. Proposed rider carried from the 2D pennant
-   law, pending sign-off: when wind arrives, the stub always shows the
-   CALM-AIR arc — wind visibly deviates the real shot, and reading the
-   pennant stays the wind skill.
+2. **Elevation = a screw AT THE FRONT that tilts the frame back** (REFINED
+   2026-07-03, second pass): the machine's CURRENT throw is the baseline —
+   **elevation notch 0 = today's exact feel, untouched**. Raising the
+   front screw tilts the frame in +15° notches, steepening the arc to
+   reach the higher tiers. Launch angle = the arm's natural throw + tilt.
+   This framing preserves the current settle-ladder pins as the notch-0
+   row; each tilt notch adds a NEW row instead of re-tuning everything.
+3. **Trajectory hint: DEFERRED** (visionary, 2026-07-03 second pass): "it
+   may not add to the game." The no-prediction-UI law STANDS for now. The
+   underlying concern — current difficulty may be too high — stays open
+   and is monitored through continued testing (knobs listed in plans/03).
+   If the hint ever returns, the recorded shape is: a short dissolving
+   stub, direction/arc-shape only, never the landing point, calm-air-only
+   once wind exists (the 2D pennant law rider).
 4. **The crank tells its strain.** SFX and other hints convey the catapult
    being stretched to its limit as tension climbs.
 
