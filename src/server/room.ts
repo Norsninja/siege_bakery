@@ -257,15 +257,29 @@ export class Room {
     // Merge every hand on the machine into one intent; consume edges.
     const held: HeldOp[] = [];
     let leverPulls = 0;
-    const loads: string[] = [];
     for (const m of this.members.values()) {
       held.push(m.held);
       leverPulls += m.leverPulls;
       m.leverPulls = 0;
-      loads.push(...m.loads);
-      m.loads.length = 0;
     }
-    const intent = mergeIntents(held, leverPulls, loads);
+    // Loads are edges, but a full bucket REJECTS — it must not DESTROY
+    // (checkpoint audit M10): two bakers loading in the same window used to
+    // silently evaporate the loser's topping. Queued loads now stay queued
+    // (≤2/member, onMessage) until the bucket actually accepts one, so the
+    // loser's topping enters the moment the machine fires. One candidate
+    // per tick; first-joined member breaks ties (Map order — deterministic).
+    let loader: Member | null = null;
+    let load: string | null = null;
+    for (const m of this.members.values()) {
+      if (m.loads.length > 0) {
+        loader = m;
+        load = m.loads[0]!;
+        break;
+      }
+    }
+    const accepted = load !== null && this.machine.loaded === null;
+    if (accepted) loader!.loads.shift();
+    const intent = mergeIntents(held, leverPulls, accepted ? [load!] : []);
 
     const r = tickMachine(this.machine, this.crankTicks, intent, this.screwTicks);
     this.machine = r.state;

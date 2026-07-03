@@ -107,6 +107,22 @@ describe("Room: the match, headless over protocol", () => {
     expect(a.last("machine")?.state.loaded).toBeNull(); // fired, and no re-load
   });
 
+  it("two bakers loading at once: nobody's topping evaporates (audit 2026-07-03)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const b = connect(room, "bob");
+    room.onMessage(a.id, { t: "load", topping: "cherry" });
+    room.onMessage(b.id, { t: "load", topping: "lime" });
+    run(room, 6);
+    // First-joined wins the tie...
+    expect(a.last("machine")?.state.loaded).toBe("cherry");
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 6);
+    // ...and Bob's lime was REJECTED, not destroyed: it enters the moment
+    // the bucket empties.
+    expect(a.last("machine")?.state.loaded).toBe("lime");
+  });
+
   it("the full co-op shot: load, crank to 6, fire → shot broadcast → authoritative score", () => {
     const room = new Room();
     const a = connect(room, "alice");
