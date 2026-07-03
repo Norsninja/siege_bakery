@@ -63,9 +63,14 @@ import {
   type InteractableKind,
   type NetStatus,
 } from "./hud";
+import {
+  InputTracker,
+  updateGrip,
+  deriveOp,
+  deriveMove,
+  machineEngaged,
+} from "./input";
 
-const MOUSE_SENSITIVITY = 0.0022;
-const MAX_PITCH = (85 * Math.PI) / 180;
 const REACH_M = 2.8; // how far the baker can reach an interactable
 const POSE_SEND_EVERY = 3; // ticks → 20Hz
 
@@ -425,33 +430,16 @@ async function main(): Promise<void> {
     tickRoom = loop.tickRoom;
   }
 
-  // --- Input: pointer-lock mouse look + WASD/Shift + E ---
-  let yaw = 0; // 0 faces -Z: spawn looks at the catapult and cake
-  let pitch = 0;
-  const keys = new Set<string>();
-  let ePressed = false; // edge, consumed by the next sim tick
+  // --- Input: pointer-lock mouse look + WASD/Shift + E (input.ts) ---
+  const input = new InputTracker(canvas);
   let debugInput: BakerInput | null = null; // DEV: preview_eval drives the baker
 
-  canvas.addEventListener("click", () => {
-    if (document.pointerLockElement !== canvas) void canvas.requestPointerLock();
-  });
-  document.addEventListener("mousemove", (e) => {
-    if (document.pointerLockElement !== canvas) return;
-    yaw -= e.movementX * MOUSE_SENSITIVITY;
-    pitch = Math.max(
-      -MAX_PITCH,
-      Math.min(MAX_PITCH, pitch - e.movementY * MOUSE_SENSITIVITY),
-    );
-  });
   window.addEventListener("keydown", (e) => {
-    keys.add(e.code);
-    if (e.code === "KeyE" && !e.repeat) ePressed = true;
-    // Greybox restart: reload is the honest reset.
+    // Greybox restart: reload is the honest reset. Game-flow, not input
+    // mechanics — stays with the order state it reads.
     if (e.code === "KeyR" && order.status !== "running")
       window.location.reload();
   });
-  window.addEventListener("keyup", (e) => keys.delete(e.code));
-  window.addEventListener("blur", () => keys.clear());
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -494,13 +482,11 @@ async function main(): Promise<void> {
 
     while (accumulator >= FIXED_DT) {
       tickCounter++;
-      const eHeld = keys.has("KeyE");
-      const eEdge = ePressed;
-      ePressed = false;
+      const eHeld = input.keys.has("KeyE");
+      const eEdge = input.takeEdgeE();
 
       // Grip: latch the crosshair target while E is held; release with E.
-      if (!eHeld) heldTarget = null;
-      else if (heldTarget === null && target !== null) heldTarget = target;
+      heldTarget = updateGrip(heldTarget, eHeld, target);
       const grip = heldTarget ?? target;
 
       // Pantry pickup: hands must be empty, one topping at a time.
@@ -511,25 +497,7 @@ async function main(): Promise<void> {
 
       // Hold state on the machine → send only on change. HOLD ops read the
       // GRIP (sticky), edge ops below keep reading the live crosshair.
-      const op: HeldOp = {
-        turn:
-          grip === "wheel" && eHeld
-            ? keys.has("KeyA") && !keys.has("KeyD")
-              ? 1
-              : keys.has("KeyD") && !keys.has("KeyA")
-                ? -1
-                : 0
-            : 0,
-        screw:
-          grip === "screw" && eHeld
-            ? keys.has("KeyW") && !keys.has("KeyS")
-              ? 1
-              : keys.has("KeyS") && !keys.has("KeyW")
-                ? -1
-                : 0
-            : 0,
-        crank: grip === "winch" && eHeld,
-      };
+      const op = deriveOp(grip, eHeld, input.keys);
       if (
         op.turn !== lastOp.turn ||
         op.screw !== lastOp.screw ||
@@ -555,24 +523,17 @@ async function main(): Promise<void> {
       }
 
       // Hands on the machine = feet planted. Otherwise, normal movement.
-      const engaged =
-        eHeld &&
-        (grip === "wheel" || grip === "winch" || grip === "screw");
-      const move: BakerInput = debugInput ?? {
-        forward: engaged
-          ? 0
-          : (keys.has("KeyW") ? 1 : 0) - (keys.has("KeyS") ? 1 : 0),
-        strafe: engaged
-          ? 0
-          : (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0),
-        sprint: !engaged && (keys.has("ShiftLeft") || keys.has("ShiftRight")),
-        yaw,
-      };
+      const engaged = machineEngaged(grip, eHeld);
+      const move: BakerInput =
+        debugInput ?? deriveMove(engaged, input.keys, input.yaw);
       baker.step(move);
 
       if (tickCounter % POSE_SEND_EVERY === 0) {
         const p = baker.position();
-        transport.send({ t: "pose", pose: { x: p.x, y: p.y, z: p.z, yaw } });
+        transport.send({
+          t: "pose",
+          pose: { x: p.x, y: p.y, z: p.z, yaw: input.yaw },
+        });
       }
 
       // Solo: our loop drives the room. Joined: the server drives it.
@@ -606,7 +567,7 @@ async function main(): Promise<void> {
     // --- Render state ---
     const p = baker.position();
     camera.position.set(p.x, p.y + EYE_HEIGHT_OFFSET, p.z);
-    camera.rotation.set(pitch, yaw, 0);
+    camera.rotation.set(input.pitch, input.yaw, 0);
 
     machine.rotation.y = (machineState.traverseDeg * Math.PI) / 180;
     // The frame tilts around its planted REAR; partial screw progress
@@ -720,8 +681,8 @@ async function main(): Promise<void> {
         debugInput = i;
       },
       setLook: (y: number, p: number) => {
-        yaw = y;
-        pitch = p;
+        input.yaw = y;
+        input.pitch = p;
       },
     };
   }
