@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
-import { PATRON_LOOK_EVERY } from "../game/tuning";
+import { ORDER_SECONDS, PATRON_LOOK_EVERY } from "../game/tuning";
 import { CRANK_TICKS_PER_CLICK, SCREW_TICKS_PER_NOTCH } from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 
@@ -265,7 +265,7 @@ describe("Room: the match, headless over protocol", () => {
     room.onMessage(a.id, { t: "lever" });
     run(room, 300);
     expect(connect(room, "peek").last("welcome")?.frosting.some((c) => c > 0)).toBe(true);
-    run(room, 140 * 60); // long enough to lose AND re-deal (120s order + burn + linger)
+    run(room, (ORDER_SECONDS + 20) * 60); // lose (burn ends it early) AND re-deal
     const fresh = a.all("order").find((m) => m.fresh);
     expect(fresh).toBeDefined();
     expect(fresh?.order.status).toBe("running");
@@ -276,9 +276,9 @@ describe("Room: the match, headless over protocol", () => {
   it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    // 130s of untouched machine: grumbles eat the clock, so the loss lands
-    // well before the nominal 120*60 ticks. Everyone hears the verdict.
-    run(room, 130 * 60);
+    // Nominal-plus-slack of untouched machine: grumbles eat the clock, so
+    // the loss lands well before nominal. Everyone hears the verdict.
+    run(room, (ORDER_SECONDS + 10) * 60);
     const msgs = a.all("order");
     const endIdx = msgs.findIndex((m) => m.order.status !== "running");
     expect(endIdx).toBeGreaterThanOrEqual(0);
@@ -295,7 +295,7 @@ describe("Room: the match, headless over protocol", () => {
   it("a finished order lingers, then the patron orders again with a clean slate", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    run(room, 140 * 60); // long enough to lose AND re-deal
+    run(room, (ORDER_SECONDS + 20) * 60); // long enough to lose AND re-deal
     const msgs = a.all("order");
     const endIdx = msgs.findIndex((m) => m.order.status !== "running");
     expect(endIdx).toBeGreaterThanOrEqual(0);
@@ -376,31 +376,73 @@ describe("Room: the match, headless over protocol", () => {
       }
       return [];
     };
-    // The decorating line (research/04 §3 arcs, all deterministic):
-    fire("frosting", 6, 300); // middle-ledge splash
+    // Traverse bookkeeping: the wheel moves 0.5°/tick, so degrees → ticks
+    // is exact. The script tracks where it left the wheel.
+    let trav = 0;
+    const turnTo = (deg: number): void => {
+      const ticks = Math.round((deg - trav) * 2);
+      if (ticks !== 0) turnTicks(ticks > 0 ? 1 : -1, Math.abs(ticks));
+      trav = deg;
+    };
+    // The decorating line: the first 13 greedy picks of the ceiling study
+    // (research/06) — the small-splat economy's pass needs ~139 of 661
+    // samples (frac 0.5 × potential 0.42), and these 13 arcs union past
+    // it (measured 0.566 effective). MANY SHOTS IS THE GAME now (plans/08);
+    // re-run the study and re-cut this table when splats or census move.
+    // LIVE-TRUTH CHOREOGRAPHY (learned re-cutting this line): sprinkle 2
+    // fires AFTER the whole frost line — a late glob passing its ledge
+    // left it creeping, and 650 ticks later it had rolled 0.6m off its
+    // paint and honestly un-counted. Solids you care about go down when
+    // nothing else will fly near them.
+    turnTo(-1.5);
+    fire("frosting", 6, 300);
     fire("sprinkles", 6, 650); // rests ON it — before any nag can want more
-    screw(1);
-    fire("frosting", 7, 300); // bottom-ledge splash (the screw's answer)
-    fire("frosting", 8, 300); // summit splash
-    screw(-1);
-    turnTicks(1, 16); // +8°: the wheel earns its keep
-    fire("frosting", 6, 300); // flank splash
-    fire("sprinkles", 6, 650); // second sprinkle, fresh flank spot
-    turnTicks(-1, 16);
+    turnTo(-1);
+    fire("frosting", 7, 300);
+    turnTo(-3);
+    fire("frosting", 5, 300);
+    turnTo(-8.5);
+    fire("frosting", 6, 300);
+    turnTo(5.5);
+    fire("frosting", 7, 300);
+    screw(1); // the notch-1 half of the pick list
+    turnTo(10);
+    fire("frosting", 8, 300);
+    turnTo(8);
+    fire("frosting", 7, 300);
+    turnTo(6);
+    fire("frosting", 8, 300);
+    turnTo(-0.5);
+    fire("frosting", 8, 300);
+    fire("frosting", 7, 300);
+    turnTo(-6);
+    fire("frosting", 8, 300);
+    turnTo(-8);
+    fire("frosting", 7, 300);
+    turnTo(-10.5);
+    fire("frosting", 8, 300);
     expect(lastChecks().find((c) => c.req.kind === "frost-coverage")?.met).toBe(
-      true,
-    );
-    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
       true,
     );
     // The Giant demanded his crown along the way (progress-triggered).
     expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
+    // Second sprinkle on the flank's rich paint, now that the sky is clear.
+    screw(-1);
+    turnTo(-8.5);
+    fire("sprinkles", 6, 650);
+    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
+      true,
+    );
     screw(1);
+    turnTo(0);
     fire("cherry", 8, 650); // the tier-clearing crown shot
     const end = a.all("order").find((m) => m.order.status === "won");
     expect(end).toBeDefined();
     expect(end?.judgment?.accepted).toBe(true);
-    expect(end?.judgment?.stars).toBeGreaterThanOrEqual(2);
+    // Stars come from the coverage tiers now (plans/08): meeting the ask
+    // is a PASS — one star. The upper tiers are the ceiling's asymptote.
+    expect(end?.judgment?.stars).toBe(1);
+    expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
     // The linger passes; the fresh deal starts honestly unmet.
     run(room, 700);
     const fresh = a.all("order").find((m) => m.fresh);
@@ -414,7 +456,7 @@ describe("Room: the match, headless over protocol", () => {
     let guard = 0;
     while (
       (a.last("order")?.order.status ?? "running") === "running" &&
-      guard++ < 130 * 60
+      guard++ < (ORDER_SECONDS + 10) * 60
     )
       room.tick();
     run(room, 100); // deep in the linger — the banner is up
@@ -441,7 +483,7 @@ describe("Room: the match, headless over protocol", () => {
     let guard = 0;
     while (
       (a.last("order")?.order.status ?? "running") === "running" &&
-      guard++ < 130 * 60
+      guard++ < (ORDER_SECONDS + 10) * 60
     )
       room.tick();
     expect(a.last("order")?.order.status).toBe("lost");

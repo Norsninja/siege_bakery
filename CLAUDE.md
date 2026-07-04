@@ -75,8 +75,8 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-frosting slice (plans/07) BUILT + playtested; checkpoint audit DONE
-(research/05-checkpoint-audit.md — 12 fix commits, determinism tripwire
-is now a test). NEXT: the frosting-economy redesign (handoff §6 notes +
-research/05 pre-work; re-run research/04 §3, re-pin frac/par/clock
-together). Port map: research/01-port-gap-analysis.md.
+frosting-economy redesign (plans/08) BUILT — potential-coverage grading
+(one town reaches ~44% of a round cake; research/06 is the standing
+ceiling study), area-honest 661 census, small splats, coverage-tier
+stars, 300s clock. NEXT: the visionary's playtest (pass pace + live-truth
+feel), then the towns slice. Port map: research/01-port-gap-analysis.md.

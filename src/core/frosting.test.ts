@@ -30,17 +30,20 @@ describe("the sample grid (pure function of the cake)", () => {
     expect(tops.length + walls.length).toBe(CAKE_SAMPLES.length);
   });
 
-  it("the sample count IS the wire format: 437, moved only on purpose (audit 2026-07-03)", () => {
+  it("the sample count IS the wire format: 661, moved only on purpose (audit 2026-07-03)", () => {
     // welcome.frosting is coats-per-sample, and restore() REFUSES a
     // snapshot of any other length (version-skew guard) — so any tweak to
     // SAMPLE_SPACING / WALL_SAMPLE_SPACING / ring margins / CAKE_TIERS
     // that shifts this number breaks every mixed-build late join, and
     // pre-pin it did so SILENTLY (naked cake, no explanation). If this
     // fails, you changed the census: re-pin the number here, re-run
-    // research/04 §3, and re-pin frac/par with it (standing law, plans/07).
-    expect(CAKE_SAMPLES.length).toBe(437);
+    // research/04 §3 AND research/06 (the ceiling study), and re-pin
+    // frac/TOWN_POTENTIAL/par with it (standing law, plans/07 + plans/08).
+    // 661 = the AREA-HONEST census (plans/08): walls at top density are
+    // two-thirds of the samples because they are two-thirds of the skin.
+    expect(CAKE_SAMPLES.length).toBe(661);
     expect(tops.length).toBe(218);
-    expect(walls.length).toBe(219);
+    expect(walls.length).toBe(443);
   });
 
   it("top samples sit on tier tops inside tier radii, facing up", () => {
@@ -106,9 +109,11 @@ describe("the paint law", () => {
   it("a short shot at the cake's FOOT frosts the wall base — the forgiveness rule", () => {
     // The visionary's 5-click shot (playtest, 2026-07-03): ground impact
     // just in front of the bottom wall. It used to be pure mess; now the
-    // dollop reaches the wall's lower rings and counts.
+    // dollop reaches the wall's lower rings and counts. The WINDOW
+    // narrowed with the small-splat law (plans/08, dollop 0.6): landing
+    // within ~half a meter of the foot forgives; farther is honest mess.
     const field = new FrostingField();
-    const foot = { x: 0, y: 0.3, z: CAKE_Z + CAKE_TIERS[0]!.radius + 0.7 };
+    const foot = { x: 0, y: 0.3, z: CAKE_Z + CAKE_TIERS[0]!.radius + 0.3 };
     const painted = field.paint(foot, GENTLE);
     expect(painted).toBeGreaterThan(0);
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {

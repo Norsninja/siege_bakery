@@ -41,7 +41,9 @@ const fullCoat = () => {
 const CHERRIES_2: Requirement = { kind: "count-on-cake", topping: "cherry", needed: 2 };
 const LIME_MID: Requirement = { kind: "count-in-zone", topping: "lime", zone: "tier2", needed: 1 };
 const CROWN: Requirement = { kind: "crown", topping: "cherry" };
-const FROST_HALF: Requirement = { kind: "frost-coverage", frac: 0.5 };
+/** potential 1 = "the whole census is reachable" — the unit-law fixture;
+ * the of-reach normalization has its own pins below (plans/08). */
+const FROST_HALF: Requirement = { kind: "frost-coverage", frac: 0.5, potential: 1 };
 const SPRINKLES_2: Requirement = { kind: "on-frosting", topping: "sprinkles", needed: 2 };
 
 describe("zones are tiers", () => {
@@ -92,7 +94,7 @@ describe("checkRequirements", () => {
     expect(describeRequirement(CHERRIES_2)).toBe("2 × cherry ON the cake");
     expect(describeRequirement(LIME_MID)).toBe("1 × lime on the MIDDLE TIER");
     expect(describeRequirement(CROWN)).toBe("1 × cherry AS THE CROWN");
-    expect(describeRequirement(FROST_HALF)).toBe("FROST 50% OF THE CAKE");
+    expect(describeRequirement(FROST_HALF)).toBe("FROST 50% OF YOUR SIDE");
     expect(describeRequirement(SPRINKLES_2)).toBe("2 × sprinkles ON THE FROSTING");
   });
 
@@ -129,6 +131,21 @@ describe("the frost row — the one fractional requirement (plans/07)", () => {
     const [c1] = checkRequirements([FROST_HALF], [], field);
     expect(c1?.current).toBeGreaterThanOrEqual(0.5);
     expect(c1?.met).toBe(true);
+  });
+
+  it("the ask is OF POTENTIAL: a round cake shows one town half its skin (plans/08)", () => {
+    // potential 0.5: painting a QUARTER of the census is half of reach —
+    // the promise kept, and current reads 0.5, not 0.25.
+    const row: Requirement = { kind: "frost-coverage", frac: 0.5, potential: 0.5 };
+    const field = naked();
+    field.restore(CAKE_SAMPLES.map((_, i) => (i % 4 === 0 ? 1 : 0)));
+    const [c] = checkRequirements([row], [], field);
+    expect(c?.current).toBeGreaterThanOrEqual(0.5);
+    expect(c?.current).toBeLessThan(0.6);
+    expect(c?.met).toBe(true);
+    // Beating the measured ceiling clamps: "all of it", never 120%.
+    const full = fullCoat();
+    expect(checkRequirements([row], [], full)[0]?.current).toBe(1);
   });
 });
 
@@ -210,7 +227,13 @@ describe("the crown — uppermost SOLID on the cake, resting on the summit", () 
 });
 
 describe("judge — the two gates, weights home (plans/07)", () => {
-  const order = { requirements: [CHERRIES_2], parShots: 6, passScore: 50 };
+  const order = {
+    requirements: [CHERRIES_2],
+    parShots: 6,
+    passScore: 50,
+    goodFrac: 0.7,
+    excellentFrac: 0.9,
+  };
   const clean = [at("cherry", 3.5, LEDGE_Y), at("cherry", 0, TOP_Y)];
 
   it("a frosted clean bake under par: met, accepted, full marks, three stars", () => {
@@ -249,18 +272,42 @@ describe("judge — the two gates, weights home (plans/07)", () => {
     expect(j.score).toBe(93); // 0.35 + 0.15 + 0.25 + 0.15·0.5 + 0.10
   });
 
-  it("the coverage axis is normalized against the order's frost row", () => {
-    // Half the samples painted, frac 0.5 asked → full coverage credit.
+  it("the coverage axis is of-POTENTIAL and normalized at the excellence tier (plans/08)", () => {
+    // Half the samples painted against potential 0.5: ALL of reach painted —
+    // effective 1, full coverage credit, and the top tier claimed.
     const field = naked();
     field.restore(CAKE_SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
     const withRow = {
-      requirements: [CHERRIES_2, { kind: "frost-coverage", frac: 0.5 } as Requirement],
-      parShots: 6,
-      passScore: 50,
+      ...order,
+      requirements: [
+        CHERRIES_2,
+        { kind: "frost-coverage", frac: 0.5, potential: 0.5 } as Requirement,
+      ],
     };
     const j = judge(withRow, clean, field, 2);
-    expect(j.coverage).toBeGreaterThanOrEqual(0.5);
-    expect(j.score).toBe(100); // min(1, coverage/0.5) = 1 — the promise kept
+    expect(j.effectiveCoverage).toBe(1);
+    expect(j.score).toBe(100);
+    expect(j.stars).toBe(3);
+  });
+
+  it("STARS come from the coverage tiers, not score arithmetic (plans/08)", () => {
+    // potential 1, frac 0.5 asked, tiers 0.7 / 0.9: meeting the ask is one
+    // star however cleanly it was played; the upper stars are coverage.
+    const withRow = {
+      ...order,
+      requirements: [
+        CHERRIES_2,
+        { kind: "frost-coverage", frac: 0.5, potential: 1 } as Requirement,
+      ],
+    };
+    const paintFraction = (fr: number) => {
+      const f = naked();
+      f.restore(CAKE_SAMPLES.map((_, i) => (i / CAKE_SAMPLES.length < fr ? 1 : 0)));
+      return f;
+    };
+    expect(judge(withRow, clean, paintFraction(0.55), 2).stars).toBe(1);
+    expect(judge(withRow, clean, paintFraction(0.75), 2).stars).toBe(2);
+    expect(judge(withRow, clean, paintFraction(0.95), 2).stars).toBe(3);
   });
 
   it("waste decays past par; a naked hosed-down bakery gets REFUSED", () => {

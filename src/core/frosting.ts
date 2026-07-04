@@ -23,9 +23,11 @@
  * "sides unsampled" call): a short shot that smacks the cake's foot now
  * FROSTS the wall base instead of counting as pure mess, ledge splashes
  * wrap onto the walls above and below, and the sides are honest decorating
- * surface. Wall rings are SPARSER than top rings — the walls are two-thirds
- * of the cake's skin and would otherwise drown the tops in the coverage
- * denominator.
+ * surface. Walls and tops sample at the SAME density (the economy redesign,
+ * plans/08, overruling the amendment's coarser walls): the census is an
+ * AREA-HONEST account of the skin — walls are two-thirds of the true
+ * surface and now two-thirds of the samples, so every blob is one equal
+ * unit of dessert ("gather the surface area of the dessert").
  *
  * core/ law: deterministic, no DOM, no three.js.
  */
@@ -34,28 +36,30 @@ import { SPLAT_SPEED, type Vec3 } from "./ballistics";
 
 /** Target spacing between sample points (m) — ring gap and arc step. */
 export const SAMPLE_SPACING = 0.45;
-/** Wall rings are coarser (see header) — height gap and arc step. */
-export const WALL_SAMPLE_SPACING = 0.65;
+/** Wall rings: SAME density as tops (area-honest census, header note). */
+export const WALL_SAMPLE_SPACING = 0.45;
 
 /** Dollop (a gentle landing, below SPLAT_SPEED): thick, tidy, small.
- * Sizes pinned by the study's coverage table (research/04 §3) AND a full
- * scripted playthrough (plans/07 O2): the four-shot decorating line —
- * bottom ledge (notch 1 × 7), summit front (notch 1 max crank), summit
- * back (level 7), a flank (±8° level 6) — must clear the frost row with
- * margin. Smaller radii measured fine per shot but left a coverage tail
- * only reachable by re-aiming grind, and the clock died. Decorating, not
- * grinding. */
-export const FROST_DOLLOP_RADIUS = 1.3;
+ * SMALL SPLATS ARE THE LAW (economy redesign, plans/08): one glob paints
+ * ~7–12 samples — a rough circle — because many shots IS the game;
+ * coverage economics live in the pass ask and the clock (game/tuning.ts),
+ * never in fatter splats. Sizes re-pinned by research/04 §3 + the ceiling
+ * study (research/06). */
+export const FROST_DOLLOP_RADIUS = 0.6;
 export const FROST_DOLLOP_COATS = 2;
-/** Splash (at/above SPLAT_SPEED): wide, thin, growing with landing energy.
+/** Splash (at/above SPLAT_SPEED): wider, thin, growing with landing energy.
  * Frosting WANTS to arrive hot — coverage per shot scales with impact
  * speed, at neatness cost (splat-vs-place as CONSEQUENCE, port map C7). */
-export const FROST_SPLASH_BASE_RADIUS = 2.1;
-export const FROST_SPLASH_RADIUS_PER_SPEED = 0.15;
-export const FROST_SPLASH_MAX_RADIUS = 3.4;
-/** A splash paints one story: it may drip to the ADJACENT ledge (tier gaps
- * are 1.5m) but never two tiers down. */
-export const FROST_VERTICAL_BAND = 1.2;
+export const FROST_SPLASH_BASE_RADIUS = 0.7;
+export const FROST_SPLASH_RADIUS_PER_SPEED = 0.05;
+export const FROST_SPLASH_MAX_RADIUS = 1.1;
+/** Vertical reach of a splat. At these radii a splash can NEVER bridge
+ * one tier's ledge to the next (max reach 1.1 < 1.5m tier gap — decided
+ * ON PURPOSE, audit deferred item 1): the band's real job is shaping WALL
+ * patches — an impact on a wall face paints a rough circle (arc ~2r wide,
+ * ~2·band tall), and a ledge-edge splash may wrap onto the wall just
+ * above or below. */
+export const FROST_VERTICAL_BAND = 0.8;
 /** "On the frosting": a painted sample within this 3D distance. */
 export const FROSTED_NEAR_M = 0.6;
 /** Neatness tolerance: σ(coats) at which the patchwork reads as slop. */
@@ -84,9 +88,9 @@ export interface FrostSample {
 const UP: Vec3 = { x: 0, y: 1, z: 0 };
 
 /** The census grid: polar rings per tier over the exposed top (~SAMPLE_
- * SPACING apart) plus coarser rings down each wall face, all phase-shifted
- * per ring so points never align. Built once at module load — a pure
- * function of CAKE_TIERS. */
+ * SPACING apart) plus equal-density rings down each wall face, all
+ * phase-shifted per ring so points never align. Built once at module
+ * load — a pure function of CAKE_TIERS. */
 function buildSamples(): FrostSample[] {
   const pts: FrostSample[] = [];
   for (let i = 0; i < CAKE_TIERS.length; i++) {

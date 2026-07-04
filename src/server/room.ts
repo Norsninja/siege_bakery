@@ -44,6 +44,7 @@ import {
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   SPRINKLES_NEEDED,
+  TOWN_POTENTIAL,
 } from "../game/tuning";
 import { mulberry32 } from "../core/rng";
 import {
@@ -77,7 +78,9 @@ const ORDER_CLOCK_EVERY = 60; // ticks → 1Hz clock correction
  * deal — orders are mutable, never share row objects. */
 export function standardRequirements(): Requirement[] {
   return [
-    { kind: "frost-coverage", frac: FROST_FRAC },
+    // ONE town today: the frost ask is a fraction of what this firing line
+    // can reach (plans/08 — the towns slice will index by real town count).
+    { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_POTENTIAL[1]! },
     { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
   ];
 }

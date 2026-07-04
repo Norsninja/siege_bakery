@@ -25,6 +25,7 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "./judgment";
+import { COVERAGE_EXCELLENT, COVERAGE_GOOD } from "./tuning";
 
 export interface OrderState {
   /** MUTABLE: the Patron appends and tightens rows mid-order. */
@@ -33,6 +34,10 @@ export interface OrderState {
   parShots: number;
   /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
   passScore: number;
+  /** Star tiers, fractions of potential coverage (plans/08; on the wire —
+   * the HUD prints what each star takes). */
+  goodFrac: number;
+  excellentFrac: number;
   ticksLeft: number;
   status: "running" | "won" | "lost";
 }
@@ -40,12 +45,19 @@ export interface OrderState {
 export function createOrder(
   requirements: Requirement[],
   ticks: number,
-  opts?: { parShots?: number; passScore?: number },
+  opts?: {
+    parShots?: number;
+    passScore?: number;
+    goodFrac?: number;
+    excellentFrac?: number;
+  },
 ): OrderState {
   return {
     requirements,
     parShots: opts?.parShots ?? 6,
     passScore: opts?.passScore ?? 50,
+    goodFrac: opts?.goodFrac ?? COVERAGE_GOOD,
+    excellentFrac: opts?.excellentFrac ?? COVERAGE_EXCELLENT,
     ticksLeft: ticks,
     status: "running",
   };

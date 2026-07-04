@@ -36,6 +36,7 @@ const judgment = (over: Partial<Judgment> = {}): Judgment => ({
   stars: 3,
   checks: [],
   coverage: 1,
+  effectiveCoverage: 1,
   neatness: 1,
   integrity: 1,
   mess: 0,

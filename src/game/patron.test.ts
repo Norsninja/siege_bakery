@@ -110,7 +110,7 @@ describe("The Giant", () => {
   it("the crown demand normalizes per row — fractions can't poison the arithmetic", () => {
     const g = createGiant();
     const honest = (): Requirement[] => [
-      { kind: "frost-coverage", frac: 0.3 },
+      { kind: "frost-coverage", frac: 0.3, potential: 1 },
       { kind: "on-frosting", topping: "sprinkles", needed: 3 },
     ];
     const order = createOrder(honest(), 5400);
