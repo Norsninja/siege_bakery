@@ -78,6 +78,7 @@ Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 direction set + topping-physics law BUILT (plans/09 — the standing record:
 fun thesis, campaign ladder, rung-authored potential, turntable-as-upgrade,
 freeze-on-settle solids). Economy per plans/08 (potential-coverage grading;
-research/06 is the standing ceiling study). NEXT (plans/09 §8): Room.tick
-decomp → power-extension study → towns slice → dessert report → friend
-test. Port map: research/01-port-gap-analysis.md.
+research/06 is the standing ceiling study). NEXT (plans/09 §9): Room.tick
+decomp → projectile pass (plans/09 §8, designed+held) → power-extension
+study → towns slice → dessert report → friend test. Port map:
+research/01-port-gap-analysis.md.

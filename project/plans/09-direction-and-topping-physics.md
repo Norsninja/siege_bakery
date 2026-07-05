@@ -122,12 +122,45 @@ WIN-path pins (81/100, 0.566) survived unchanged; its live-truth
 choreography comment now cites this law. Also filed: research/08 (lineage),
 research/09 (feasibility) from the discussion's agent briefs.
 
-## 8. The build sequence (standing)
+## 8. The projectile pass (DESIGNED, HELD — 2026-07-05; becomes plan 10)
 
-Room.tick decomp → power-extension study (extend research/06; pick new
-TENSION_MAX_CLICKS from measured far-top reach + overshoot-into-town data)
-→ towns slice (two crewed towns, choose/split, rung-authored potential,
-collateral tolls) → dessert report orbit → **the friend test** → turntable
-second act. Watch at the friend test: neatness is the prime chaos-killer
+Decided in discussion, held for test-and-feel; build after the decomp,
+before towns (it touches Room impact handling; the friend test wants it):
+
+- **Sprinkle burst: PROXIMITY FUSE** — burst at X meters from the CAKE
+  (analytic tier-stack distance, arena.ts math; deterministic, readable,
+  cannot pop mid-arc; the 2D precedent). X ~1–1.5m hypothesis. **Impact
+  burst as fallback** for shots that never near the cake (floor pop =
+  honest visible mess). Grains inherit parent velocity + seeded spread, so
+  landing-energy texture survives with no extra rule (hot = wide).
+- **Grains are tiny OBJECT capsules** (regime law holds), chunky-cute
+  (~0.15–0.2m × 0.03–0.05 radius — true scale is physics-unstable),
+  MULTICOLOR (color-variety judgment stays deferred). The freeze law is
+  what makes grain counts affordable (frozen grains ≈ free).
+- **Seeded scatter rides the shot events** — the "seed S" the pivot record
+  always reserved; client replicas replay bursts identically, no new wire
+  paradigm. Batch grain-settle broadcasts per burst.
+- **Density is the visionary's eye**: GRAINS_PER_SHOT as a dashboard
+  constant; demo 20/40/80 in-preview, he picks (30 judged too sparse on
+  paper). Ask re-pins to grain counts ("80 × SPRINKLES ON THE FROSTING"
+  ≈ two good shots — same shot economy as today's 2).
+- **Two judgment rules**: grains NEVER crown (crowns are placed solids,
+  grains are garnish); mess weighs a burst as ONE delivery with a
+  fractional on-cake ratio (else one wild shot = 60 floor entries and the
+  axis drowns).
+- Underneath it all: **toppings-as-data made physical** — per-topping body
+  params (radius/shape, restitution, burst spec, consume-on-impact) in the
+  pantry table, so fudge later is a data row, not a rework. Cherry stays
+  singular and weighty.
+- Catapult power for reaching town 2 with overshoots: NOT this pass —
+  that's the power-extension study in the towns arc (§9 below).
+
+## 9. The build sequence (standing)
+
+Room.tick decomp → projectile pass (§8) → power-extension study (extend
+research/06; pick new TENSION_MAX_CLICKS from measured far-top reach +
+overshoot-into-town data) → towns slice (two crewed towns, choose/split,
+rung-authored potential, collateral tolls) → dessert report orbit →
+**the friend test** → turntable second act. Watch at the friend test: neatness is the prime chaos-killer
 suspect (research/07: if playtesters go quiet and careful, loosen NEATNESS,
 never coverage; ours already reads stingy at 0.59 on the clean WIN).
