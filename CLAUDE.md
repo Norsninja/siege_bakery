@@ -75,10 +75,14 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-direction set + topping-physics law BUILT (plans/09 — the standing record:
-fun thesis, campaign ladder, rung-authored potential, turntable-as-upgrade,
-freeze-on-settle solids). Economy per plans/08 (potential-coverage grading;
-research/06 is the standing ceiling study). NEXT (plans/09 §9): Room.tick
-decomp → projectile pass (plans/09 §8, designed+held) → power-extension
-study → towns slice → dessert report → friend test. Port map:
+PROJECTILE PASS BUILT (plans/10 — the docket record: sprinkle cluster
+airburst + seeded scatter, fudge's downward splat, toppings-as-data
+physical columns, forgiveness-ladder law, rungs-introduce-projectiles vs
+shop-sells-infrastructure boundary). Direction per plans/09; economy per
+plans/08 (research/06/10/11 are the standing ceiling/union studies —
+research/11 measured the two-town union: 75.2%@8 / 84.4%@9 / 15.6% moats).
+NEXT: the density review (his eye, 20/40/80 via `__game.setGrainCount`,
+then re-pin grains+ask together) → towns slice (town-as-data, per-town
+intent, TENSION_MAX_CLICKS=10 bundled; the towns/upgrades design from the
+2026-07-05 discussion) → dessert report → friend test. Port map:
 research/01-port-gap-analysis.md.
