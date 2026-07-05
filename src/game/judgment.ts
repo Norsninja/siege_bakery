@@ -16,7 +16,7 @@
 import { isInZone, tierOf, TOP_TIER, type ZoneId } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
 import type { FrostingField } from "../core/frosting";
-import { isPaint } from "./toppings";
+import { canCrown, deliveryWeight } from "./toppings";
 
 export type Requirement =
   | { kind: "count-on-cake"; topping: string; needed: number }
@@ -66,6 +66,22 @@ export interface RequirementCheck {
   met: boolean;
 }
 
+/** Fraction of settled DELIVERIES off the cake, burst-weighted (plans/10
+ * §3): grains weigh 1/grains each, so one wild burst is ONE mistake — not
+ * forty floor entries drowning the axis. THE one mess arithmetic: judge()
+ * and the Patron's thunder rule (order-flow) both read this — the Giant
+ * must not thunder forty times harder at one bad pop. */
+export function weighedMess(settled: readonly SettledTopping[]): number {
+  let weight = 0;
+  let off = 0;
+  for (const s of settled) {
+    const w = deliveryWeight(s.topping);
+    weight += w;
+    if (!s.onCake) off += w;
+  }
+  return weight > 0 ? off / weight : 0;
+}
+
 /** Census every row against everything at rest and the frosting field.
  * Pure; called by the Room after each delivery and each Patron amendment. */
 export function checkRequirements(
@@ -74,12 +90,14 @@ export function checkRequirements(
   frosting: FrostingField,
 ): RequirementCheck[] {
   // The crown cares about the WHOLE cake, not just its own topping: the
-  // uppermost on-cake settled SOLID (strictly greatest rest y; ledger order
-  // breaks exact ties) — computed once, shared by every crown row. Paint
-  // entries in the ledger are mess bookkeeping, not crown contenders.
+  // uppermost on-cake settled CROWN-CLASS solid (strictly greatest rest y;
+  // ledger order breaks exact ties) — computed once, shared by every crown
+  // row. Paint entries are mess bookkeeping, not crown contenders; grains
+  // are garnish and NEVER crown (plans/10 §3 — a wild sprinkle atop the
+  // summit must not usurp the cherry).
   let uppermost: SettledTopping | null = null;
   for (const s of settled) {
-    if (isPaint(s.topping)) continue;
+    if (!canCrown(s.topping)) continue;
     if (s.onCake && (uppermost === null || s.pos.y > uppermost.pos.y))
       uppermost = s;
   }
@@ -180,9 +198,7 @@ export function judge(
   const neatness = frosting.neatness();
   const integrity = 1; // the Bite's axis, waiting for its slice
 
-  const total = settled.length;
-  const offCake = settled.filter((s) => !s.onCake).length;
-  const mess = total > 0 ? offCake / total : 0;
+  const mess = weighedMess(settled);
   const waste =
     shotsFired <= order.parShots ? 1 : order.parShots / Math.max(1, shotsFired);
 

@@ -78,12 +78,14 @@ export function applyServerMsg(
       const progressed = sum(msg.checks) > sum(view.checks);
       view.order = msg.order;
       view.checks = msg.checks;
-      if (progressed) fx.flash(`✓ the patron counts the ${msg.topping}!`);
+      // Batched grain landings arrive with a count (plans/10 §5).
+      const times = msg.count !== undefined && msg.count > 1 ? ` ×${msg.count}` : "";
+      if (progressed) fx.flash(`✓ the patron counts the ${msg.topping}${times}!`);
       else if (msg.onCake)
         fx.flash(
-          `the ${msg.topping} rests on the cake — but that's not what was asked`,
+          `the ${msg.topping}${times} rests on the cake — but that's not what was asked`,
         );
-      else fx.flash(`no good — the ${msg.topping} didn't stay on the cake`);
+      else fx.flash(`no good — the ${msg.topping}${times} didn't stay on the cake`);
       break;
     }
     case "order":

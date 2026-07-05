@@ -71,8 +71,17 @@ export const FROST_FRAC = 0.5;
  * an order at any coverage. */
 export const COVERAGE_GOOD = 0.7;
 export const COVERAGE_EXCELLENT = 0.9;
-/** The standing order's sprinkle row (the nag can tighten it +1). */
-export const SPRINKLES_NEEDED = 2;
+/** The standing order's sprinkle row, IN GRAINS since the projectile pass
+ * (plans/10: sprinkles burst into 40 payload capsules; the ask re-pins to
+ * grain counts). MEASURED (room.test WIN line, 2026-07-05, after grain
+ * damping): a good burst over paint delivers ~37–39 of its 40 grains onto
+ * the frosting — confetti drag keeps the payload ON the landing zone. 60 =
+ * two good bursts with slack: the SAME two-shot economy the old
+ * "2 × sprinkles" asked. RE-PINS WITH THE DENSITY PICK (his eye chooses
+ * 20/40/80 grains in-preview; the ask scales with the count — keep
+ * ask ≈ 1.5 × grains). (The Patron's nag tightens it +1 — a comedy
+ * crumb now: one more grain.) */
+export const SPRINKLES_NEEDED = 60;
 
 /** Patience burns, seconds of clock per Patron look (patron.ts rules).
  * Positive numbers; the rules subtract them. */

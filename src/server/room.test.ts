@@ -142,6 +142,9 @@ describe("Room: the match, headless over protocol", () => {
       traverseDeg: 0,
       tiltNotch: 0,
       tensionClicks: 6,
+      // The reserved seed S (plans/10) — minted per shot; replicas replay
+      // bursts from it. Value is the Room's seeded stream, not pinned here.
+      seed: expect.any(Number) as number,
     });
     expect(shotB).toEqual(shotA); // everyone spawns the same deterministic lob
     run(room, 600); // flight + skid + rest detection
@@ -177,14 +180,18 @@ describe("Room: the match, headless over protocol", () => {
     const sprinkleRow = a
       .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting");
-    expect(sprinkleRow?.current).toBe(1); // same spot, freshly painted
+    // A BURST now (plans/10): one 40-grain pop over the fresh splat — 39
+    // grains rest on the paint (pinned, deterministic: confetti drag keeps
+    // the payload on the landing zone). Re-pin with the density pick.
+    expect(sprinkleRow?.current).toBe(39);
   });
 
-  it("scoring truth follows the bodies: a bowled-off sprinkle un-counts (audit 2026-07-03)", () => {
-    // Live-truth ledger, the 2D "live cell scans" law re-bodied. Pinned by
-    // the bowl study (this session): a second 6-click shot lands on the
-    // first's exact rest spot and knocks it from the tier-1 ledge to the
-    // ground (~4.5m, off cake) — deterministically.
+  it("scoring truth follows the bodies: bowled-off grains un-count (audit 2026-07-03)", () => {
+    // Live-truth ledger, the 2D "live cell scans" law re-bodied — grains
+    // edition (plans/10): cherries dropped onto the frozen grain patch wake
+    // and scatter it; grains knocked off the paint un-count. Confetti drag
+    // keeps knocks short, so it takes a small barrage (measured: cherry 1
+    // wedges in atop, cherries 2–3 each dislodge one grain — 39 → 37).
     const room = new Room();
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
@@ -196,17 +203,19 @@ describe("Room: the match, headless over protocol", () => {
       run(room, 600);
     };
     fire("frosting"); // paint the 6-click landing zone
-    fire("sprinkles"); // rests ON the frosting → the row counts it
-    expect(
-      a.last("scored")?.checks.find((c) => c.req.kind === "on-frosting")
-        ?.current,
-    ).toBe(1);
-    fire("cherry"); // same arc: bowls the sprinkle off the ledge
+    fire("sprinkles"); // bursts over it → grains rest ON the frosting
+    const before = a
+      .last("scored")
+      ?.checks.find((c) => c.req.kind === "on-frosting")?.current;
+    expect(before).toBe(39); // the burst pin (see the test above)
+    fire("cherry"); // same arc, three times: the barrage plows the patch
+    fire("cherry");
+    fire("cherry");
     run(room, 120); // two 1Hz check broadcasts later, everything at rest
-    expect(
-      a.last("order")?.checks.find((c) => c.req.kind === "on-frosting")
-        ?.current,
-    ).toBe(0); // the patron counts what he SEES
+    const after = a
+      .last("order")
+      ?.checks.find((c) => c.req.kind === "on-frosting")?.current;
+    expect(after).toBe(37); // knocked off the paint — he counts what he SEES
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
@@ -399,7 +408,14 @@ describe("Room: the match, headless over protocol", () => {
     // shove, so solids you care about go down when nothing will fly near.
     turnTo(-1.5);
     fire("frosting", 6, 300);
-    fire("sprinkles", 6, 650); // rests ON it — before any nag can want more
+    // Burst 1 over the single fresh splat: 37 grains rest on paint (pinned;
+    // the frost line then flies PAST these grains for eleven more shots,
+    // waking and shoving honestly — the freeze law bounds the churn to
+    // real fly-bys). One burst alone can't meet the 60-grain ask.
+    fire("sprinkles", 6, 650);
+    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
+      37,
+    );
     turnTo(-1);
     fire("frosting", 7, 300);
     turnTo(-3);
@@ -433,6 +449,11 @@ describe("Room: the match, headless over protocol", () => {
     screw(-1);
     turnTo(-8.5);
     fire("sprinkles", 6, 650);
+    // Burst 2 on the flank's rich paint: cumulative 78 of the 60-grain ask
+    // (pinned) — two good bursts IS the economy (game/tuning.ts).
+    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
+      78,
+    );
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
       true,
     );

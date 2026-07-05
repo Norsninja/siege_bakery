@@ -75,20 +75,26 @@ export type ServerMsg =
   | { t: "machine"; state: CatapultState; crankTicks: number; screwTicks: number }
   /** Fire! Every receiver (and the room itself) spawns this projectile
    * locally — deterministic ballistics make all copies land identically.
-   * This is sync-shots-not-surfaces. */
+   * This is sync-shots-not-surfaces. `seed` is the reserved seed S of the
+   * pivot record (plans/06), live at last (plans/10): burst toppings
+   * replay their seeded scatter from it, identically everywhere. */
   | {
       t: "shot";
       topping: string;
       traverseDeg: number;
       tiltNotch: number;
       tensionClicks: number;
+      seed: number;
     }
   /** Authoritative scoring: a topping came to rest. The checklist rides
-   * along — the client has no settled-toppings ledger of its own. */
+   * along — the client has no settled-toppings ledger of its own.
+   * `count` batches same-tick same-fate landings (plans/10 §5: a burst's
+   * grains must not be forty broadcasts); absent means 1. */
   | {
       t: "scored";
       topping: string;
       onCake: boolean;
+      count?: number;
       order: OrderState;
       checks: RequirementCheck[];
     }

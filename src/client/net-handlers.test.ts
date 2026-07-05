@@ -113,7 +113,7 @@ describe("applyServerMsg", () => {
     const h = harness();
     applyServerMsg(
       h.view,
-      { t: "shot", topping: "cherry", traverseDeg: -10, tiltNotch: 1, tensionClicks: 8 },
+      { t: "shot", topping: "cherry", traverseDeg: -10, tiltNotch: 1, tensionClicks: 8, seed: 7 },
       h.fx,
     );
     expect(h.spawned).toEqual(["cherry"]);

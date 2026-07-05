@@ -65,16 +65,70 @@ export const FROSTED_NEAR_M = 0.6;
 /** Neatness tolerance: σ(coats) at which the patchwork reads as slop. */
 export const NEATNESS_STD_DIVISOR = 1.25;
 
-export function splatRadius(speed: number): number {
-  if (speed < SPLAT_SPEED) return FROST_DOLLOP_RADIUS;
+/** One paint topping's splat law (plans/10 §4) — the per-topping column
+ * the pantry table carries (game/toppings.ts). DEFAULT_SPLAT reproduces
+ * the frosting-classic constants byte-for-byte, so every existing pin and
+ * every ceiling study (research/06/10/11 model the frosting glob) stays
+ * valid. Fudge's spec is narrow with bandDown ≫ bandUp: a thick stream
+ * that RUNS DOWN the wall from a ledge hit, then sets — the measured
+ * elevation moats (research/11) are its job. */
+export interface SplatSpec {
+  dollopRadius: number;
+  dollopCoats: number;
+  splashBase: number;
+  splashPerSpeed: number;
+  splashMax: number;
+  /** Vertical reach ABOVE the impact (the classic band is symmetric). */
+  bandUp: number;
+  /** Vertical reach BELOW the impact — fudge runs down, frosting doesn't. */
+  bandDown: number;
+}
+
+export const DEFAULT_SPLAT: SplatSpec = {
+  dollopRadius: FROST_DOLLOP_RADIUS,
+  dollopCoats: FROST_DOLLOP_COATS,
+  splashBase: FROST_SPLASH_BASE_RADIUS,
+  splashPerSpeed: FROST_SPLASH_RADIUS_PER_SPEED,
+  splashMax: FROST_SPLASH_MAX_RADIUS,
+  bandUp: FROST_VERTICAL_BAND,
+  bandDown: FROST_VERTICAL_BAND,
+};
+
+export function splatRadius(speed: number, spec: SplatSpec = DEFAULT_SPLAT): number {
+  if (speed < SPLAT_SPEED) return spec.dollopRadius;
   return Math.min(
-    FROST_SPLASH_MAX_RADIUS,
-    FROST_SPLASH_BASE_RADIUS + FROST_SPLASH_RADIUS_PER_SPEED * (speed - SPLAT_SPEED),
+    spec.splashMax,
+    spec.splashBase + spec.splashPerSpeed * (speed - SPLAT_SPEED),
   );
 }
 
-export function splatCoats(speed: number): number {
-  return speed < SPLAT_SPEED ? FROST_DOLLOP_COATS : 1;
+export function splatCoats(speed: number, spec: SplatSpec = DEFAULT_SPLAT): number {
+  return speed < SPLAT_SPEED ? spec.dollopCoats : 1;
+}
+
+/** The sample indices one paint event reaches — shared by the field's
+ * paint() and the client's per-splat coloring (fudge renders dark; the
+ * view must see EXACTLY what the census sees, the greybox virtue). */
+export function splatSamples(
+  impact: Vec3,
+  speed: number,
+  spec: SplatSpec = DEFAULT_SPLAT,
+): number[] {
+  const r = splatRadius(speed, spec);
+  const r2 = r * r;
+  const hit: number[] = [];
+  for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+    const s = CAKE_SAMPLES[i]!.pos;
+    const dy = s.y - impact.y;
+    if (dy > spec.bandUp || dy < -spec.bandDown) continue;
+    // Squared distance, not Math.hypot: sqrt/mul/add are exactly rounded
+    // (identical on every engine); hypot is not (header note).
+    const dx = s.x - impact.x;
+    const dz = s.z - impact.z;
+    if (dx * dx + dz * dz > r2) continue;
+    hit.push(i);
+  }
+  return hit;
 }
 
 /** One census point: where it sits and which way its surface faces —
@@ -139,25 +193,14 @@ export const CAKE_SAMPLES: readonly FrostSample[] = buildSamples();
 export class FrostingField {
   private coats: number[] = new Array<number>(CAKE_SAMPLES.length).fill(0);
 
-  /** Apply one paint event (a frosting glob's first impact). Returns how
-   * many sample points it painted — 0 means floor frosting (mess). */
-  paint(impact: Vec3, speed: number): number {
-    const r = splatRadius(speed);
-    const add = splatCoats(speed);
-    let painted = 0;
-    const r2 = r * r;
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-      const s = CAKE_SAMPLES[i]!.pos;
-      if (Math.abs(s.y - impact.y) > FROST_VERTICAL_BAND) continue;
-      // Squared distance, not Math.hypot: sqrt/mul/add are exactly rounded
-      // (identical on every engine); hypot is not (header note).
-      const dx = s.x - impact.x;
-      const dz = s.z - impact.z;
-      if (dx * dx + dz * dz > r2) continue;
-      this.coats[i]! += add;
-      painted++;
-    }
-    return painted;
+  /** Apply one paint event (a paint topping's first impact), under the
+   * topping's splat law (default: the frosting classic). Returns how many
+   * sample points it painted — 0 means floor frosting (mess). */
+  paint(impact: Vec3, speed: number, spec: SplatSpec = DEFAULT_SPLAT): number {
+    const hit = splatSamples(impact, speed, spec);
+    const add = splatCoats(speed, spec);
+    for (const i of hit) this.coats[i]! += add;
+    return hit.length;
   }
 
   /** Fraction of the cake's sampled skin under at least one coat (0..1). */

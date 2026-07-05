@@ -7,7 +7,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "./constants";
-import { ProjectileManager, WAKE_RADIUS, type Settled } from "./projectiles";
+import {
+  ProjectileManager,
+  WAKE_RADIUS,
+  type BurstSpec,
+  type Settled,
+} from "./projectiles";
+import { buildArenaColliders, CAKE_Z } from "./arena";
 import type { Vec3 } from "./ballistics";
 
 beforeAll(async () => {
@@ -124,5 +130,103 @@ describe("the freeze law", () => {
     expect(shots.resting()).toEqual([
       { topping: "sprinkle", pos: expect.objectContaining({ x: 0, z: 0 }) },
     ]);
+  });
+});
+
+/** A small test payload — 6 grains keep the assertions readable and the
+ * sim fast; the real count lives in game/toppings.ts (his eye's knob). */
+const TEST_BURST: BurstSpec = {
+  proximityM: 1.25,
+  grains: 6,
+  jitterSpeed: 2,
+  scatterRadius: 0.35,
+  grain: { radius: 0.045, halfHeight: 0.055, restitution: 0.3 },
+};
+
+function makeArenaWorld(): RAPIER.World {
+  const world = new RAPIER.World(GRAVITY);
+  world.timestep = FIXED_DT;
+  buildArenaColliders(world);
+  return world;
+}
+
+describe("the cluster airburst (plans/10)", () => {
+  it("the proximity fuse pops the carrier near the cake — before any contact", () => {
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    // A slow lob drifting straight at the tier stack from 6m out.
+    const carrier = shots.spawn(
+      world,
+      { x: 0, y: 3, z: CAKE_Z + 6 },
+      { x: 0, y: 2, z: -8 },
+      "sprinkles",
+      { burst: TEST_BURST, seed: 42, tag: 7 },
+    );
+    let burst = null;
+    let carrierImpacts = 0;
+    for (let i = 0; i < 300 && !burst; i++) {
+      const ev = shots.step(world);
+      carrierImpacts += ev.impacts.filter((im) => !im.grain).length;
+      burst = ev.bursts[0] ?? null;
+    }
+    expect(burst).not.toBeNull();
+    expect(carrierImpacts).toBe(0); // popped in FLIGHT, no contact first
+    expect(burst!.topping).toBe("sprinkles");
+    expect(burst!.tag).toBe(7); // grains inherit the deal tag
+    expect(burst!.grains).toHaveLength(TEST_BURST.grains);
+    expect(carrier.isValid()).toBe(false); // the carrier ceased to exist
+    // Grain impacts are QUIET-flagged; grains settle and FREEZE (the law
+    // that makes grain counts affordable).
+    let grainImpacts = 0;
+    let settles = 0;
+    for (let i = 0; i < 900; i++) {
+      const ev = shots.step(world);
+      grainImpacts += ev.impacts.filter((im) => im.grain).length;
+      settles += ev.settled.length;
+    }
+    expect(grainImpacts).toBeGreaterThan(0);
+    expect(settles).toBe(TEST_BURST.grains); // every grain scores at rest
+    for (const g of burst!.grains)
+      expect(g.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
+  });
+
+  it("a clean miss falls through to the impact burst — the floor pop", () => {
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    // Fired AWAY from the cake: the fuse never trips; first contact pops.
+    shots.spawn(
+      world,
+      { x: 0, y: 2, z: 5 },
+      { x: 0, y: 1, z: 6 },
+      "sprinkles",
+      { burst: TEST_BURST, seed: 9, tag: 0 },
+    );
+    let burst = null;
+    for (let i = 0; i < 600 && !burst; i++) burst = shots.step(world).bursts[0] ?? null;
+    expect(burst).not.toBeNull();
+    expect(burst!.pos.y).toBeLessThan(1); // popped AT the ground, not midair
+    expect(burst!.grains).toHaveLength(TEST_BURST.grains);
+  });
+
+  it("the same seed replays the identical burst — replicas agree to the bit", () => {
+    const runOnce = (): Array<[number, number, number]> => {
+      const world = makeArenaWorld();
+      const shots = new ProjectileManager();
+      shots.spawn(
+        world,
+        { x: 0, y: 3, z: CAKE_Z + 6 },
+        { x: 0.3, y: 2, z: -8 },
+        "sprinkles",
+        { burst: TEST_BURST, seed: 1234, tag: 0 },
+      );
+      for (let i = 0; i < 900; i++) shots.step(world);
+      return shots
+        .resting()
+        .map((r): [number, number, number] => [r.pos.x, r.pos.y, r.pos.z]);
+    };
+    const a = runOnce();
+    const b = runOnce();
+    expect(a.length).toBe(TEST_BURST.grains);
+    expect(b).toEqual(a); // byte-identical rest positions, world to world
   });
 });

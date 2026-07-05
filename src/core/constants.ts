@@ -23,9 +23,16 @@ export const GRAVITY = { x: 0, y: -9.81, z: 0 };
 export const GROUP_WORLD = 0x0001;
 export const GROUP_BAKER = 0x0002;
 export const GROUP_SHOT = 0x0004;
+export const GROUP_GRAIN = 0x0008;
 /** Bakers: collide with the arena only. */
 export const BAKER_COLLISION_GROUPS = (GROUP_BAKER << 16) | GROUP_WORLD;
-/** Shots: collide with the arena and each other (toppings stack) — never
- * with bakers. */
+/** Shots: collide with the arena, each other (toppings stack), and grains
+ * (a cherry wades through confetti honestly) — never with bakers. */
 export const SHOT_COLLISION_GROUPS =
-  (GROUP_SHOT << 16) | (GROUP_WORLD | GROUP_SHOT);
+  (GROUP_SHOT << 16) | (GROUP_WORLD | GROUP_SHOT | GROUP_GRAIN);
+/** Burst grains: the arena and the big shots — NEVER each other (measured
+ * 2026-07-05: grain-grain contact clusters + the freeze law's wake pass
+ * fed each other energy forever — a pile that never stilled; confetti
+ * needs no pile physics, and skipping it also skips the n² contact bill). */
+export const GRAIN_COLLISION_GROUPS =
+  (GROUP_GRAIN << 16) | (GROUP_WORLD | GROUP_SHOT);

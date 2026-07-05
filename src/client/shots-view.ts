@@ -17,10 +17,14 @@ import {
   SPLAT_SPEED,
   type Vec3,
 } from "../core/ballistics";
-import { ProjectileManager, PROJECTILE_RADIUS } from "../core/projectiles";
+import {
+  ProjectileManager,
+  PROJECTILE_RADIUS,
+  type GrainBody,
+} from "../core/projectiles";
 import { MACHINE_BASE } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
-import { isPaint } from "../game/toppings";
+import { isPaint, TOPPINGS } from "../game/toppings";
 import type { RestingTopping } from "../game/protocol";
 import type { ShotMsg } from "./net-handlers";
 import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
@@ -29,14 +33,21 @@ import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
  * the ground splats (audit 2026-07-03 — they used to accumulate forever). */
 const LANDING_MARKER_MAX = 30;
 
+/** Burst grains are MULTICOLOR (plans/10 — color-variety judgment stays
+ * deferred; the confetti is the point). Palette by spawn index:
+ * deterministic without touching the physics seed. */
+const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 0xfff0f5];
+
 export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
     [];
   private readonly markers: THREE.Mesh[] = [];
   /** A paint glob landed in the local sim — main wires this to the
-   * FrostingView (the deterministic twin of the Room's field). */
-  onPaintImpact: ((pos: Vec3, speed: number) => void) | null = null;
+   * FrostingView (the deterministic twin of the Room's field). The topping
+   * rides along: fudge paints under its own splat law and renders dark. */
+  onPaintImpact: ((topping: string, pos: Vec3, speed: number) => void) | null =
+    null;
   /** The local deal generation — the mirror of the Room's stale-shot rule
    * (checkpoint audit 2026-07-03): a glob fired against the previous order
    * still visibly lands, but must not paint the freshly licked local field
@@ -48,8 +59,10 @@ export class ShotsView {
     private readonly scene: THREE.Scene,
   ) {}
 
-  /** Everyone simulates the same deterministic lob locally. */
+  /** Everyone simulates the same deterministic lob locally — including
+   * bursts: the shot event's seed replays the identical scatter here. */
   spawn(msg: ShotMsg): void {
+    const burst = TOPPINGS[msg.topping]?.burst;
     const body = this.shots.spawn(
       this.world,
       launchOrigin(MACHINE_BASE, msg.traverseDeg),
@@ -61,7 +74,12 @@ export class ShotsView {
       msg.topping,
       // Paint globs are consumed at impact (plans/07): the manager removes
       // the body; sync() sweeps the orphaned mesh.
-      { consumeOnImpact: isPaint(msg.topping), tag: this.deal },
+      {
+        consumeOnImpact: isPaint(msg.topping),
+        tag: this.deal,
+        seed: msg.seed,
+        ...(burst ? { burst } : {}),
+      },
     );
     const mesh = sphere(
       PROJECTILE_RADIUS,
@@ -75,21 +93,27 @@ export class ShotsView {
   }
 
   /** Recreate a topping already at rest (welcome world-sync, F2): a live
-   * obstacle for later shots, but no markers — its landing is old news. */
+   * obstacle for later shots, but no markers — its landing is old news.
+   * A settled burst topping IS its grain (carriers never land). */
   spawnResting(t: RestingTopping): void {
+    const grain = TOPPINGS[t.topping]?.burst?.grain;
     const body = this.shots.spawnAtRest(
       this.world,
       { x: t.x, y: t.y, z: t.z },
       t.topping,
+      grain,
     );
-    const mesh = sphere(
-      PROJECTILE_RADIUS,
-      TOPPING_COLORS[t.topping] ?? 0xc23b4e,
-      t.x,
-      t.y,
-      t.z,
-      this.scene,
-    );
+    const mesh = grain
+      ? this.grainMesh(grain, 0)
+      : sphere(
+          PROJECTILE_RADIUS,
+          TOPPING_COLORS[t.topping] ?? 0xc23b4e,
+          t.x,
+          t.y,
+          t.z,
+          this.scene,
+        );
+    mesh.position.set(t.x, t.y, t.z);
     this.meshes.push({ body, mesh });
   }
 
@@ -102,19 +126,34 @@ export class ShotsView {
   /** One fixed tick: advance the shared world; markers + splat readout. */
   step(flash: (msg: string, ms?: number) => void): void {
     const ev = this.shots.step(this.world);
+    // Bursts: the carrier's mesh leaves with its body (sync sweeps it);
+    // every grain gets a confetti capsule. One flash for the whole pop.
+    for (const b of ev.bursts) {
+      for (let gi = 0; gi < b.grains.length; gi++) {
+        const grain = TOPPINGS[b.topping]?.burst?.grain;
+        if (!grain) continue;
+        const mesh = this.grainMesh(grain, gi);
+        this.meshes.push({ body: b.grains[gi]!, mesh });
+      }
+      flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
+    }
     for (const im of ev.impacts) {
+      // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
+      // and 40 rings — the burst already told the story.
+      if (im.grain) continue;
       const splat = im.speed >= SPLAT_SPEED;
       this.addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
       if (isPaint(im.topping) && im.tag === this.deal)
-        this.onPaintImpact?.(im.pos, im.speed);
+        this.onPaintImpact?.(im.topping, im.pos, im.speed);
       flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );
     }
   }
 
-  /** Per frame: meshes follow their bodies; consumed globs' meshes leave
-   * with them (the manager removed the body at impact). */
+  /** Per frame: meshes follow their bodies (position AND rotation — a
+   * grain capsule lies as it fell); consumed globs' and burst carriers'
+   * meshes leave with their bodies. */
   sync(): void {
     for (let i = this.meshes.length - 1; i >= 0; i--) {
       const s = this.meshes[i]!;
@@ -125,7 +164,21 @@ export class ShotsView {
       }
       const t = s.body.translation();
       s.mesh.position.set(t.x, t.y, t.z);
+      const q = s.body.rotation();
+      s.mesh.quaternion.set(q.x, q.y, q.z, q.w);
     }
+  }
+
+  /** A confetti capsule (plans/10: chunky-cute; multicolor by index). */
+  private grainMesh(grain: GrainBody, index: number): THREE.Mesh {
+    const mesh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(grain.radius, grain.halfHeight * 2, 2, 6),
+      new THREE.MeshStandardMaterial({
+        color: GRAIN_PALETTE[index % GRAIN_PALETTE.length]!,
+      }),
+    );
+    this.scene.add(mesh);
+    return mesh;
   }
 
   private addLandingMarker(

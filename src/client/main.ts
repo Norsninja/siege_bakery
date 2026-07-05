@@ -24,6 +24,7 @@ import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { BAKER_SPAWN, buildArenaColliders } from "../core/arena";
 import type { ServerMsg, HeldOp } from "../game/protocol";
+import { TOPPINGS } from "../game/toppings";
 import { connectLoopback, connectWs, type Transport } from "./net";
 import {
   arcGlyph,
@@ -69,8 +70,10 @@ async function main(): Promise<void> {
   const shotsView = new ShotsView(physics, scene);
   const frostingView = new FrostingView(scene);
   // Paint lands in the local sim → the local field (deterministic twin of
-  // the Room's — sync-shots-not-surfaces).
-  shotsView.onPaintImpact = (pos, speed) => frostingView.paintImpact(pos, speed);
+  // the Room's — sync-shots-not-surfaces). The topping rides along: fudge
+  // paints under its own splat law and renders dark (plans/10).
+  shotsView.onPaintImpact = (topping, pos, speed) =>
+    frostingView.paintImpact(topping, pos, speed);
   const ghosts = new GhostManager(scene);
 
   const hud = document.getElementById("hud");
@@ -298,6 +301,16 @@ async function main(): Promise<void> {
       setLook: (y: number, p: number) => {
         input.yaw = y;
         input.pitch = p;
+      },
+      // The density review knob (plans/10 §2): mutates the SHARED pantry
+      // table — in loopback the Room reads the same module object, so the
+      // next sprinkle shot bursts at the new count on both sides. LOOPBACK
+      // ONLY (a net game would desync against an unmutated server); the
+      // visionary's eye picks 20/40/80, then the number gets PINNED in
+      // game/toppings.ts and this knob's job is done.
+      setGrainCount: (n: number) => {
+        const burst = TOPPINGS["sprinkles"]?.burst;
+        if (burst) burst.grains = Math.max(1, Math.round(n));
       },
     };
   }

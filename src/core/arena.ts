@@ -121,6 +121,25 @@ export function isOnCake(pos: Vec3): boolean {
   return tierOf(pos) !== null;
 }
 
+/** Analytic distance from a point to the TIER STACK (the union of the cake
+ * cylinders) — the sprinkle proximity fuse (plans/10). Zero inside a tier.
+ * sqrt/mul/add ONLY (no hypot): clients REPLAY bursts from the shot event's
+ * seed, so the fuse must agree across engines to the bit (the cross-engine
+ * honesty law, core/frosting.ts header). */
+export function distanceToCake(pos: Vec3): number {
+  const dzc = pos.z - CAKE_Z;
+  const radial = Math.sqrt(pos.x * pos.x + dzc * dzc);
+  let best = Infinity;
+  for (const t of CAKE_TIERS) {
+    const dr = radial > t.radius ? radial - t.radius : 0;
+    const dy =
+      pos.y < t.bottom ? t.bottom - pos.y : pos.y > t.top ? pos.y - t.top : 0;
+    const d = Math.sqrt(dr * dr + dy * dy);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
 /** Named scoring zones orders can demand. "peak" retired with the box cake
  * (plans/05) — the crown requirement took its job, and the tiers themselves
  * are the zones now: order vocabulary like "2 × cherry on the MIDDLE TIER". */

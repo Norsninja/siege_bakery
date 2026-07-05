@@ -37,6 +37,7 @@ export const TOPPING_COLORS: Record<string, number> = {
   lime: 0x77c34f,
   frosting: 0xfff0f5,
   sprinkles: 0xb45fd6,
+  fudge: 0x4a2c17,
 };
 
 const box = (
@@ -279,18 +280,20 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
 
   const rig = new MachineRig(scene);
 
-  // Pantry crates — the ammo. E takes ONE; you carry it by hand. Four
-  // crates since the frosting slice (plans/07): frosting first (the base
-  // layer), the lime decoy LAST — never ordered, always tempting.
+  // Pantry crates — the ammo. E takes ONE; you carry it by hand. Five
+  // crates since the projectile pass (plans/10): frosting first (the base
+  // layer), fudge beside the garnish, the lime decoy LAST — never ordered,
+  // always tempting.
   const crateY = PANTRY_POS.y + PANTRY_HALF.y + 0.25;
   const crate = (x: number, bodyColor: number, topping: string): THREE.Mesh[] => [
     box(0.8, 0.5, 0.7, bodyColor, x, crateY, PANTRY_POS.z, scene),
     sphere(0.2, TOPPING_COLORS[topping] ?? 0xffffff, x, crateY + 0.4, PANTRY_POS.z, scene),
   ];
-  const frostingCrate = crate(-1.5, 0xc9a7b8, "frosting");
-  const cherryCrate = crate(-0.5, 0x8c3038, "cherry");
-  const sprinklesCrate = crate(0.5, 0x6b4a8a, "sprinkles");
-  const limeCrate = crate(1.5, 0x4f7a35, "lime");
+  const frostingCrate = crate(-1.6, 0xc9a7b8, "frosting");
+  const cherryCrate = crate(-0.8, 0x8c3038, "cherry");
+  const sprinklesCrate = crate(0, 0x6b4a8a, "sprinkles");
+  const fudgeCrate = crate(0.8, 0x3a2413, "fudge");
+  const limeCrate = crate(1.6, 0x4f7a35, "lime");
 
   // What's in the baker's hands, rendered at the bottom of the view.
   scene.add(camera); // camera children only render if the camera is in-scene
@@ -306,6 +309,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     "shelf-frosting": frostingCrate,
     "shelf-cherry": cherryCrate,
     "shelf-sprinkles": sprinklesCrate,
+    "shelf-fudge": fudgeCrate,
     "shelf-lime": limeCrate,
   };
   const raycastTargets: THREE.Mesh[] = Object.values(interactables).flat();

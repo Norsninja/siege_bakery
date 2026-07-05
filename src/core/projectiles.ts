@@ -32,10 +32,42 @@
  * that will one day be broadcast to clients.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
-import { SHOT_COLLISION_GROUPS } from "./constants";
+import { GRAIN_COLLISION_GROUPS, SHOT_COLLISION_GROUPS } from "./constants";
+import { distanceToCake } from "./arena";
+import { mulberry32 } from "./rng";
 import type { Vec3 } from "./ballistics";
 
 export const PROJECTILE_RADIUS = 0.3;
+
+/** A burst payload grain's body — tiny capsule, chunky-cute (plans/10:
+ * true sprinkle scale is physics-unstable). */
+export interface GrainBody {
+  radius: number;
+  halfHeight: number;
+  restitution: number;
+}
+
+/** THE CLUSTER AIRBURST (plans/10 §2, the 2D sprinkle idea made 3D): a
+ * carrier with a burst spec flies as a normal shot, then POPS — at
+ * `proximityM` from the tier stack (the proximity fuse: analytic, readable,
+ * cannot pop mid-arc on a wild shot) or at first impact (the fallback: a
+ * clean miss floor-pops, honest visible mess). Grains inherit the carrier's
+ * velocity plus a SEEDED jitter, so replicas replay identical bursts from
+ * the shot event's seed and landing-energy texture survives with no extra
+ * rule (hot = wide debris). The pantry table (game/toppings.ts) carries
+ * these specs per topping; core just executes them. */
+export interface BurstSpec {
+  /** Fuse distance from the tier stack (m). */
+  proximityM: number;
+  /** Payload size — THE density knob (the visionary's eye picks it). */
+  grains: number;
+  /** Seeded velocity jitter magnitude per axis (m/s). */
+  jitterSpeed: number;
+  /** Grains spawn in a seeded shell this size around the burst point —
+   * co-spawning a payload at one point is a solver explosion. */
+  scatterRadius: number;
+  grain: GrainBody;
+}
 
 /** Landing media are SOFT — frosting, sponge, grass. On first impact the
  * topping keeps only this fraction of its velocity, so shots that reach the
@@ -51,6 +83,21 @@ export interface Impact {
   topping: string;
   /** The spawn's generation tag, echoed back (see spawn opts). */
   tag: number;
+  /** A burst payload grain landing — QUIET on the client (no flash, no
+   * marker: 40 grains must not be 40 toasts), nothing for the Room (grains
+   * score at rest like any solid). */
+  grain?: boolean;
+}
+
+/** A carrier popped. The carrier emits NO impact event (the pop replaces
+ * its landing); grains carry the story from here. */
+export interface Burst {
+  pos: Vec3;
+  topping: string;
+  tag: number;
+  /** The grain bodies just spawned — the client dresses them in meshes;
+   * the Room ignores them (they report their own settles). */
+  grains: RAPIER.RigidBody[];
 }
 
 export interface Settled {
@@ -68,6 +115,7 @@ export interface Settled {
 export interface StepEvents {
   impacts: Impact[];
   settled: Settled[];
+  bursts: Burst[];
 }
 
 /** Rest = this many consecutive ticks below the stillness thresholds.
@@ -76,6 +124,19 @@ export interface StepEvents {
 const REST_TICKS = 30;
 const REST_LIN_SPEED = 0.08; // m/s
 const REST_ANG_SPEED = 0.3; // rad/s
+/** Grain rest is judged at CONFETTI scale (measured 2026-07-05): solver
+ * contact jitter on a 0.045m capsule sustains ~0.2–1 rad/s forever — at
+ * the ball thresholds grains hovered unfrozen for minutes. 2 rad/s on a
+ * grain is 0.09 m/s of surface motion, visually still; the FREEZE then
+ * guarantees zero further creep — freezing early is exactly the law's
+ * mercy, and wake-on-proximity keeps knocks honest. */
+const GRAIN_REST_LIN_SPEED = 0.15; // m/s
+const GRAIN_REST_ANG_SPEED = 2.0; // rad/s
+
+const restLin = (grain: boolean): number =>
+  grain ? GRAIN_REST_LIN_SPEED : REST_LIN_SPEED;
+const restAng = (grain: boolean): number =>
+  grain ? GRAIN_REST_ANG_SPEED : REST_ANG_SPEED;
 
 /** A moving shot within this distance of a frozen solid wakes it (freeze
  * law above). Must beat closest-approach-per-tick: max launch speed today
@@ -83,6 +144,16 @@ const REST_ANG_SPEED = 0.3; // rad/s
  * ball radii = 0.87m closing. RE-CHECK when TENSION_MAX_CLICKS or launch
  * speeds move (the power-extension study will move them). */
 export const WAKE_RADIUS = 1.0;
+
+/** Grains damp HARD, both axes (measured 2026-07-05: Rapier has no rolling
+ * resistance, so an undamped landed capsule rolls forever — angular damping
+ * alone wasn't enough either, because ground friction converts undamped
+ * LINEAR slide back into spin at a terminal ~1.6 rad/s). Confetti has air
+ * drag; the flutter is the look, and stopping fast is the perf model:
+ * settle → freeze → free. The parabola law (no linear damping) is for
+ * AIMED shots — dead-reckoned arcs; grains are scatter, not aim. */
+const GRAIN_ANGULAR_DAMPING = 12.0;
+const GRAIN_LINEAR_DAMPING = 0.8;
 
 interface TrackedShot {
   body: RAPIER.RigidBody;
@@ -99,17 +170,31 @@ interface TrackedShot {
    * audit 2026-07-03: the Room tags spawns with its deal counter so a shot
    * fired during one order can never score on the next). Physics ignores it. */
   tag: number;
+  /** Cluster carrier: pops at the fuse (or at impact), never lands itself. */
+  burst?: BurstSpec;
+  /** The shot event's seed S — drives the burst's scatter, identically on
+   * every replica. Meaningless without a burst spec. */
+  seed: number;
+  /** A payload grain (spawned by a burst, not a lever pull). */
+  grain: boolean;
 }
 
 export class ProjectileManager {
   private readonly queue = new RAPIER.EventQueue(true);
   private readonly tracked = new Map<number, TrackedShot>();
-  /** Settled solids, frozen Fixed (freeze law) — keyed by body handle. */
-  private readonly frozen = new Map<number, RAPIER.RigidBody>();
+  /** Settled solids, frozen Fixed (freeze law) — keyed by body handle.
+   * The grain flag rides along: rest is judged at each body's scale. */
+  private readonly frozen = new Map<
+    number,
+    { body: RAPIER.RigidBody; grain: boolean }
+  >();
   /** Previously-settled solids woken by a nearby shot, waiting to re-freeze.
    * Their settle was scored long ago: re-freezing emits NO event — the
    * Room's ledger re-reads their positions live either way. */
-  private readonly waking = new Map<number, { body: RAPIER.RigidBody; stillTicks: number }>();
+  private readonly waking = new Map<
+    number,
+    { body: RAPIER.RigidBody; stillTicks: number; grain: boolean }
+  >();
   /** Every body still in the world, in flight or at rest — the client
    * renders these. Consumed paint globs leave on impact. */
   readonly bodies: Array<{ body: RAPIER.RigidBody; topping: string }> = [];
@@ -119,7 +204,7 @@ export class ProjectileManager {
     origin: Vec3,
     velocity: Vec3,
     topping: string,
-    opts?: { consumeOnImpact?: boolean; tag?: number },
+    opts?: { consumeOnImpact?: boolean; tag?: number; burst?: BurstSpec; seed?: number },
   ): RAPIER.RigidBody {
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -149,6 +234,9 @@ export class ProjectileManager {
       stillTicks: 0,
       consumeOnImpact: opts?.consumeOnImpact ?? false,
       tag: opts?.tag ?? 0,
+      ...(opts?.burst ? { burst: opts.burst } : {}),
+      seed: opts?.seed ?? 0,
+      grain: false,
     });
     this.bodies.push({ body, topping });
     return body;
@@ -176,22 +264,33 @@ export class ProjectileManager {
    * enters through the WAKING path (not directly frozen): a snapshot can
    * catch a shoved body mid-roll, and spawning that Fixed would freeze it
    * floating — dynamic-then-refreeze settles it honestly first. */
-  spawnAtRest(world: RAPIER.World, pos: Vec3, topping: string): RAPIER.RigidBody {
+  spawnAtRest(
+    world: RAPIER.World,
+    pos: Vec3,
+    topping: string,
+    grain?: GrainBody,
+  ): RAPIER.RigidBody {
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(pos.x, pos.y, pos.z)
-        .setAngularDamping(2.0)
+        .setLinearDamping(grain ? GRAIN_LINEAR_DAMPING : 0)
+        .setAngularDamping(grain ? GRAIN_ANGULAR_DAMPING : 2.0)
         .setCcdEnabled(true),
     );
     world.createCollider(
-      RAPIER.ColliderDesc.ball(PROJECTILE_RADIUS)
-        .setRestitution(0.1)
+      // A settled burst topping IS its grain (carriers never settle) —
+      // recreating it as the 0.3 carrier ball would litter giant sprinkles.
+      (grain
+        ? RAPIER.ColliderDesc.capsule(grain.halfHeight, grain.radius)
+        : RAPIER.ColliderDesc.ball(PROJECTILE_RADIUS)
+      )
+        .setRestitution(grain ? grain.restitution : 0.1)
         .setFriction(0.9)
-        .setCollisionGroups(SHOT_COLLISION_GROUPS),
+        .setCollisionGroups(grain ? GRAIN_COLLISION_GROUPS : SHOT_COLLISION_GROUPS),
       body,
     );
     this.bodies.push({ body, topping });
-    this.waking.set(body.handle, { body, stillTicks: 0 });
+    this.waking.set(body.handle, { body, stillTicks: 0, grain: !!grain });
     return body;
   }
 
@@ -208,22 +307,34 @@ export class ProjectileManager {
       for (const shot of this.tracked.values()) movers.push(shot.body);
       for (const w of this.waking.values()) {
         const v = w.body.linvel();
-        if (Math.hypot(v.x, v.y, v.z) >= REST_LIN_SPEED) movers.push(w.body);
+        if (Math.hypot(v.x, v.y, v.z) >= restLin(w.grain)) movers.push(w.body);
       }
       const r2 = WAKE_RADIUS * WAKE_RADIUS;
       for (const mover of movers) {
         const m = mover.translation();
-        for (const [handle, body] of this.frozen) {
-          const p = body.translation();
+        for (const [handle, f] of this.frozen) {
+          const p = f.body.translation();
           const dx = p.x - m.x;
           const dy = p.y - m.y;
           const dz = p.z - m.z;
           if (dx * dx + dy * dy + dz * dz > r2) continue;
-          body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+          f.body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
           this.frozen.delete(handle);
-          this.waking.set(handle, { body, stillTicks: 0 });
+          this.waking.set(handle, { body: f.body, stillTicks: 0, grain: f.grain });
         }
       }
+    }
+
+    // The proximity fuse (plans/10 §2) — BEFORE the step, alongside the wake
+    // pass: a carrier whose last-tick position closed within the fuse pops
+    // NOW, and its grains fly this very tick. Analytic distance to the tier
+    // stack — readable, deterministic, cannot pop mid-arc on a wild shot.
+    const bursts: Burst[] = [];
+    for (const [handle, shot] of this.tracked) {
+      if (!shot.burst || shot.impacted) continue;
+      const p = shot.body.translation();
+      if (distanceToCake(p) > shot.burst.proximityM) continue;
+      this.burstNow(world, handle, shot, bursts);
     }
 
     for (const shot of this.tracked.values()) {
@@ -235,6 +346,7 @@ export class ProjectileManager {
 
     const impacts: Impact[] = [];
     const consumed: number[] = []; // collider handles; removed AFTER the drain
+    const impactBursts: number[] = []; // carriers that hit before the fuse
     this.queue.drainCollisionEvents((h1, h2, started) => {
       if (!started) return;
       // BOTH sides of the pair may be tracked shots — a glob landing on a
@@ -246,6 +358,14 @@ export class ProjectileManager {
       for (const handle of [h1, h2]) {
         const shot = this.tracked.get(handle);
         if (!shot || shot.impacted) continue;
+        // A carrier hitting before its fuse (the clean miss): the impact
+        // BURST replaces the impact event — floor pop, honest visible mess.
+        // Bodies can't spawn mid-drain; collected and popped after.
+        if (shot.burst) {
+          shot.impacted = true;
+          impactBursts.push(handle);
+          continue;
+        }
         shot.impacted = true;
         const p = shot.body.translation();
         impacts.push({
@@ -253,6 +373,7 @@ export class ProjectileManager {
           speed: shot.lastSpeed,
           topping: shot.topping,
           tag: shot.tag,
+          ...(shot.grain ? { grain: true } : {}),
         });
         // Paint: the impact IS the landing — no absorption, no settle wait.
         if (shot.consumeOnImpact) {
@@ -289,14 +410,19 @@ export class ProjectileManager {
       if (i >= 0) this.bodies.splice(i, 1);
     }
 
+    for (const handle of impactBursts) {
+      const shot = this.tracked.get(handle);
+      if (shot) this.burstNow(world, handle, shot, bursts);
+    }
+
     const settled: Settled[] = [];
     for (const [handle, shot] of this.tracked) {
       if (!shot.impacted) continue;
       const v = shot.body.linvel();
       const w = shot.body.angvel();
       const still =
-        Math.hypot(v.x, v.y, v.z) < REST_LIN_SPEED &&
-        Math.hypot(w.x, w.y, w.z) < REST_ANG_SPEED;
+        Math.hypot(v.x, v.y, v.z) < restLin(shot.grain) &&
+        Math.hypot(w.x, w.y, w.z) < restAng(shot.grain);
       shot.stillTicks = still ? shot.stillTicks + 1 : 0;
       if (shot.stillTicks < REST_TICKS) continue;
       const p = shot.body.translation();
@@ -310,7 +436,7 @@ export class ProjectileManager {
       // The freeze (freeze law): the scored solid becomes part of whatever
       // it rests on. It cannot creep; a nearby shot wakes it back.
       shot.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
-      this.frozen.set(shot.body.handle, shot.body);
+      this.frozen.set(shot.body.handle, { body: shot.body, grain: shot.grain });
     }
 
     // Re-freeze woken solids that have come back to rest. Silent: their
@@ -320,14 +446,93 @@ export class ProjectileManager {
       const v = w.body.linvel();
       const av = w.body.angvel();
       const still =
-        Math.hypot(v.x, v.y, v.z) < REST_LIN_SPEED &&
-        Math.hypot(av.x, av.y, av.z) < REST_ANG_SPEED;
+        Math.hypot(v.x, v.y, v.z) < restLin(w.grain) &&
+        Math.hypot(av.x, av.y, av.z) < restAng(w.grain);
       w.stillTicks = still ? w.stillTicks + 1 : 0;
       if (w.stillTicks < REST_TICKS) continue;
       w.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
       this.waking.delete(handle);
-      this.frozen.set(handle, w.body);
+      this.frozen.set(handle, { body: w.body, grain: w.grain });
     }
-    return { impacts, settled };
+    return { impacts, settled, bursts };
+  }
+
+  /** Pop a carrier: spawn its seeded payload, remove the carrier, report
+   * the burst. Grains are ordinary tracked shots from here — they impact
+   * (quietly), settle, ledger, FREEZE (the freeze law is what makes grain
+   * counts affordable), wake, get knocked. Deterministic: everything below
+   * flows from mulberry32(seed) and the carrier's body state, so every
+   * replica pops the identical burst (seed S rides the shot event). */
+  private burstNow(
+    world: RAPIER.World,
+    carrierHandle: number,
+    shot: TrackedShot,
+    out: Burst[],
+  ): void {
+    const spec = shot.burst!;
+    const p = shot.body.translation();
+    const v = shot.body.linvel();
+    const rng = mulberry32(shot.seed);
+    const grains: RAPIER.RigidBody[] = [];
+    for (let i = 0; i < spec.grains; i++) {
+      // A seeded direction (normalized cube sample — cheap, deterministic,
+      // visually fine for confetti) at a seeded shell distance, plus a
+      // seeded per-axis velocity jitter on top of the carrier's velocity.
+      const dx = rng() * 2 - 1;
+      const dy = rng() * 2 - 1;
+      const dz = rng() * 2 - 1;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+      const shell = spec.scatterRadius * (0.3 + 0.7 * rng());
+      const jx = (rng() * 2 - 1) * spec.jitterSpeed;
+      const jy = (rng() * 2 - 1) * spec.jitterSpeed;
+      const jz = (rng() * 2 - 1) * spec.jitterSpeed;
+      // Floor clamp: an impact-fallback pop happens AT ground contact, and a
+      // shell sample below the surface would depenetrate unpredictably (or
+      // tunnel). Deterministic max(), same on every replica.
+      const gy = Math.max(
+        p.y + (dy / len) * shell,
+        spec.grain.radius + spec.grain.halfHeight + 0.01,
+      );
+      const body = world.createRigidBody(
+        RAPIER.RigidBodyDesc.dynamic()
+          .setTranslation(p.x + (dx / len) * shell, gy, p.z + (dz / len) * shell)
+          .setLinvel(v.x + jx, v.y + jy, v.z + jz)
+          .setLinearDamping(GRAIN_LINEAR_DAMPING)
+          .setAngularDamping(GRAIN_ANGULAR_DAMPING)
+          .setCcdEnabled(true),
+      );
+      const collider = world.createCollider(
+        RAPIER.ColliderDesc.capsule(spec.grain.halfHeight, spec.grain.radius)
+          .setRestitution(spec.grain.restitution)
+          .setFriction(0.9)
+          .setCollisionGroups(GRAIN_COLLISION_GROUPS)
+          .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
+        body,
+      );
+      this.tracked.set(collider.handle, {
+        body,
+        topping: shot.topping,
+        lastSpeed: 0,
+        impacted: false,
+        stillTicks: 0,
+        consumeOnImpact: false,
+        tag: shot.tag, // stale bursts litter and score nothing, like any shot
+        seed: 0,
+        grain: true,
+      });
+      this.bodies.push({ body, topping: shot.topping });
+      grains.push(body);
+    }
+    // The carrier ceases to exist — no impact, no settle, no litter.
+    world.removeRigidBody(shot.body);
+    this.tracked.delete(carrierHandle);
+    const i = this.bodies.findIndex((b) => b.body === shot.body);
+    if (i >= 0) this.bodies.splice(i, 1);
+    out.push({
+      pos: { x: p.x, y: p.y, z: p.z },
+      topping: shot.topping,
+      tag: shot.tag,
+      grains,
+    });
   }
 }

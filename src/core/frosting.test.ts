@@ -8,11 +8,14 @@ import { CAKE_TIERS, CAKE_Z } from "./arena";
 import { SPLAT_SPEED } from "./ballistics";
 import {
   CAKE_SAMPLES,
+  DEFAULT_SPLAT,
   FROST_DOLLOP_RADIUS,
   FROST_SPLASH_MAX_RADIUS,
   FrostingField,
   splatCoats,
   splatRadius,
+  splatSamples,
+  type SplatSpec,
 } from "./frosting";
 
 const SUMMIT = { x: 0, y: CAKE_TIERS[2]!.top, z: CAKE_Z }; // y 5
@@ -178,5 +181,50 @@ describe("the census measures", () => {
     a.reset();
     expect(a.coverage()).toBe(0);
     expect(a.neatness()).toBe(0);
+  });
+});
+
+describe("per-topping splat specs (plans/10 — fudge runs DOWN walls)", () => {
+  // The fudge shape without depending on the pantry row's exact numbers:
+  // narrow, asymmetric — reaches far BELOW the impact, barely above.
+  const FUDGE_LIKE: SplatSpec = {
+    dollopRadius: 0.45,
+    dollopCoats: 2,
+    splashBase: 0.5,
+    splashPerSpeed: 0.03,
+    splashMax: 0.8,
+    bandUp: 0.25,
+    bandDown: 1.7,
+  };
+  // A tier-1 WALL sample and an impact point 1m directly above it (a ledge
+  // hit at the tier-1 top edge, radially over the wall face).
+  const wallIdx = CAKE_SAMPLES.findIndex(
+    (s) => s.normal.y === 0 && s.pos.y < CAKE_TIERS[0]!.top - 0.5,
+  );
+  const wall = CAKE_SAMPLES[wallIdx]!;
+  const above = { x: wall.pos.x, y: wall.pos.y + 1.0, z: wall.pos.z };
+
+  it("the classic band cannot reach a wall sample 1m below the impact; fudge can", () => {
+    expect(splatSamples(above, GENTLE).includes(wallIdx)).toBe(false); // 1.0 > 0.8
+    expect(splatSamples(above, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(true); // runs down
+  });
+
+  it("fudge barely reaches UP: the asymmetry is real, not just a longer band", () => {
+    const below = { x: wall.pos.x, y: wall.pos.y - 0.5, z: wall.pos.z };
+    expect(splatSamples(below, GENTLE).includes(wallIdx)).toBe(true); // classic: 0.5 ≤ 0.8
+    expect(splatSamples(below, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(false); // 0.5 > 0.25
+  });
+
+  it("DEFAULT_SPLAT reproduces the classic constants byte-for-byte", () => {
+    // The pass added the spec COLUMN without moving the frosting economy:
+    // every ceiling study models the classic glob (re-pin law, plans/08).
+    expect(splatRadius(GENTLE, DEFAULT_SPLAT)).toBe(FROST_DOLLOP_RADIUS);
+    expect(splatRadius(HOT, DEFAULT_SPLAT)).toBe(splatRadius(HOT));
+    expect(splatCoats(GENTLE, DEFAULT_SPLAT)).toBe(splatCoats(GENTLE));
+    const f = new FrostingField();
+    f.paint(LEDGE1, HOT, DEFAULT_SPLAT);
+    const g = new FrostingField();
+    g.paint(LEDGE1, HOT);
+    expect(f.snapshot()).toEqual(g.snapshot());
   });
 });

@@ -35,7 +35,8 @@ export type InteractableKind =
   | "shelf-cherry"
   | "shelf-lime"
   | "shelf-frosting"
-  | "shelf-sprinkles";
+  | "shelf-sprinkles"
+  | "shelf-fudge";
 
 /** Which topping each pantry shelf hands out — main.ts's pickup reads this
  * instead of growing a branch per crate. */
@@ -44,6 +45,7 @@ export const SHELF_TOPPING: Partial<Record<InteractableKind, string>> = {
   "shelf-lime": "lime",
   "shelf-frosting": "frosting",
   "shelf-sprinkles": "sprinkles",
+  "shelf-fudge": "fudge",
 };
 
 export type NetStatus = "loopback" | "connecting" | "open" | "closed";
@@ -84,6 +86,10 @@ export function promptFor(
       return carrying !== null
         ? "hands full — one at a time"
         : "E — take a bag of sprinkles";
+    case "shelf-fudge":
+      return carrying !== null
+        ? "hands full — one at a time"
+        : "E — scoop hot fudge";
   }
 }
 

@@ -14,6 +14,7 @@
  */
 import { mulberry32 } from "../core/rng";
 import {
+  weighedMess,
   type Requirement,
   type RequirementCheck,
   type SettledTopping,
@@ -119,8 +120,9 @@ export class OrderFlow {
     ledger: readonly SettledTopping[],
     checks: RequirementCheck[],
   ): { utterance: string } {
-    const total = ledger.length;
-    const mess = total > 0 ? ledger.filter((s) => !s.onCake).length / total : 0;
+    // Burst-weighted, same arithmetic as judge() (plans/10 §3): the Giant
+    // must not thunder forty times harder at one bad sprinkle pop.
+    const mess = weighedMess(ledger);
     const act = this.patron.act({
       order: this.order,
       checks,

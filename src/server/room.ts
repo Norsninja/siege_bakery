@@ -29,8 +29,9 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
 import { FrostingField } from "../core/frosting";
-import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
-import { isPaint } from "../game/toppings";
+import { launchOrigin, launchVelocity } from "../core/ballistics";
+import { mulberry32 } from "../core/rng";
+import { isPaint, TOPPINGS } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
 import {
   createCatapult,
@@ -86,6 +87,11 @@ export class Room {
   private readonly roster = new Roster();
   private tickCount = 0;
   private patronSeq = 0;
+  /** Mints the per-shot seed S (plans/10): a burst's scatter is drawn from
+   * mulberry32(seed) on every replica — the wire carries the seed, never
+   * the grains. The stream itself is seeded, so a headless re-run of the
+   * same inputs mints the same seeds (determinism law). */
+  private readonly shotSeed = mulberry32(0x5eed5);
 
   constructor() {
     this.world = new RAPIER.World(GRAVITY);
@@ -148,6 +154,7 @@ export class Room {
     this.screwTicks = r.screwTicks;
     if (!r.shot) return;
     this.flow.noteShot();
+    const seed = Math.floor(this.shotSeed() * 0x100000000);
     this.shots.spawn(
       this.world,
       launchOrigin(MACHINE_BASE, r.shot.traverseDeg),
@@ -157,7 +164,14 @@ export class Room {
         r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
       ),
       r.shot.topping,
-      { consumeOnImpact: isPaint(r.shot.topping), tag: this.flow.deal },
+      {
+        consumeOnImpact: isPaint(r.shot.topping),
+        tag: this.flow.deal,
+        seed,
+        ...(TOPPINGS[r.shot.topping]?.burst
+          ? { burst: TOPPINGS[r.shot.topping]!.burst }
+          : {}),
+      },
     );
     this.roster.broadcast({
       t: "shot",
@@ -165,30 +179,72 @@ export class Room {
       traverseDeg: r.shot.traverseDeg,
       tiltNotch: r.shot.tiltNotch,
       tensionClicks: r.shot.tensionClicks,
+      seed,
     });
     // Arm state changed sharply; don't wait for the 15Hz cadence.
     this.broadcastMachine();
   }
 
   /** Step physics; landings become scored deliveries (stale tags litter,
-   * score nothing — audit AUD-4). */
+   * score nothing — audit AUD-4). Same-tick landings BATCH (plans/10 §5):
+   * one census + one `scored` per (topping, fate) group — a settling burst
+   * must not be forty broadcasts. Singles behave exactly as before. */
   private tickScoringPhase(): void {
     const ev = this.shots.step(this.world);
+    const groups = new Map<string, { topping: string; onCake: boolean; count: number }>();
+    const note = (topping: string, onCake: boolean): void => {
+      const k = `${topping}|${onCake ? 1 : 0}`;
+      const g = groups.get(k);
+      if (g) g.count++;
+      else groups.set(k, { topping, onCake, count: 1 });
+    };
     // Paint lands at IMPACT: the glob is consumed, the field takes the
-    // splat, and the delivery scores immediately — zero painted samples is
-    // floor frosting, mess like any other miss (plans/07).
+    // splat — under the topping's OWN splat law (plans/10: fudge runs down
+    // walls) — and the delivery scores immediately; zero painted samples
+    // is floor frosting, mess like any other miss (plans/07).
     for (const im of ev.impacts) {
       if (!isPaint(im.topping)) continue;
       if (im.tag !== this.flow.deal) continue; // fired against a previous order
-      const painted = this.frosting.paint(im.pos, im.speed);
-      this.scoreDelivery(im.topping, im.pos, painted > 0);
+      const painted = this.frosting.paint(
+        im.pos,
+        im.speed,
+        TOPPINGS[im.topping]?.splat,
+      );
+      this.settled.push({ topping: im.topping, pos: im.pos, onCake: painted > 0 });
+      note(im.topping, painted > 0);
     }
     // Solids land at REST — scoring truth unchanged. A stale solid still
     // litters the world (its body landed); it just counts for nothing.
     for (const s of ev.settled) {
       if (s.tag !== this.flow.deal) continue;
-      this.scoreDelivery(s.topping, s.pos, isOnCake(s.pos), s.body);
+      const onCake = isOnCake(s.pos);
+      this.settled.push({ topping: s.topping, pos: s.pos, onCake, body: s.body });
+      note(s.topping, onCake);
     }
+    if (groups.size === 0) return;
+    const r = evaluateOrder(
+      this.flow.order,
+      this.ledger(), // earlier deliveries may have been shoved since
+      this.frosting,
+      this.flow.shotsFired,
+    );
+    this.flow.order = r.state;
+    for (const g of groups.values())
+      this.roster.broadcast({
+        t: "scored",
+        topping: g.topping,
+        onCake: g.onCake,
+        ...(g.count > 1 ? { count: g.count } : {}),
+        order: this.flow.order,
+        checks: r.checks,
+      });
+    if (r.judgment)
+      this.roster.broadcast({
+        t: "order",
+        order: this.flow.order,
+        checks: r.checks,
+        judgment: r.judgment,
+      });
   }
 
   /** The order lifecycle: patron looks, the clock, linger, re-deal. The
@@ -271,39 +327,6 @@ export class Room {
       s.onCake = isOnCake(s.pos);
     }
     return this.settled;
-  }
-
-  /** One delivery lands (solid at rest, paint at impact): ledger it,
-   * re-census, tell everyone — and announce the Judgment if that met the
-   * last row. */
-  private scoreDelivery(
-    topping: string,
-    pos: Vec3,
-    onCake: boolean,
-    body?: RAPIER.RigidBody,
-  ): void {
-    this.settled.push({ topping, pos, onCake, ...(body ? { body } : {}) });
-    const r = evaluateOrder(
-      this.flow.order,
-      this.ledger(), // earlier deliveries may have been shoved since
-      this.frosting,
-      this.flow.shotsFired,
-    );
-    this.flow.order = r.state;
-    this.roster.broadcast({
-      t: "scored",
-      topping,
-      onCake,
-      order: this.flow.order,
-      checks: r.checks,
-    });
-    if (r.judgment)
-      this.roster.broadcast({
-        t: "order",
-        order: this.flow.order,
-        checks: r.checks,
-        judgment: r.judgment,
-      });
   }
 
   private currentChecks(): RequirementCheck[] {

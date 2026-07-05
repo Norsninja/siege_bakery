@@ -17,11 +17,25 @@
  * they are décor. Scoring truth stays with the room's messages.
  */
 import * as THREE from "three";
-import { CAKE_SAMPLES, FrostingField, splatRadius } from "../core/frosting";
+import {
+  CAKE_SAMPLES,
+  FrostingField,
+  splatRadius,
+  splatSamples,
+} from "../core/frosting";
+import { TOPPINGS } from "../game/toppings";
 import type { Vec3 } from "../core/ballistics";
 import { removeAndDispose } from "./scene";
 
 const FROSTING_COLOR = 0xfff0f5;
+/** Paint colors by topping (fudge renders dark — plans/10 §4). The census
+ * field itself is color-blind; this is per-instance dressing. The welcome
+ * snapshot carries no color, so restored paint renders classic — accepted
+ * décor gap, same class as the floor splats not crossing the wire. */
+const PAINT_COLORS: Record<string, number> = {
+  frosting: FROSTING_COLOR,
+  fudge: 0x4a2c17,
+};
 const GROUND_SPLAT_MAX = 40;
 /** Impacts below this height splat the floor (the arena ground is y 0). */
 const GROUND_SPLAT_BELOW_Y = 0.6;
@@ -38,18 +52,26 @@ export class FrostingView {
   constructor(private readonly scene: THREE.Scene) {
     this.blobs = new THREE.InstancedMesh(
       new THREE.SphereGeometry(0.35, 10, 8),
-      new THREE.MeshStandardMaterial({ color: FROSTING_COLOR }),
+      // White base + per-instance color (fudge paints dark, plans/10).
+      new THREE.MeshStandardMaterial({ color: 0xffffff }),
       CAKE_SAMPLES.length,
     );
     this.blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const base = new THREE.Color(FROSTING_COLOR);
+    for (let i = 0; i < CAKE_SAMPLES.length; i++) this.blobs.setColorAt(i, base);
     scene.add(this.blobs);
     this.refresh();
   }
 
-  /** A frosting glob landed in the local sim — same paint law as the Room. */
-  paintImpact(pos: Vec3, speed: number): void {
-    this.field.paint(pos, speed);
-    if (pos.y < GROUND_SPLAT_BELOW_Y) this.addGroundSplat(pos, speed);
+  /** A paint topping landed in the local sim — same paint law as the Room
+   * (the topping's own splat spec: fudge runs down walls, plans/10). */
+  paintImpact(topping: string, pos: Vec3, speed: number): void {
+    const spec = TOPPINGS[topping]?.splat;
+    this.field.paint(pos, speed, spec);
+    const color = new THREE.Color(PAINT_COLORS[topping] ?? FROSTING_COLOR);
+    for (const i of splatSamples(pos, speed, spec)) this.blobs.setColorAt(i, color);
+    if (this.blobs.instanceColor) this.blobs.instanceColor.needsUpdate = true;
+    if (pos.y < GROUND_SPLAT_BELOW_Y) this.addGroundSplat(pos, speed, topping);
     this.refresh();
   }
 
@@ -70,10 +92,15 @@ export class FrostingView {
     this.refresh();
   }
 
-  private addGroundSplat(pos: Vec3, speed: number): void {
+  private addGroundSplat(pos: Vec3, speed: number, topping = "frosting"): void {
     const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(splatRadius(speed) * 0.8, 20),
-      new THREE.MeshStandardMaterial({ color: FROSTING_COLOR }),
+      new THREE.CircleGeometry(
+        splatRadius(speed, TOPPINGS[topping]?.splat) * 0.8,
+        20,
+      ),
+      new THREE.MeshStandardMaterial({
+        color: PAINT_COLORS[topping] ?? FROSTING_COLOR,
+      }),
     );
     disc.rotation.x = -Math.PI / 2;
     // Stagger heights a hair so overlapping splats don't z-fight.

@@ -324,3 +324,44 @@ describe("judge — the two gates, weights home (plans/07)", () => {
     expect(hosed.accepted).toBe(false); // ...on a bare, littered cake. REFUSED.
   });
 });
+
+describe("grains (plans/10)", () => {
+  it("grains never crown: a wild sprinkle atop the summit cannot usurp the cherry", () => {
+    const settled = [
+      at("cherry", 0, TOP_Y),
+      // A burst grain came to rest ON the cherry — strictly higher.
+      at("sprinkles", 0.05, TOP_Y + 0.35),
+    ];
+    const [check] = checkRequirements([CROWN], settled, fullCoat());
+    expect(check!.met).toBe(true); // garnish is not a crown
+    // The decoy law survives untouched: a LIME above still usurps.
+    const usurped = checkRequirements(
+      [CROWN],
+      [...settled, at("lime", -0.05, TOP_Y + 0.6)],
+      fullCoat(),
+    );
+    expect(usurped[0]!.met).toBe(false);
+  });
+
+  it("a burst weighs as ONE delivery in the mess arithmetic", () => {
+    // 40 grains on the floor + 1 cherry on the cake: one wild pop is ONE
+    // mistake against one good delivery — mess 0.5, not 40/41.
+    const wildBurst = Array.from({ length: 40 }, (_, i) =>
+      at("sprinkles", 8 + i * 0.1, 0.05, false),
+    );
+    const v = judge(
+      {
+        requirements: [FROST_HALF],
+        parShots: 6,
+        passScore: 50,
+        goodFrac: 0.7,
+        excellentFrac: 0.9,
+      },
+      [...wildBurst, at("cherry", 0, TOP_Y)],
+      fullCoat(),
+      2,
+    );
+    expect(v.mess).toBeCloseTo(0.5, 10);
+  });
+});
+
