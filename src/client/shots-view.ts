@@ -50,7 +50,7 @@ export class ShotsView {
     null;
   /** The local deal generation — the mirror of the Room's stale-shot rule
    * (checkpoint audit 2026-07-03): a glob fired against the previous order
-   * still visibly lands, but must not paint the freshly licked local field
+   * still visibly lands, but must not paint the fresh cake's local field
    * the Room's authoritative field will never show. */
   private deal = 0;
 
@@ -118,9 +118,22 @@ export class ShotsView {
   }
 
   /** A fresh deal was dealt: shots already in the air belong to the old
-   * order — their paint must not land on the licked-clean field. */
+   * order — their paint must not land on the fresh cake's clean field. */
   bumpDeal(): void {
     this.deal++;
+  }
+
+  /** Sticky frosting (plans/10 addendum): main binds the local FrostingView
+   * field so grains freeze where they hit wet paint — the deterministic
+   * twin of the Room's binding. */
+  bindStickyPaint(check: (pos: Vec3) => boolean): void {
+    this.shots.stickyPaint = check;
+  }
+
+  /** The fresh-cake law: everything on the dessert leaves with it. The
+   * Room does the same on its side; sync() sweeps the orphaned meshes. */
+  clearCakeSolids(): void {
+    this.shots.clearCakeSolids(this.world);
   }
 
   /** One fixed tick: advance the shared world; markers + splat readout. */

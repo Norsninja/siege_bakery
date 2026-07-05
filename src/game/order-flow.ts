@@ -68,7 +68,7 @@ export class OrderFlow {
   order: OrderState;
   /** The deal generation. Shots spawn tagged with it; a delivery whose tag
    * is stale scores NOTHING (audit AUD-4) — a glob fired against one order
-   * can't paint the next one's freshly licked cake. */
+   * can't paint the next one's fresh cake. */
   private dealGen = 0;
   /** Shots this order — the waste axis. Resets with each fresh deal. */
   private shots = 0;

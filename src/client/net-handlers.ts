@@ -21,8 +21,12 @@ export interface NetFx {
   /** Adopt the welcome's frosting snapshot — the painted cake as it lies
    * (plans/07; the one surface that ever crosses the wire). */
   restoreFrosting(coats: number[]): void;
-  /** A fresh deal: the Giant licked the cake clean — clear local paint. */
+  /** A fresh deal: the fresh cake wheels out — clear local paint. */
   resetFrosting(): void;
+  /** A fresh deal, the solid half (fresh-cake law): everything resting ON
+   * the dessert leaves with it; floor litter stays. The Room removed the
+   * same set from its world — body positions are the shared truth. */
+  clearCakeSolids(): void;
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
@@ -93,7 +97,10 @@ export function applyServerMsg(
       view.checks = msg.checks;
       if (msg.judgment) view.verdict = msg.judgment;
       else if (msg.order.status === "running") view.verdict = null; // fresh deal
-      if (msg.fresh) fx.resetFrosting();
+      if (msg.fresh) {
+        fx.resetFrosting();
+        fx.clearCakeSolids();
+      }
       break;
     case "patron":
       view.lastPatron = { text: msg.text, seq: msg.seq };

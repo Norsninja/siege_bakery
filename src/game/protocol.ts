@@ -100,8 +100,9 @@ export type ServerMsg =
     }
   /** `judgment` rides along exactly when this message ENDS the order —
    * the verdict the banner renders (delighted/refused/hungry). `fresh`
-   * rides along exactly when the room DEALS anew: the Giant licked the
-   * cake clean, clients clear their local frosting (plans/07). */
+   * rides along exactly when the room DEALS anew: the fresh cake wheels
+   * out — clients clear their local frosting AND every solid on the
+   * dessert (the fresh-cake law; floor litter stays). */
   | {
       t: "order";
       order: OrderState;

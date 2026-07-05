@@ -28,7 +28,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
-import { FrostingField } from "../core/frosting";
+import { FrostingField, STICKY_NEAR_M } from "../core/frosting";
 import { launchOrigin, launchVelocity } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
 import { isPaint, TOPPINGS } from "../game/toppings";
@@ -81,8 +81,8 @@ export class Room {
    * never be re-mobilized. */
   private settled: Array<SettledTopping & { body?: RAPIER.RigidBody }> = [];
   /** The frosting field — paint events accumulate here (plans/07). Reset
-   * with the order: the Giant licks the cake clean between deals (paint is
-   * the scoreboard; a fresh FROST row must not start half-met). */
+   * with the order: a fresh cake wheels out between deals (paint is the
+   * scoreboard; a fresh FROST row must not start half-met). */
   private readonly frosting = new FrostingField();
   private readonly roster = new Roster();
   private tickCount = 0;
@@ -97,6 +97,9 @@ export class Room {
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
+    // Sticky frosting (plans/10 addendum): grains freeze where they hit
+    // wet paint — walls included. The client binds its own field twin.
+    this.shots.stickyPaint = (p) => this.frosting.frostedNear(p, STICKY_NEAR_M);
   }
 
   /** Add a client; returns its id. Sends the welcome snapshot immediately. */
@@ -275,11 +278,13 @@ export class Room {
           judgment: this.judgeNow(),
         });
       } else {
-        // "redeal": the flow dealt fresh — reset the PHYSICAL per-order
-        // state. Solid litter stays where it lies; the Giant licks the
-        // FROSTING clean between deals — paint is the scoreboard (plans/07).
+        // "redeal": the flow dealt fresh — THE FRESH-CAKE LAW (2026-07-05):
+        // the finished dessert is gone and a naked cake wheels out. Paint,
+        // stuck grains, resting cherries — everything ON it leaves with it.
+        // Floor litter is the crew's mess, not the dessert's; it stays.
         this.settled = [];
         this.frosting.reset();
+        this.shots.clearCakeSolids(this.world);
         this.roster.broadcast({
           t: "order",
           order: this.flow.order,

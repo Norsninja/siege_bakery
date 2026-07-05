@@ -62,6 +62,14 @@ export const FROST_SPLASH_MAX_RADIUS = 1.1;
 export const FROST_VERTICAL_BAND = 0.8;
 /** "On the frosting": a painted sample within this 3D distance. */
 export const FROSTED_NEAR_M = 0.6;
+/** STICKY FROSTING (plans/10 addendum, 2026-07-05): a grain whose first
+ * impact lands within this distance of a painted sample FREEZES on the
+ * spot — sprinkles stick to wet frosting (and to fudge, the stickiest;
+ * one shared field). Tighter than FROSTED_NEAR_M: samples sit 0.45 apart,
+ * so anywhere ON a painted patch is within ~0.32 of a sample — 0.45 grips
+ * the paint without gluing grains to bare sponge beside it. Every stuck
+ * grain therefore also counts for the on-frosting row. */
+export const STICKY_NEAR_M = 0.45;
 /** Neatness tolerance: σ(coats) at which the patchwork reads as slop. */
 export const NEATNESS_STD_DIVISOR = 1.25;
 
@@ -259,7 +267,9 @@ export class FrostingField {
     return true;
   }
 
-  /** The Giant licks the cake clean between orders (plans/07 phase F). */
+  /** Fresh cake per order (the fresh-cake law, 2026-07-05): the finished
+   * dessert is gone — eaten or taken away — and a naked cake wheels out.
+   * The paint leaves with it. */
   reset(): void {
     this.coats.fill(0);
   }

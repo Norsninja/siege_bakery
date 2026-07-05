@@ -10,11 +10,12 @@
  *
  * Owns the client's LOCAL FrostingField: painted from the local sim's
  * impact events (the deterministic twin of the Room's field — sync-shots-
- * not-surfaces), restored whole from the welcome snapshot, licked clean on
- * a fresh deal. Ground splats persist across deals like the litter does
- * (the Giant licks the CAKE, not the floor) and are FIFO-capped; they are
- * not on the wire, so a late joiner starts with a clean floor — accepted,
- * they are décor. Scoring truth stays with the room's messages.
+ * not-surfaces), restored whole from the welcome snapshot, cleared when
+ * the fresh cake wheels out. Ground splats persist across deals like the
+ * floor litter does (the crew's mess, not the dessert's — fresh-cake law)
+ * and are FIFO-capped; they are not on the wire, so a late joiner starts
+ * with a clean floor — accepted, they are décor. Scoring truth stays with
+ * the room's messages.
  */
 import * as THREE from "three";
 import {
@@ -22,6 +23,7 @@ import {
   FrostingField,
   splatRadius,
   splatSamples,
+  STICKY_NEAR_M,
 } from "../core/frosting";
 import { TOPPINGS } from "../game/toppings";
 import type { Vec3 } from "../core/ballistics";
@@ -86,10 +88,16 @@ export class FrostingView {
     this.refresh();
   }
 
-  /** A fresh deal: the Giant licked the cake clean. */
+  /** A fresh deal: the fresh cake wheels out naked. */
   reset(): void {
     this.field.reset();
     this.refresh();
+  }
+
+  /** Sticky-frosting oracle for the local sim (plans/10 addendum): is
+   * there wet paint here to grip a grain? Same field the blobs render. */
+  stickyNear(pos: Vec3): boolean {
+    return this.field.frostedNear(pos, STICKY_NEAR_M);
   }
 
   private addGroundSplat(pos: Vec3, speed: number, topping = "frosting"): void {

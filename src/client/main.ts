@@ -74,6 +74,9 @@ async function main(): Promise<void> {
   // paints under its own splat law and renders dark (plans/10).
   shotsView.onPaintImpact = (topping, pos, speed) =>
     frostingView.paintImpact(topping, pos, speed);
+  // Sticky frosting (plans/10 addendum): grains freeze where they hit wet
+  // paint — the local field twin answers, same as the Room's binding.
+  shotsView.bindStickyPaint((p) => frostingView.stickyNear(p));
   const ghosts = new GhostManager(scene);
 
   const hud = document.getElementById("hud");
@@ -95,6 +98,7 @@ async function main(): Promise<void> {
       frostingView.reset();
       shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
     },
+    clearCakeSolids: () => shotsView.clearCakeSolids(),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,

@@ -208,6 +208,72 @@ describe("the cluster airburst (plans/10)", () => {
     expect(burst!.grains).toHaveLength(TEST_BURST.grains);
   });
 
+  it("sticky frosting: a grain hitting wet paint freezes ON A WALL, where it hit", () => {
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    shots.stickyPaint = () => true; // everything is painted (the law's unit)
+    // A lone grain via a burst carrier flung flat at the tier-1 wall face.
+    shots.spawn(
+      world,
+      { x: 0, y: 1.2, z: CAKE_Z + 9 },
+      { x: 0, y: 1.5, z: -9 },
+      "sprinkles",
+      { burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0 }, seed: 5, tag: 0 },
+    );
+    let stuck = null;
+    for (let i = 0; i < 600 && !stuck; i++)
+      stuck = shots.step(world).settled[0] ?? null;
+    expect(stuck).not.toBeNull();
+    // It froze clinging to the tier-1 WALL: at wall height (not on a top,
+    // not on the ground) and within a grain's reach of the skin.
+    expect(stuck!.pos.y).toBeGreaterThan(0.3);
+    expect(stuck!.pos.y).toBeLessThan(2);
+    const radial = Math.hypot(stuck!.pos.x, stuck!.pos.z - CAKE_Z);
+    expect(Math.abs(radial - 4)).toBeLessThan(0.12); // tier-1 radius 4
+    expect(stuck!.body.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
+    // And ten seconds later it has not slid a hair — stuck means stuck.
+    for (let i = 0; i < 600; i++) shots.step(world);
+    const p = stuck!.body.translation();
+    expect(p.y).toBe(stuck!.pos.y);
+    // Without paint there is no grip: the same shot just bounces off.
+    const bare = new ProjectileManager(); // stickyPaint stays null
+    const world2 = makeArenaWorld();
+    bare.spawn(
+      world2,
+      { x: 0, y: 1.2, z: CAKE_Z + 9 },
+      { x: 0, y: 1.5, z: -9 },
+      "sprinkles",
+      { burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0 }, seed: 5, tag: 0 },
+    );
+    let rest = null;
+    for (let i = 0; i < 900 && !rest; i++)
+      rest = bare.step(world2).settled[0] ?? null;
+    expect(rest).not.toBeNull();
+    const bareRadial = Math.hypot(rest!.pos.x, rest!.pos.z - CAKE_Z);
+    expect(bareRadial).toBeGreaterThan(4.12); // fell off the wall to the ground
+  });
+
+  it("the fresh-cake law: everything ON the dessert leaves with it; floor litter stays", () => {
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    // One solid resting on a tier top, one skin-stuck grain, one on the floor.
+    shots.spawnAtRest(world, { x: 0, y: 5.3, z: CAKE_Z }, "cherry");
+    shots.spawnAtRest(
+      world,
+      { x: 0, y: 1.5, z: CAKE_Z + 4.06 }, // clinging to the tier-1 wall skin
+      "sprinkles",
+      TEST_BURST.grain,
+    );
+    shots.spawnAtRest(world, { x: 6, y: 0.3, z: CAKE_Z + 10 }, "lime");
+    for (let i = 0; i < 120; i++) shots.step(world); // settle + freeze
+    expect(shots.resting()).toHaveLength(3);
+    const removed = shots.clearCakeSolids(world);
+    expect(removed).toBe(2); // the cherry and the stuck grain left with the cake
+    const left = shots.resting();
+    expect(left).toHaveLength(1);
+    expect(left[0]!.topping).toBe("lime"); // the crew's mess stays
+  });
+
   it("the same seed replays the identical burst — replicas agree to the bit", () => {
     const runOnce = (): Array<[number, number, number]> => {
       const world = makeArenaWorld();

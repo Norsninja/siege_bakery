@@ -180,10 +180,11 @@ describe("Room: the match, headless over protocol", () => {
     const sprinkleRow = a
       .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting");
-    // A BURST now (plans/10): one 40-grain pop over the fresh splat — 39
-    // grains rest on the paint (pinned, deterministic: confetti drag keeps
-    // the payload on the landing zone). Re-pin with the density pick.
-    expect(sprinkleRow?.current).toBe(39);
+    // A BURST now (plans/10): one 40-grain pop over the fresh splat — ALL
+    // 40 grains grip the paint (pinned, deterministic: confetti drag keeps
+    // the payload on the zone; STICKY FROSTING holds every grain that
+    // touches wet paint). Re-pin with the density pick.
+    expect(sprinkleRow?.current).toBe(40);
   });
 
   it("scoring truth follows the bodies: bowled-off grains un-count (audit 2026-07-03)", () => {
@@ -207,7 +208,7 @@ describe("Room: the match, headless over protocol", () => {
     const before = a
       .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting")?.current;
-    expect(before).toBe(39); // the burst pin (see the test above)
+    expect(before).toBe(40); // the burst pin (see the test above)
     fire("cherry"); // same arc, three times: the barrage plows the patch
     fire("cherry");
     fire("cherry");
@@ -263,23 +264,37 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.frosting.some((c) => c > 0)).toBe(true);
   });
 
-  it("the re-deal says fresh and hands late joiners a licked-clean cake", () => {
+  it("the re-deal wheels out a FRESH CAKE: paint and on-cake solids go, floor litter stays", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    // Paint the cake first, so the reset has something to lick clean.
-    room.onMessage(a.id, { t: "load", topping: "frosting" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
-    run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
-    room.onMessage(a.id, { t: "lever" });
-    run(room, 300);
-    expect(connect(room, "peek").last("welcome")?.frosting.some((c) => c > 0)).toBe(true);
+    const fire = (topping: string): void => {
+      room.onMessage(a.id, { t: "load", topping });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600);
+    };
+    // Dress the DOOMED cake: paint, a resting cherry on the tiers — and a
+    // dry-release lime FLOP onto the floor (the crew's mess).
+    fire("frosting");
+    fire("cherry");
+    room.onMessage(a.id, { t: "load", topping: "lime" });
+    run(room, 6);
+    room.onMessage(a.id, { t: "lever" }); // zero tension: flops by the plinth
+    run(room, 600);
+    const peek = connect(room, "peek").last("welcome");
+    expect(peek?.frosting.some((c) => c > 0)).toBe(true);
+    expect(peek?.toppings.map((t) => t.topping).sort()).toEqual(["cherry", "lime"]);
     run(room, (ORDER_SECONDS + 20) * 60); // lose (burn ends it early) AND re-deal
     const fresh = a.all("order").find((m) => m.fresh);
     expect(fresh).toBeDefined();
     expect(fresh?.order.status).toBe("running");
+    // The fresh-cake law: the dessert left with everything ON it; the
+    // floor lime remains — the bakery gets messier, the cake never does.
     const bob = connect(room, "bob");
     expect(bob.last("welcome")?.frosting.every((c) => c === 0)).toBe(true);
+    expect(bob.last("welcome")?.toppings.map((t) => t.topping)).toEqual(["lime"]);
   });
 
   it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
@@ -408,13 +423,13 @@ describe("Room: the match, headless over protocol", () => {
     // shove, so solids you care about go down when nothing will fly near.
     turnTo(-1.5);
     fire("frosting", 6, 300);
-    // Burst 1 over the single fresh splat: 37 grains rest on paint (pinned;
-    // the frost line then flies PAST these grains for eleven more shots,
-    // waking and shoving honestly — the freeze law bounds the churn to
-    // real fly-bys). One burst alone can't meet the 60-grain ask.
+    // Burst 1 over the single fresh splat: 38 grains grip the paint
+    // (pinned; the frost line then flies PAST these grains for eleven more
+    // shots, waking and shoving honestly — the freeze law bounds the churn
+    // to real fly-bys). One burst alone can't meet the 60-grain ask.
     fire("sprinkles", 6, 650);
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
-      37,
+      38,
     );
     turnTo(-1);
     fire("frosting", 7, 300);
@@ -449,10 +464,11 @@ describe("Room: the match, headless over protocol", () => {
     screw(-1);
     turnTo(-8.5);
     fire("sprinkles", 6, 650);
-    // Burst 2 on the flank's rich paint: cumulative 78 of the 60-grain ask
-    // (pinned) — two good bursts IS the economy (game/tuning.ts).
+    // Burst 2 on the flank's rich paint: cumulative 80 of the 60-grain ask
+    // (pinned — a perfect two-burst delivery, every grain gripping the
+    // paint) — two good bursts IS the economy (game/tuning.ts).
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
-      78,
+      80,
     );
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
       true,
@@ -523,7 +539,7 @@ describe("Room: the match, headless over protocol", () => {
     // The stale glob scored nothing: no delivery after the fresh deal...
     const freshAt = a.inbox.indexOf(fresh!);
     expect(a.inbox.slice(freshAt).filter((m) => m.t === "scored")).toEqual([]);
-    // ...and the authoritative field is still licked clean.
+    // ...and the authoritative field is still the fresh cake's, clean.
     const peek = connect(room, "peek");
     expect(peek.last("welcome")?.frosting.every((c) => c === 0)).toBe(true);
   });

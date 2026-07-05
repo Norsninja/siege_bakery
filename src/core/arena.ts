@@ -116,9 +116,20 @@ export function tierOf(pos: Vec3): number | null {
   return null;
 }
 
-/** Scoring geometry: is a rest position ON the cake (any tier's top)? */
+/** A body this close to the tier stack's skin is PART of the dessert —
+ * the sticky-frosting law (plans/10 addendum, 2026-07-05): grains freeze
+ * where they impact paint, including WALLS, so "on the cake" must include
+ * a stuck grain clinging to a wall face (its center rides ~0.05–0.1m off
+ * the skin). 0.12 covers grains and excludes every 0.3-radius ball — a
+ * cherry can never wall-cling. (Accepted edge: a grain lying on the floor
+ * pressed against the cake foot reads as on-dessert; it can't satisfy any
+ * row — wall samples are ≥1m above it — and it leaves with the cake.) */
+export const DESSERT_SKIN_M = 0.12;
+
+/** Scoring geometry: is a rest position part of the dessert — on a tier
+ * top, or clinging to the skin (stuck grains, sticky-frosting law)? */
 export function isOnCake(pos: Vec3): boolean {
-  return tierOf(pos) !== null;
+  return tierOf(pos) !== null || distanceToCake(pos) <= DESSERT_SKIN_M;
 }
 
 /** Analytic distance from a point to the TIER STACK (the union of the cake

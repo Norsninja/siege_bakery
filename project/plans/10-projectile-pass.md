@@ -126,3 +126,39 @@ WIN path re-choreographed for bursts (the ask is grain counts now — the
 81/100 pin re-pins on purpose, THE one deliberate pin move of this pass).
 Then: npm run check, live loopback smoke, the 20/40/80 density review —
 HIS EYE picks; GRAINS_PER_SHOT and SPRINKLES_NEEDED re-pin together.
+
+## 7. ADDENDUM (same day, from the visionary's first live test)
+
+Two laws added after his hands-on pass found the seams:
+
+**STICKY FROSTING.** He shot sprinkles at frosting and they went through
+it — paint has no body (regime law), so grains sailed through the blob
+visuals, sank to the sponge beneath, and bounced clean off painted WALLS
+(two-thirds of the census could never hold a sprinkle). The law: **a
+grain whose first impact lands on wet paint freezes ON THE SPOT** —
+sprinkles stick to frosting, and to fudge (one shared field; the fiction
+is even better there). Mechanics: `stickyPaint` callback on the
+ProjectileManager (Room binds its field, client binds the deterministic
+twin — the ONE place paint feeds back into physics; cross-engine it
+inherits the census grid's one-ULP caveat, boundary cases measure-zero);
+STICKY_NEAR_M 0.45 (grips the painted patch, never bare sponge);
+`isOnCake` widened by DESSERT_SKIN_M 0.12 so wall-stuck grains count for
+rows and leave with the cake; skin-stuck grains REJOIN frozen (the waking
+path would drop them off the wall). Stuck ≠ safe: proximity wake + a
+cherry barrage still knocks them loose (the bowl test survived
+unchanged). Walls are now decoratable — the coverage surface for
+sprinkle work grew by the whole wall census. Measured: a good burst
+went 37–39/40 on paint to a PERFECT 40/40; the WIN line pins 38/80.
+
+**THE FRESH-CAKE LAW (kills the "Giant licks" fiction).** He asked the
+right question: why does the Giant do anything between orders? He
+doesn't. The round ended; that dessert is GONE — eaten or taken away —
+and a naked cake wheels out. **Everything ON the dessert leaves with it**
+(paint, stuck grains, resting cherries, stale limes); **floor litter
+stays** — it's the crew's mess, not the dessert's, and it keeps the
+wading-through-your-failures comedy. `clearCakeSolids` on the manager;
+Room calls it at redeal, client on the `fresh` message — both remove the
+identical set from body positions, no new wire traffic. The lick
+language is purged from every comment. (The old solids-persist litter
+rule was fine at three cherries; 40-grain bursts broke its legibility —
+stale grains read as progress.)

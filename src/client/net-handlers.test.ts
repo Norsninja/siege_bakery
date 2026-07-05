@@ -54,6 +54,7 @@ function harness(): {
       spawnResting: (t) => spawned.push(`rest:${t.topping}`),
       restoreFrosting: (coats) => frosting.push(`restore:${coats.length}`),
       resetFrosting: () => frosting.push("reset"),
+      clearCakeSolids: () => frosting.push("clear-cake"),
       upsertGhost: (p) => ghosts.push(`+${p.id}`),
       removeGhost: (id) => ghosts.push(`-${id}`),
       flash: (msg) => flashes.push(msg),
@@ -101,12 +102,12 @@ describe("applyServerMsg", () => {
     expect(h.frosting).toEqual(["restore:3"]);
   });
 
-  it("a fresh deal clears the local frosting; other order msgs never do", () => {
+  it("a fresh deal wheels out a fresh cake — paint AND on-cake solids clear; other order msgs never do", () => {
     const h = harness();
     applyServerMsg(h.view, orderMsg(), h.fx); // 1Hz clock correction
     expect(h.frosting).toEqual([]);
     applyServerMsg(h.view, orderMsg({ fresh: true }), h.fx); // the re-deal
-    expect(h.frosting).toEqual(["reset"]);
+    expect(h.frosting).toEqual(["reset", "clear-cake"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {
