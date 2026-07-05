@@ -392,8 +392,11 @@ describe("Room: the match, headless over protocol", () => {
     // LIVE-TRUTH CHOREOGRAPHY (learned re-cutting this line): sprinkle 2
     // fires AFTER the whole frost line — a late glob passing its ledge
     // left it creeping, and 650 ticks later it had rolled 0.6m off its
-    // paint and honestly un-counted. Solids you care about go down when
-    // nothing else will fly near them.
+    // paint and honestly un-counted. THE FREEZE LAW (projectiles.ts,
+    // 2026-07-04) has since retired that failure mode — settled solids
+    // freeze and only wake for shots within WAKE_RADIUS — but the ordering
+    // stays: a glob passing within a meter still wakes and can still
+    // shove, so solids you care about go down when nothing will fly near.
     turnTo(-1.5);
     fire("frosting", 6, 300);
     fire("sprinkles", 6, 650); // rests ON it — before any nag can want more

@@ -75,8 +75,9 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-frosting-economy redesign (plans/08) BUILT — potential-coverage grading
-(one town reaches ~44% of a round cake; research/06 is the standing
-ceiling study), area-honest 661 census, small splats, coverage-tier
-stars, 300s clock. NEXT: the visionary's playtest (pass pace + live-truth
-feel), then the towns slice. Port map: research/01-port-gap-analysis.md.
+direction set + topping-physics law BUILT (plans/09 — the standing record:
+fun thesis, campaign ladder, rung-authored potential, turntable-as-upgrade,
+freeze-on-settle solids). Economy per plans/08 (potential-coverage grading;
+research/06 is the standing ceiling study). NEXT (plans/09 §8): Room.tick
+decomp → power-extension study → towns slice → dessert report → friend
+test. Port map: research/01-port-gap-analysis.md.

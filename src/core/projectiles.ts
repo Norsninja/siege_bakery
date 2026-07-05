@@ -14,6 +14,20 @@
  * Bodies stay in the world after settling; greybox toppings litter the
  * field, which is correct and funny.
  *
+ * THE FREEZE LAW (topping-physics discussion, 2026-07-04): a settled solid
+ * FREEZES — its body turns Fixed, part of the cake (or floor) it rests on.
+ * Frozen solids cannot creep: pre-law, a glob passing near a settled
+ * sprinkle left it drifting 0.6m off its paint over seconds — displacement
+ * nobody caused, the un-funny kind (research/07: failure must be traceable
+ * to player input). A frozen solid WAKES back to dynamic when any moving
+ * shot comes within WAKE_RADIUS, so a real hit still knocks it properly —
+ * knockability is the game's only eraser (a decoy crown can only be shot
+ * off) and stays. Woken solids re-settle silently and re-freeze; the
+ * ledger's live-truth re-read still sees every honest displacement. The
+ * wake rule reads only deterministic body positions, so replicas agree
+ * without any new wire traffic. (This is also what lets a future turntable
+ * carry settled toppings: frozen = attached to the world frame.)
+ *
  * core/ law: deterministic, headless. These events are the exact shapes
  * that will one day be broadcast to clients.
  */
@@ -63,6 +77,13 @@ const REST_TICKS = 30;
 const REST_LIN_SPEED = 0.08; // m/s
 const REST_ANG_SPEED = 0.3; // rad/s
 
+/** A moving shot within this distance of a frozen solid wakes it (freeze
+ * law above). Must beat closest-approach-per-tick: max launch speed today
+ * is 16 m/s (ballistics: 4 + 1.5 × 8 clicks) = 0.27m per tick, plus two
+ * ball radii = 0.87m closing. RE-CHECK when TENSION_MAX_CLICKS or launch
+ * speeds move (the power-extension study will move them). */
+export const WAKE_RADIUS = 1.0;
+
 interface TrackedShot {
   body: RAPIER.RigidBody;
   topping: string;
@@ -83,6 +104,12 @@ interface TrackedShot {
 export class ProjectileManager {
   private readonly queue = new RAPIER.EventQueue(true);
   private readonly tracked = new Map<number, TrackedShot>();
+  /** Settled solids, frozen Fixed (freeze law) — keyed by body handle. */
+  private readonly frozen = new Map<number, RAPIER.RigidBody>();
+  /** Previously-settled solids woken by a nearby shot, waiting to re-freeze.
+   * Their settle was scored long ago: re-freezing emits NO event — the
+   * Room's ledger re-reads their positions live either way. */
+  private readonly waking = new Map<number, { body: RAPIER.RigidBody; stillTicks: number }>();
   /** Every body still in the world, in flight or at rest — the client
    * renders these. Consumed paint globs leave on impact. */
   readonly bodies: Array<{ body: RAPIER.RigidBody; topping: string }> = [];
@@ -145,7 +172,10 @@ export class ProjectileManager {
   /** Spawn a topping ALREADY at rest (a late joiner recreating the world):
    * same body and collider as a flown shot — prior settled toppings are
    * OBSTACLES for later shots, so every world must contain them — but
-   * untracked: its landing was scored long ago, it reports nothing. */
+   * untracked: its landing was scored long ago, it reports nothing. It
+   * enters through the WAKING path (not directly frozen): a snapshot can
+   * catch a shoved body mid-roll, and spawning that Fixed would freeze it
+   * floating — dynamic-then-refreeze settles it honestly first. */
   spawnAtRest(world: RAPIER.World, pos: Vec3, topping: string): RAPIER.RigidBody {
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -161,11 +191,41 @@ export class ProjectileManager {
       body,
     );
     this.bodies.push({ body, topping });
+    this.waking.set(body.handle, { body, stillTicks: 0 });
     return body;
   }
 
   /** Step the world one fixed tick; returns impact and settle events. */
   step(world: RAPIER.World): StepEvents {
+    // The wake pass (freeze law) — BEFORE the physics step, so a frozen
+    // solid is dynamic again by the time anything can touch it. Movers are
+    // every live shot plus any woken solid still actually moving (a shoved
+    // cherry must wake the sprinkle it rolls into — but a woken-yet-still
+    // solid must NOT wake its frozen neighbors, or a passing shot would
+    // cascade-wake whole piles forever).
+    if (this.frozen.size > 0) {
+      const movers: RAPIER.RigidBody[] = [];
+      for (const shot of this.tracked.values()) movers.push(shot.body);
+      for (const w of this.waking.values()) {
+        const v = w.body.linvel();
+        if (Math.hypot(v.x, v.y, v.z) >= REST_LIN_SPEED) movers.push(w.body);
+      }
+      const r2 = WAKE_RADIUS * WAKE_RADIUS;
+      for (const mover of movers) {
+        const m = mover.translation();
+        for (const [handle, body] of this.frozen) {
+          const p = body.translation();
+          const dx = p.x - m.x;
+          const dy = p.y - m.y;
+          const dz = p.z - m.z;
+          if (dx * dx + dy * dy + dz * dz > r2) continue;
+          body.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+          this.frozen.delete(handle);
+          this.waking.set(handle, { body, stillTicks: 0 });
+        }
+      }
+    }
+
     for (const shot of this.tracked.values()) {
       if (shot.impacted) continue;
       const v = shot.body.linvel();
@@ -247,6 +307,26 @@ export class ProjectileManager {
         body: shot.body,
       });
       this.tracked.delete(handle);
+      // The freeze (freeze law): the scored solid becomes part of whatever
+      // it rests on. It cannot creep; a nearby shot wakes it back.
+      shot.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
+      this.frozen.set(shot.body.handle, shot.body);
+    }
+
+    // Re-freeze woken solids that have come back to rest. Silent: their
+    // settle was scored when they first landed; the ledger follows their
+    // bodies live, so a re-frozen position is already the scoring truth.
+    for (const [handle, w] of this.waking) {
+      const v = w.body.linvel();
+      const av = w.body.angvel();
+      const still =
+        Math.hypot(v.x, v.y, v.z) < REST_LIN_SPEED &&
+        Math.hypot(av.x, av.y, av.z) < REST_ANG_SPEED;
+      w.stillTicks = still ? w.stillTicks + 1 : 0;
+      if (w.stillTicks < REST_TICKS) continue;
+      w.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
+      this.waking.delete(handle);
+      this.frozen.set(handle, w.body);
     }
     return { impacts, settled };
   }
