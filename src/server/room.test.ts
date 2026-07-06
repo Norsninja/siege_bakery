@@ -186,6 +186,15 @@ describe("Room: the match, headless over protocol", () => {
     // the density pick). The grip gate costs nothing on a clean burst:
     // the floor-crescent fix only ever refused floor impacts.
     expect(sprinkleRow?.current).toBe(40);
+    // BATCHING (plans/10 §5): 40 grips are NOT 40 broadcasts — same-tick,
+    // same-fate grips fold into one `scored` carrying a count. They cluster
+    // over a handful of impact ticks (deterministically 7 messages here),
+    // never forty, and the counts sum to the full 40. Without batching this
+    // reads 40 single messages and the length assertion fails.
+    const sprinkleScored = a.all("scored").filter((m) => m.topping === "sprinkles");
+    expect(sprinkleScored.length).toBeLessThan(10);
+    expect(sprinkleScored.some((m) => (m.count ?? 1) > 1)).toBe(true);
+    expect(sprinkleScored.reduce((n, m) => n + (m.count ?? 1), 0)).toBe(40);
     // All 40 records ride the welcome (perch data for late joiners).
     const peek = connect(room, "peek").last("welcome");
     expect(peek?.stuck).toHaveLength(40);
@@ -266,6 +275,26 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.frosting.some((c) => c > 0)).toBe(true);
   });
 
+  it("fudge is a real pantry row: it loads, flies, and PAINTS (plans/10 §4)", () => {
+    // The shipped fudge row's shape is unit-pinned (game/toppings.test.ts);
+    // this proves it is WIRED end-to-end — isPaint('fudge'), consumed on
+    // impact, painting the field under its own splat law — a legal
+    // shelf-fudge load that no test fired before (audit 2026-07-06).
+    const room = new Room();
+    const a = connect(room, "alice");
+    room.onMessage(a.id, { t: "load", topping: "fudge" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 300);
+    const scored = a.last("scored");
+    expect(scored?.topping).toBe("fudge");
+    expect(scored?.onCake).toBe(true); // consumed on impact, painted the tier
+    const carol = connect(room, "carol");
+    expect(carol.last("welcome")?.frosting.some((c) => c > 0)).toBe(true);
+  });
+
   it("the re-deal wheels out a FRESH CAKE: paint and on-cake solids go, floor litter stays", () => {
     const room = new Room();
     const a = connect(room, "alice");
@@ -299,22 +328,37 @@ describe("Room: the match, headless over protocol", () => {
     expect(bob.last("welcome")?.toppings.map((t) => t.topping)).toEqual(["lime"]);
   });
 
-  it("the clock is authoritative — and the Patron BURNS it: the order dies early", () => {
+  it("the clock is authoritative — and the Patron BURNS it: the order dies EARLY", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    // Nominal-plus-slack of untouched machine: grumbles eat the clock, so
-    // the loss lands well before nominal. Everyone hears the verdict.
-    run(room, (ORDER_SECONDS + 10) * 60);
-    const msgs = a.all("order");
-    const endIdx = msgs.findIndex((m) => m.order.status !== "running");
-    expect(endIdx).toBeGreaterThanOrEqual(0);
-    const ended = msgs[endIdx];
+    const nominal = ORDER_SECONDS * 60;
+    // Untouched machine: no player, no mess — the Giant just grumbles, and
+    // each grumble burns PATIENCE_BURN_GRUMBLE_S off the clock. Tick one at
+    // a time until the order ends, counting how long it ACTUALLY survived.
+    let elapsed = 0;
+    const cap = nominal + 60 * 60; // a generous ceiling; it must end first
+    while (elapsed < cap) {
+      room.tick();
+      elapsed++;
+      const om = a.last("order");
+      if (om && om.order.status !== "running") break;
+    }
+    const ended = a.last("order");
     expect(ended?.order.status).toBe("lost");
     expect(ended?.order.ticksLeft).toBe(0);
     // The clock died first: the verdict rides along, and it's the sad kind.
     expect(ended?.judgment?.met).toBe(false);
     expect(ended?.judgment?.stars).toBe(0);
-    // Patience burned: the ending arrived measurably before nominal time.
+    // THE REAL PREDICATE (audit 2026-07-06): patience was burned, so the
+    // order died MEASURABLY before nominal — deterministically 240s of the
+    // nominal 300 (60s burned). The OLD assertion (patron.length > 2)
+    // passed on the 12s look cadence alone and never measured "early":
+    // delete the burning and `elapsed` is exactly `nominal`, which this now
+    // catches. 30s is the safe floor against the seeded whim variance.
+    expect(elapsed).toBeLessThan(nominal - 30 * 60);
+    // ...but it did not die instantly for some unrelated reason.
+    expect(elapsed).toBeGreaterThan(60 * 60);
+    // And everyone still heard the Giant on the way down.
     expect(a.all("patron").length).toBeGreaterThan(2);
   });
 
