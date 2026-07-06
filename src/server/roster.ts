@@ -10,6 +10,7 @@
  * Layering: server-land, imports game/ protocol types only.
  */
 import type { MachineIntent } from "../game/catapult";
+import { mulberry32 } from "../core/rng";
 import {
   mergeIntents,
   IDLE_OP,
@@ -20,6 +21,23 @@ import {
   type PlayerPose,
 } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
+
+/** Fantasy bakers-of-the-siege name parts (2026-07-06: replacing the "baker
+ * N" placeholder — the `hello` rename hook stays wired for a future custom
+ * name). Drawn from a SEEDED stream (the server layer is inside the
+ * determinism fence), so names are deterministic — two headless replicas
+ * agree, and a fresh server hands slot-in-join-order the same flavor. Per-
+ * session variety later = seed this from the driver. */
+const NAME_FIRST = [
+  "Bramblewick", "Thornwood", "Mossbeard", "Gilda", "Pipkin", "Fenwick",
+  "Marigold", "Bruk", "Elowen", "Tamsin", "Hodgepan", "Wren", "Grimsby",
+  "Dunwick", "Saffra", "Orrin",
+];
+const NAME_EPITHET = [
+  "the Bold", "the Crumb", "Emberfall", "of the Rising Loaf", "Dourcrust",
+  "the Unproofed", "Yeastborn", "Butterthumbs", "the Overbaked", "Flourfist",
+  "the Half-Baked", "Sugarsworn", "of Deepcrust", "the Kneadful",
+];
 
 interface Member {
   send: (msg: ServerMsg) => void;
@@ -33,13 +51,24 @@ interface Member {
 export class Roster {
   private readonly members = new Map<number, Member>();
   private nextId = 1;
+  /** The name stream — seeded, so it stays inside the determinism fence. */
+  private readonly nameRng = mulberry32(0x8a4e17);
 
-  /** Add a client; returns its id and settled name. */
+  /** A fresh fantasy name: a given name and an epithet, both seeded draws. */
+  private fantasyName(): string {
+    const f = NAME_FIRST[Math.floor(this.nameRng() * NAME_FIRST.length)]!;
+    const e = NAME_EPITHET[Math.floor(this.nameRng() * NAME_EPITHET.length)]!;
+    return `${f} ${e}`;
+  }
+
+  /** Add a client; returns its id and settled name. A client that later
+   * sends `hello` overrides it (the rename hook); until then this flavor
+   * name is what the others see run into the bakery. */
   add(send: (msg: ServerMsg) => void, name = ""): { id: number; name: string } {
     const id = this.nextId++;
     this.members.set(id, {
       send,
-      name: name || `baker ${id}`,
+      name: name || this.fantasyName(),
       pose: null,
       held: { ...IDLE_OP },
       leverPulls: 0,

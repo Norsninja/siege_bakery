@@ -53,6 +53,21 @@ describe("Room: the match, headless over protocol", () => {
     expect(b.last("welcome")?.id).toBe(b.id);
   });
 
+  it("a nameless joiner (the ws driver) gets a fantasy name, deterministically", () => {
+    const nameOf = (): string | undefined => {
+      const room = new Room();
+      const a = connect(room, "alice"); // a named host
+      room.join(() => {}); // the driver joins with NO name (server/main.ts)
+      return a.last("join")?.name;
+    };
+    const n1 = nameOf();
+    const n2 = nameOf();
+    expect(n1).toBeDefined();
+    expect(n1).not.toMatch(/^baker /); // the "baker N" placeholder is retired
+    expect(n1).toContain(" "); // "<First> <epithet…>"
+    expect(n2).toBe(n1); // seeded stream → two replicas agree
+  });
+
   it("relays poses to the other player, not back to the sender", () => {
     const room = new Room();
     const a = connect(room, "alice");
