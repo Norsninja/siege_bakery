@@ -32,6 +32,16 @@ const MAX_STUCK = 1024;
 /** Golden angle — successive grips twist apart however many share a blob. */
 const TWIST = 2.399963229728653;
 
+/** A stuck sprinkle's color — a deterministic hash of its GRIP POINT, not its
+ * slot in the array. So it keeps ONE color for its whole life (burial splices
+ * the array; index-coloring recolored every survivor after the hole), and
+ * every client agrees (live and late-join derive from the same skin point).
+ * Confetti variety only; color-variety JUDGMENT stays deferred (plans/10). */
+function grainColorIndex(pos: Vec3): number {
+  const k = Math.round((pos.x * 131.1 + pos.y * 17.3 + pos.z * 71.7) * 1000);
+  return ((k % GRAIN_PALETTE.length) + GRAIN_PALETTE.length) % GRAIN_PALETTE.length;
+}
+
 interface StuckEntry {
   pos: Vec3; // grip point on the skin
   normal: Vec3;
@@ -118,7 +128,7 @@ export class SprinklesView {
       );
       m.compose(p, q, one);
       this.mesh.setMatrixAt(i, m);
-      color.setHex(GRAIN_PALETTE[i % GRAIN_PALETTE.length]!);
+      color.setHex(GRAIN_PALETTE[grainColorIndex(e.pos)]!);
       this.mesh.setColorAt(i, color);
     }
     this.mesh.count = this.entries.length;

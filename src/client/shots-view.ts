@@ -34,9 +34,11 @@ import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
 const LANDING_MARKER_MAX = 30;
 
 /** Burst grains are MULTICOLOR (plans/10 — color-variety judgment stays
- * deferred; the confetti is the point). Palette by spawn index:
- * deterministic without touching the physics seed. Shared with the stuck
- * sprinkles (sprinkles-view) so a grain keeps its color class at grip. */
+ * deferred; the confetti is the point). In-flight grains take the palette by
+ * SPAWN INDEX; the PERCHED sprinkles (sprinkles-view) recolor by a stable hash
+ * of the grip point off this same palette — so flight color and final perch
+ * color need not match (both are just confetti), but a perched sprinkle keeps
+ * one color for life and reads identically on every client. */
 export const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 0xfff0f5];
 
 export class ShotsView {

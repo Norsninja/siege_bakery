@@ -336,6 +336,11 @@ async function main(): Promise<void> {
       // visionary's eye picks 20/40/80, then the number gets PINNED in
       // game/toppings.ts and this knob's job is done.
       setGrainCount: (n: number) => {
+        // LOOPBACK ONLY, enforced not just documented: mutating the shared
+        // pantry table makes the local replica burst N grains while a joined
+        // server still bursts its own — a visual desync. In a networked game
+        // (tickRoom null) this is a no-op.
+        if (!tickRoom) return;
         const burst = TOPPINGS["sprinkles"]?.burst;
         if (burst) burst.grains = Math.max(1, Math.round(n));
       },
