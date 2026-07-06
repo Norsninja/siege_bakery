@@ -252,6 +252,48 @@ describe("Room: the match, headless over protocol", () => {
     // footprint survive on the patch edge (pinned, deterministic)
   });
 
+  it("a stuck record's coats are LOCKED at grip — later frosting near it never re-raises the perch (plans/10 §8)", () => {
+    // The anti-wizard property: a sprinkle sits at the height of the blob it
+    // GRIPPED; frosting added near it later (not over it) must not float it up.
+    // The welcome must report GRIP-time coats, not a value re-measured from the
+    // current field. Isolated directly (a near-not-over SHOT is impractical to
+    // aim — the splat radius 0.6 exceeds the 0.45 coats window, so anything
+    // close enough to raise coats also buries): grip, then grow the field AT
+    // the grip point WITHOUT the shot pipeline, so the burial filter never runs
+    // and the record survives.
+    const room = new Room();
+    const a = connect(room, "alice");
+    const fire = (topping: string): void => {
+      room.onMessage(a.id, { t: "load", topping });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600);
+    };
+    fire("frosting"); // a 2-coat dollop on the landing zone
+    fire("sprinkles"); // grip on it
+    const first = connect(room, "one").last("welcome")?.stuck ?? [];
+    expect(first.length).toBeGreaterThan(0);
+    const g = first[0]!;
+    const gripCoats = g.coats;
+    // Grow the frosting right at the grip point (bypassing burial). A splat
+    // there adds coats to the samples the record reads.
+    const frosting = (room as unknown as {
+      frosting: {
+        paint(p: { x: number; y: number; z: number }, s: number): number;
+        coatsNear(p: { x: number; y: number; z: number }): number;
+      };
+    }).frosting;
+    frosting.paint({ x: g.x, y: g.y, z: g.z }, 5);
+    const grown = frosting.coatsNear({ x: g.x, y: g.y, z: g.z });
+    expect(grown).toBeGreaterThan(gripCoats); // the field really did grow — not vacuous
+    // A joiner arriving NOW must still perch at the GRIP height, not the grown
+    // one. Re-measuring would report `grown`; the stored grip value is the law.
+    const later = connect(room, "two").last("welcome")?.stuck ?? [];
+    expect(later[0]?.coats).toBe(gripCoats);
+  });
+
   it("two independent rooms, identical inputs, CONVERGE (sync-shots-not-surfaces)", () => {
     // The friend-test foundation: the cake is never sent as a surface, only
     // as shot EVENTS (impact P, velocity V, seed S) — so any two replicas fed
