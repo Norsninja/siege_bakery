@@ -109,11 +109,15 @@ async function main(): Promise<void> {
     },
     clearCakeSolids: () => shotsView.clearCakeSolids(),
     restoreStuck: (list) => {
+      // The record carries its GRIP-TIME coats (plans/10 §8): replay that
+      // fixed perch — never re-measure the current blob, or a sprinkle a
+      // teammate frosted NEAR (not over) would float up. On top at its fixed
+      // height, or buried and absent; nothing in between.
       for (const s of list)
         sprinklesView.add(
           { x: s.x, y: s.y, z: s.z },
           { x: s.nx, y: s.ny, z: s.nz },
-          frostingView.coatsNear({ x: s.x, y: s.y, z: s.z }),
+          s.coats,
         );
     },
     clearStuck: () => sprinklesView.clear(),

@@ -85,7 +85,14 @@ export class Room {
    * the fresh deal clears the ledger. The normal rides for the welcome
    * snapshot's perch data. */
   private settled: Array<
-    SettledTopping & { body?: RAPIER.RigidBody; stuck?: true; normal?: Vec3 }
+    SettledTopping & {
+      body?: RAPIER.RigidBody;
+      stuck?: true;
+      normal?: Vec3;
+      /** Stuck records only: the coat level GRIPPED ON — the fixed perch
+       * height, sent to late joiners so they never re-measure (plans/10 §8). */
+      coats?: number;
+    }
   > = [];
   /** The frosting field — paint events accumulate here (plans/07). Reset
    * with the order: a fresh cake wheels out between deals (paint is the
@@ -136,6 +143,7 @@ export class Room {
           nx: s.normal!.x,
           ny: s.normal!.y,
           nz: s.normal!.z,
+          coats: s.coats ?? 0,
         })),
       // Mid-banner joiners need the verdict (audit 2026-07-03): without it
       // a WON order renders as "TIME! the patron goes hungry".
@@ -259,6 +267,11 @@ export class Room {
         onCake: true,
         stuck: true,
         normal: st.normal,
+        // The blob it gripped ON — captured NOW (after this tick's paint, the
+        // impacts loop above already applied it), the same moment and field
+        // the live client reads in its onStuck. The perch is fixed here; a
+        // joiner replays this number, never re-measures (plans/10 §8).
+        coats: this.frosting.coatsNear(st.pos),
       });
       note(st.topping, true);
     }

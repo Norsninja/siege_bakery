@@ -214,6 +214,13 @@ describe("Room: the match, headless over protocol", () => {
     const peek = connect(room, "peek").last("welcome");
     expect(peek?.stuck).toHaveLength(40);
     expect(peek?.stuck.every((s) => s.topping === "sprinkles")).toBe(true);
+    // Each record carries the coats it gripped ON — non-zero (it stuck to
+    // paint), so a late joiner rebuilds the FIXED perch height instead of
+    // re-measuring a blob that may have grown since (plans/10 §8: no wizard
+    // raises sprinkles). The full grip-vs-restore divergence needs a
+    // frost-near-not-over geometry that's impractical to stage headless; this
+    // guards the field is populated from the grip, not sent as 0.
+    expect(peek?.stuck.every((s) => s.coats >= 1)).toBe(true);
   });
 
   it("burial un-counts: frosting over stuck sprinkles removes them — they are IN the cake (plans/10 §8)", () => {

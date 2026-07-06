@@ -33,10 +33,15 @@ export interface RestingTopping {
 }
 
 /** A stuck sprinkle record, as the welcome snapshot carries it (the
- * conversion law, plans/10 §8): grip point on the dessert skin plus the
- * outward normal the client perches the visual along. NOT a body — never
- * an obstacle; in play these derive from shot events on every replica
- * (sync-shots-not-surfaces), the wire form is for late joiners only. */
+ * conversion law, plans/10 §8): grip point on the dessert skin, the outward
+ * normal the client perches the visual along, AND the coats it gripped ON.
+ * NOT a body — never an obstacle; in play these derive from shot events on
+ * every replica (sync-shots-not-surfaces), the wire form is for late joiners
+ * only. `coats` is the GRIP-TIME coat level (2026-07-06): the perch height is
+ * FIXED at the blob the sprinkle stuck to — a joiner must NOT re-measure the
+ * current (possibly-grown) blob and float the sprinkle up (there is no wizard
+ * raising sprinkles: a sprinkle is on top at its fixed height, or it was
+ * buried and is gone). The complete record travels, nothing is re-derived. */
 export interface StuckTopping {
   topping: string;
   x: number;
@@ -45,6 +50,7 @@ export interface StuckTopping {
   nx: number;
   ny: number;
   nz: number;
+  coats: number;
 }
 
 // --- client → server ---
