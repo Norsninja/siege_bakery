@@ -230,6 +230,42 @@ describe("Room: the match, headless over protocol", () => {
     // footprint survive on the patch edge (pinned, deterministic)
   });
 
+  it("two independent rooms, identical inputs, CONVERGE (sync-shots-not-surfaces)", () => {
+    // The friend-test foundation: the cake is never sent as a surface, only
+    // as shot EVENTS (impact P, velocity V, seed S) — so any two replicas fed
+    // the same shots must reconstruct the identical cake. Here two fresh Rooms
+    // (each mints seeds from the same seeded stream) play the SAME script —
+    // frost, a seeded sprinkle burst that grips, then a frosting glob that
+    // BURIES part of it — and a late joiner's welcome must match byte-for-byte.
+    // A single unseeded value, Map-order dependence, or the bury/add ordering
+    // bug would split them.
+    const play = (): Extract<ServerMsg, { t: "welcome" }> | undefined => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      const fire = (topping: string): void => {
+        room.onMessage(a.id, { t: "load", topping });
+        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+        run(room, CRANK_TICKS_PER_CLICK * 6);
+        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+        room.onMessage(a.id, { t: "lever" });
+        run(room, 600);
+      };
+      fire("frosting");
+      fire("sprinkles"); // seeded burst → grips as records
+      fire("frosting"); // buries part of the grip patch
+      return connect(room, "peek").last("welcome");
+    };
+    const wA = play();
+    const wB = play();
+    expect(wA?.frosting).toEqual(wB?.frosting); // the scored surface
+    expect(wA?.stuck).toEqual(wB?.stuck); // the sprinkle records + normals
+    expect(wA?.toppings).toEqual(wB?.toppings); // the litter/obstacles
+    expect(wA?.checks).toEqual(wB?.checks); // the checklist both would show
+    // ...and it actually exercised the machinery, not two empty cakes.
+    expect(wA?.frosting.some((c) => c > 0)).toBe(true);
+    expect((wA?.stuck.length ?? 0)).toBeGreaterThan(0);
+  });
+
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
     const room = new Room();
     const a = connect(room, "alice");
