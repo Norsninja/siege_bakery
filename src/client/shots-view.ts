@@ -155,11 +155,15 @@ export class ShotsView {
       }
       flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
     }
-    // Grips are QUIET like grain landings (the burst told the story); the
-    // stuck record goes to the SprinklesView, stale ones included — a
-    // stale burst visibly sticking to the fresh cake is accepted décor
-    // (plans/10 §8), cleared with the next fresh deal.
-    for (const st of ev.stuck) this.onStuck?.(st.topping, st.pos, st.normal);
+    // IMPACTS BEFORE STUCK — the mirror of the Room's tickScoringPhase
+    // ordering (room.ts: the impacts loop's BURIAL filter runs while
+    // ev.stuck is still unprocessed, so a grip on this same tick is not yet
+    // in the ledger and survives). Adding the grip FIRST and burying second
+    // (the old order) removed a same-tick grip here while the Room counted
+    // it — a checklist-says-N / screen-shows-N-1 split, the exact class the
+    // conversion law exists to kill (audit 2026-07-06). A glob landing the
+    // same tick a grain grips under its footprint must bury it on NEITHER
+    // side; only a strictly-LATER glob buries (the burial law's word).
     for (const im of ev.impacts) {
       // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
       // and 40 rings — the burst already told the story.
@@ -172,6 +176,11 @@ export class ShotsView {
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );
     }
+    // Grips are QUIET like grain landings (the burst told the story); the
+    // stuck record goes to the SprinklesView, stale ones included — a
+    // stale burst visibly sticking to the fresh cake is accepted décor
+    // (plans/10 §8), cleared with the next fresh deal.
+    for (const st of ev.stuck) this.onStuck?.(st.topping, st.pos, st.normal);
   }
 
   /** Per frame: meshes follow their bodies (position AND rotation — a
