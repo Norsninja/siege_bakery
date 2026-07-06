@@ -42,6 +42,15 @@ const GROUND_SPLAT_MAX = 40;
 /** Impacts below this height splat the floor (the arena ground is y 0). */
 const GROUND_SPLAT_BELOW_Y = 0.6;
 
+/** The blob's render geometry, named ONCE so the crest math and the mesh
+ * cannot drift (audit 2026-07-06: these were bare literals in three places —
+ * blobCrest, the SphereGeometry, and refresh's lift+squash — "single source"
+ * by convention only). Change one here and both the picture and the perch
+ * follow. */
+export const BLOB_LIFT = 0.02; // clearance off the skin along the normal
+export const BLOB_GEO_RADIUS = 0.35; // the InstancedMesh sphere radius
+export const BLOB_SQUASH = 0.4; // flatten factor along the normal
+
 /** Blob swell factor at a coat level — THE one source of the blob's size
  * (refresh() below scales instances by it; sprinkles-view perches stuck
  * sprinkles on the crest it implies, plans/10 §8). */
@@ -50,14 +59,14 @@ export function blobScale(coats: number): number {
 }
 
 /** How far the blob VISUAL protrudes along its surface normal at a coat
- * level: the 0.02 lift plus the flattened sphere's half-extent (geometry
- * radius 0.35, squashed 0.4× along the normal). The render contract of
- * the conversion law hangs on this number matching refresh() — a stuck
- * sprinkle placed here sits ON the picture of the frosting, half-nestled,
- * never swallowed (the cogency review's measured failure: grain centers
- * at 0.045 vs blob crests at 0.147–0.217). */
+ * level: the lift plus the flattened sphere's half-extent (radius × squash).
+ * The render contract of the conversion law hangs on this matching refresh()
+ * — a stuck sprinkle placed here sits ON the picture of the frosting,
+ * half-nestled, never swallowed (the cogency review's measured failure:
+ * grain centers at 0.045 vs blob crests at 0.147–0.217). Both sites now
+ * derive from the constants above, so the match is structural. */
 export function blobCrest(coats: number): number {
-  return 0.02 + 0.35 * blobScale(coats) * 0.4;
+  return BLOB_LIFT + BLOB_GEO_RADIUS * blobScale(coats) * BLOB_SQUASH;
 }
 
 export class FrostingView {
@@ -71,7 +80,7 @@ export class FrostingView {
 
   constructor(private readonly scene: THREE.Scene) {
     this.blobs = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(0.35, 10, 8),
+      new THREE.SphereGeometry(BLOB_GEO_RADIUS, 10, 8),
       // White base + per-instance color (fudge paints dark, plans/10).
       new THREE.MeshStandardMaterial({ color: 0xffffff }),
       CAKE_SAMPLES.length,
@@ -158,11 +167,11 @@ export class FrostingView {
       nrm.set(s.normal.x, s.normal.y, s.normal.z);
       q.setFromUnitVectors(up, nrm);
       p.set(
-        s.pos.x + s.normal.x * 0.02,
-        s.pos.y + s.normal.y * 0.02,
-        s.pos.z + s.normal.z * 0.02,
+        s.pos.x + s.normal.x * BLOB_LIFT,
+        s.pos.y + s.normal.y * BLOB_LIFT,
+        s.pos.z + s.normal.z * BLOB_LIFT,
       );
-      sc.set(k, k * 0.4, k);
+      sc.set(k, k * BLOB_SQUASH, k);
       m.compose(p, q, sc);
       this.blobs.setMatrixAt(i, m);
     }
