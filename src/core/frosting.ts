@@ -139,6 +139,27 @@ export function splatSamples(
   return hit;
 }
 
+/** Does one paint event's splat footprint cover this point? The BURIAL
+ * predicate of the conversion law (plans/10 §8, his words: "if they are
+ * not on top, they are covered — they would be IN the cake"): a later
+ * paint event covering a stuck sprinkle's skin point REMOVES its record —
+ * the count drops with the visual. Same band + radius math as
+ * splatSamples, applied to one point; Room and client twin call it on the
+ * same tag-matched impacts, so both bury the identical set. */
+export function splatCovers(
+  target: Vec3,
+  impact: Vec3,
+  speed: number,
+  spec: SplatSpec = DEFAULT_SPLAT,
+): boolean {
+  const dy = target.y - impact.y;
+  if (dy > spec.bandUp || dy < -spec.bandDown) return false;
+  const r = splatRadius(speed, spec);
+  const dx = target.x - impact.x;
+  const dz = target.z - impact.z;
+  return dx * dx + dz * dz <= r * r;
+}
+
 /** One census point: where it sits and which way its surface faces —
  * +y on tier tops, radially outward on tier walls. The client flattens
  * its frosting blobs against the normal; nothing else reads it. */
@@ -249,6 +270,25 @@ export class FrostingField {
   /** Coats at one sample index (the client view scales its blobs by this). */
   coatAt(i: number): number {
     return this.coats[i] ?? 0;
+  }
+
+  /** Richest paint near a position — the client's PERCH oracle (plans/10
+   * §8): a stuck sprinkle sits atop the blob visual, and the blob's swell
+   * is a function of coats, so the perch height needs the coat level at
+   * the grip. Visual dressing only; scoring never reads it. */
+  coatsNear(pos: Vec3, within = STICKY_NEAR_M): number {
+    const w2 = within * within;
+    let max = 0;
+    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+      const c = this.coats[i]!;
+      if (c <= max) continue;
+      const s = CAKE_SAMPLES[i]!.pos;
+      const dx = s.x - pos.x;
+      const dy = s.y - pos.y;
+      const dz = s.z - pos.z;
+      if (dx * dx + dy * dy + dz * dz <= w2) max = c;
+    }
+    return max;
   }
 
   /** The wire form (welcome snapshot). */

@@ -32,6 +32,21 @@ export interface RestingTopping {
   z: number;
 }
 
+/** A stuck sprinkle record, as the welcome snapshot carries it (the
+ * conversion law, plans/10 §8): grip point on the dessert skin plus the
+ * outward normal the client perches the visual along. NOT a body — never
+ * an obstacle; in play these derive from shot events on every replica
+ * (sync-shots-not-surfaces), the wire form is for late joiners only. */
+export interface StuckTopping {
+  topping: string;
+  x: number;
+  y: number;
+  z: number;
+  nx: number;
+  ny: number;
+  nz: number;
+}
+
 // --- client → server ---
 export type ClientMsg =
   | { t: "hello"; name: string }
@@ -64,6 +79,10 @@ export type ServerMsg =
        * local field misses that one splat until the next fresh deal —
        * visual only; scoring truth is the Room's and arrives in checks. */
       frosting: number[];
+      /** Stuck sprinkles as they lie (conversion law, plans/10 §8) —
+       * surface records, rendered perched on the frosting; cleared with
+       * the fresh cake. */
+      stuck: StuckTopping[];
       /** Present exactly when the order is ENDED (the 10s banner linger):
        * a joiner/refresher mid-banner needs the verdict or a WON order
        * renders as the sad gate-1 loss (checkpoint audit 2026-07-03). */

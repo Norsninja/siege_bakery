@@ -33,7 +33,7 @@
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { GRAIN_COLLISION_GROUPS, SHOT_COLLISION_GROUPS } from "./constants";
-import { distanceToCake, isOnCake, tierOf } from "./arena";
+import { cakeSurface, distanceToCake, isOnCake } from "./arena";
 import { mulberry32 } from "./rng";
 import type { Vec3 } from "./ballistics";
 
@@ -112,10 +112,29 @@ export interface Settled {
   body: RAPIER.RigidBody;
 }
 
+/** THE CONVERSION LAW (plans/10 §8): a grain that GRIPS the dessert —
+ * first impact ON the skin AND on wet paint — stops being a physics
+ * object and becomes dessert surface data. The body is gone by the time
+ * this event is read; the record is the skin point (scoring truth —
+ * tierOf works on it) and the outward normal (the client perches the
+ * sprinkle visual along it, atop the frosting blob). Stuck records live
+ * until a later splat BURIES them or the dessert leaves — sprinkle
+ * knockability is deliberately retired with the freeze-in-place
+ * mechanism (the §8 law change). */
+export interface Stuck {
+  /** The grip point ON the tier stack's skin. */
+  pos: Vec3;
+  /** Outward surface normal at the grip. */
+  normal: Vec3;
+  topping: string;
+  tag: number;
+}
+
 export interface StepEvents {
   impacts: Impact[];
   settled: Settled[];
   bursts: Burst[];
+  stuck: Stuck[];
 }
 
 /** Rest = this many consecutive ticks below the stillness thresholds.
@@ -144,6 +163,16 @@ const restAng = (grain: boolean): number =>
  * ball radii = 0.87m closing. RE-CHECK when TENSION_MAX_CLICKS or launch
  * speeds move (the power-extension study will move them). */
 export const WAKE_RADIUS = 1.0;
+
+/** The GRIP gate (conversion law, plans/10 §8): a grain converts only if
+ * its impact center is this close to the tier stack's skin. A grain
+ * touching a wall or top rides 0.045–0.1m off the skin (capsule side to
+ * end); a floor impact 0.13m from the wall foot — the measured crescent
+ * that motivated the gate: 23/40 grains frozen on the floor forever —
+ * NEVER grips, however close the painted wall base is. Geometry law, so
+ * it lives HERE at the one stick site, not in the two stickyPaint
+ * bindings (Room and client must be incapable of drifting apart). */
+export const GRIP_SKIN_M = 0.12;
 
 /** Grains damp HARD, both axes (measured 2026-07-05: Rapier has no rolling
  * resistance, so an undamped landed capsule rolls forever — angular damping
@@ -196,16 +225,18 @@ export class ProjectileManager {
     { body: RAPIER.RigidBody; stillTicks: number; grain: boolean }
   >();
   /** Every body still in the world, in flight or at rest — the client
-   * renders these. Consumed paint globs leave on impact. */
+   * renders these. Consumed paint globs leave on impact; gripped grains
+   * leave at conversion (plans/10 §8). */
   readonly bodies: Array<{ body: RAPIER.RigidBody; topping: string }> = [];
-  /** STICKY FROSTING (plans/10 addendum): the owner answers "is there wet
-   * paint here?" — the Room binds its FrostingField, the client binds its
-   * local twin. A GRAIN whose first impact lands on paint freezes ON THE
-   * SPOT (walls included) instead of bouncing off. Both fields derive
-   * from the same shot events, so replicas agree; this is the one place
-   * the paint field feeds back into physics — cross-engine it inherits
-   * the census grid's one-ULP caveat (frosting.ts header), boundary
-   * cases measure-zero and litter-visual only. */
+  /** The paint oracle of the CONVERSION LAW (plans/10 §8): the owner
+   * answers "is there wet paint here?" — the Room binds its
+   * FrostingField, the client binds its local twin. A GRAIN whose first
+   * impact lands ON the dessert skin (GRIP_SKIN_M) AND on paint CONVERTS
+   * into a stuck surface record instead of bouncing off. Both fields
+   * derive from the same shot events, so replicas agree; this is the one
+   * place the paint field feeds back into physics — cross-engine it
+   * inherits the census grid's one-ULP caveat (frosting.ts header),
+   * boundary cases measure-zero and litter-visual only. */
   stickyPaint: ((pos: Vec3) => boolean) | null = null;
 
   spawn(
@@ -299,23 +330,15 @@ export class ProjectileManager {
       body,
     );
     this.bodies.push({ body, topping });
-    // A skin-stuck grain (sticky-frosting law: clinging to a wall, not on
-    // any tier top) must rejoin FROZEN in place — the waking path would
-    // drop it off the wall it was stuck to. The mid-roll concern behind
-    // the waking path can't apply here: no body rolls ON a wall skin.
-    if (grain && tierOf(pos) === null && isOnCake(pos)) {
-      body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
-      this.frozen.set(body.handle, { body, grain: true });
-    } else {
-      this.waking.set(body.handle, { body, stillTicks: 0, grain: !!grain });
-    }
+    this.waking.set(body.handle, { body, stillTicks: 0, grain: !!grain });
     return body;
   }
 
   /** THE FRESH-CAKE LAW (2026-07-05, replacing the "Giant licks" fiction):
    * between orders the finished dessert is GONE — eaten or taken away —
-   * and a naked cake wheels out. Everything resting ON it (tier tops and
-   * skin-stuck grains alike) leaves with it; floor litter is the CREW's
+   * and a naked cake wheels out. Every BODY resting on its tiers leaves
+   * with it (stuck sprinkles are records, not bodies — their owners clear
+   * them alongside this call, plans/10 §8); floor litter is the CREW's
    * mess, not the dessert's, and stays. In-flight shots keep flying (a
    * stale lob still lands, still scores nothing — audit AUD-4). Both
    * replicas call this on the fresh deal and remove the identical set —
@@ -347,16 +370,23 @@ export class ProjectileManager {
     // solid must NOT wake its frozen neighbors, or a passing shot would
     // cascade-wake whole piles forever).
     if (this.frozen.size > 0) {
-      const movers: RAPIER.RigidBody[] = [];
-      for (const shot of this.tracked.values()) movers.push(shot.body);
+      const movers: Array<{ body: RAPIER.RigidBody; grain: boolean }> = [];
+      for (const shot of this.tracked.values())
+        movers.push({ body: shot.body, grain: shot.grain });
       for (const w of this.waking.values()) {
         const v = w.body.linvel();
-        if (Math.hypot(v.x, v.y, v.z) >= restLin(w.grain)) movers.push(w.body);
+        if (Math.hypot(v.x, v.y, v.z) >= restLin(w.grain))
+          movers.push({ body: w.body, grain: w.grain });
       }
       const r2 = WAKE_RADIUS * WAKE_RADIUS;
       for (const mover of movers) {
-        const m = mover.translation();
+        const m = mover.body.translation();
         for (const [handle, f] of this.frozen) {
+          // Impossible pairs never wake (cogency review 2026-07-05): grains
+          // don't collide with grains (constants.ts), so a grain mover
+          // waking a frozen grain is displacement nobody could cause —
+          // measured 39/40 pile grains cycling in waking forever.
+          if (mover.grain && f.grain) continue;
           const p = f.body.translation();
           const dx = p.x - m.x;
           const dy = p.y - m.y;
@@ -390,9 +420,10 @@ export class ProjectileManager {
 
     const impacts: Impact[] = [];
     const settled: Settled[] = [];
+    const stuck: Stuck[] = [];
     const consumed: number[] = []; // collider handles; removed AFTER the drain
     const impactBursts: number[] = []; // carriers that hit before the fuse
-    const stuck: number[] = []; // grains that hit wet paint (sticky law)
+    const gripped: number[] = []; // grains converting (the conversion law)
     this.queue.drainCollisionEvents((h1, h2, started) => {
       if (!started) return;
       // BOTH sides of the pair may be tracked shots — a glob landing on a
@@ -412,8 +443,24 @@ export class ProjectileManager {
           impactBursts.push(handle);
           continue;
         }
-        shot.impacted = true;
         const p = shot.body.translation();
+        // THE CONVERSION (plans/10 §8): a grain gripping the dessert —
+        // impact ON the skin (GRIP_SKIN_M gate) AND on wet paint — never
+        // lands as a body; it converts to surface data after the drain.
+        // The grip REPLACES the impact event, as the pop replaces the
+        // carrier's. Floor impacts beside painted wall bases fail the
+        // skin gate and litter honestly (the crescent, killed here).
+        if (
+          shot.grain &&
+          this.stickyPaint !== null &&
+          distanceToCake({ x: p.x, y: p.y, z: p.z }) <= GRIP_SKIN_M &&
+          this.stickyPaint({ x: p.x, y: p.y, z: p.z })
+        ) {
+          shot.impacted = true;
+          gripped.push(handle);
+          continue;
+        }
+        shot.impacted = true;
         impacts.push({
           pos: { x: p.x, y: p.y, z: p.z },
           speed: shot.lastSpeed,
@@ -421,13 +468,6 @@ export class ProjectileManager {
           tag: shot.tag,
           ...(shot.grain ? { grain: true } : {}),
         });
-        // STICKY FROSTING: a grain hitting wet paint freezes ON THE SPOT —
-        // sprinkles stick where they land, walls included. Collected here,
-        // frozen after the drain (no settle wait, no roll, no bounce).
-        if (shot.grain && this.stickyPaint?.({ x: p.x, y: p.y, z: p.z })) {
-          stuck.push(handle);
-          continue;
-        }
         // Paint: the impact IS the landing — no absorption, no settle wait.
         if (shot.consumeOnImpact) {
           consumed.push(handle);
@@ -468,21 +508,25 @@ export class ProjectileManager {
       if (shot) this.burstNow(world, handle, shot, bursts);
     }
 
-    // Stuck grains settle NOW, exactly where they hit the paint — then
-    // freeze like any settled solid (knockable by proximity wake as ever).
-    for (const handle of stuck) {
+    // Gripped grains CONVERT (plans/10 §8): the body leaves the world;
+    // the record — skin point + outward normal — is dessert surface data
+    // from here. No settle, no freeze, no litter; it un-exists physically
+    // and lives as a ledger entry until buried or the dessert leaves.
+    for (const handle of gripped) {
       const shot = this.tracked.get(handle);
       if (!shot) continue;
       const p = shot.body.translation();
-      settled.push({
-        pos: { x: p.x, y: p.y, z: p.z },
+      const surf = cakeSurface({ x: p.x, y: p.y, z: p.z });
+      world.removeRigidBody(shot.body);
+      this.tracked.delete(handle);
+      const i = this.bodies.findIndex((b) => b.body === shot.body);
+      if (i >= 0) this.bodies.splice(i, 1);
+      stuck.push({
+        pos: surf.point,
+        normal: surf.normal,
         topping: shot.topping,
         tag: shot.tag,
-        body: shot.body,
       });
-      this.tracked.delete(handle);
-      shot.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
-      this.frozen.set(shot.body.handle, { body: shot.body, grain: true });
     }
 
     for (const [handle, shot] of this.tracked) {
@@ -523,7 +567,7 @@ export class ProjectileManager {
       this.waking.delete(handle);
       this.frozen.set(handle, { body: w.body, grain: w.grain });
     }
-    return { impacts, settled, bursts };
+    return { impacts, settled, bursts, stuck };
   }
 
   /** Pop a carrier: spawn its seeded payload, remove the carrier, report

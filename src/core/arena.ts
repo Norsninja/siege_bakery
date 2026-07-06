@@ -116,20 +116,13 @@ export function tierOf(pos: Vec3): number | null {
   return null;
 }
 
-/** A body this close to the tier stack's skin is PART of the dessert —
- * the sticky-frosting law (plans/10 addendum, 2026-07-05): grains freeze
- * where they impact paint, including WALLS, so "on the cake" must include
- * a stuck grain clinging to a wall face (its center rides ~0.05–0.1m off
- * the skin). 0.12 covers grains and excludes every 0.3-radius ball — a
- * cherry can never wall-cling. (Accepted edge: a grain lying on the floor
- * pressed against the cake foot reads as on-dessert; it can't satisfy any
- * row — wall samples are ≥1m above it — and it leaves with the cake.) */
-export const DESSERT_SKIN_M = 0.12;
-
 /** Scoring geometry: is a rest position part of the dessert — on a tier
- * top, or clinging to the skin (stuck grains, sticky-frosting law)? */
+ * top? (The 2026-07-05 skin widening for wall-stuck grain BODIES reverted
+ * with the conversion law, plans/10 §8: stuck sprinkles are surface
+ * RECORDS now, not bodies, so no body ever legitimately rests off-tier
+ * yet on the dessert.) */
 export function isOnCake(pos: Vec3): boolean {
-  return tierOf(pos) !== null || distanceToCake(pos) <= DESSERT_SKIN_M;
+  return tierOf(pos) !== null;
 }
 
 /** Analytic distance from a point to the TIER STACK (the union of the cake
@@ -149,6 +142,69 @@ export function distanceToCake(pos: Vec3): number {
     if (d < best) best = d;
   }
   return best;
+}
+
+/** Nearest point ON the tier stack's skin, with its outward normal — the
+ * conversion law's placement oracle (plans/10 §8): a gripped grain's
+ * record is its skin point (scoring truth: tierOf works on it) and the
+ * client perches the sprinkle visual along the normal, atop the frosting
+ * blob. sqrt/mul/div only — exactly rounded, cross-engine identical, like
+ * distanceToCake above. For a point INSIDE a tier (contact penetration,
+ * rare) the shallower of wall/top wins — never a downward normal. */
+export function cakeSurface(pos: Vec3): { point: Vec3; normal: Vec3 } {
+  const dzc = pos.z - CAKE_Z;
+  const radial = Math.sqrt(pos.x * pos.x + dzc * dzc);
+  // Radial direction; dead-center tie-break is +x (deterministic, and a
+  // grain exactly on the axis cannot grip a wall anyway).
+  const dirx = radial > 0 ? pos.x / radial : 1;
+  const dirz = radial > 0 ? dzc / radial : 0;
+  let best: { d: number; point: Vec3; normal: Vec3 } | null = null;
+  for (const t of CAKE_TIERS) {
+    let cand: { d: number; point: Vec3; normal: Vec3 };
+    const inR = radial <= t.radius;
+    const inY = pos.y >= t.bottom && pos.y <= t.top;
+    if (inR && inY) {
+      // Inside the cylinder: project to the shallower face (wall or top).
+      const wallPen = t.radius - radial;
+      const topPen = t.top - pos.y;
+      cand =
+        topPen <= wallPen
+          ? {
+              d: 0,
+              point: { x: pos.x, y: t.top, z: pos.z },
+              normal: { x: 0, y: 1, z: 0 },
+            }
+          : {
+              d: 0,
+              point: {
+                x: t.radius * dirx,
+                y: pos.y,
+                z: CAKE_Z + t.radius * dirz,
+              },
+              normal: { x: dirx, y: 0, z: dirz },
+            };
+    } else {
+      // Outside: clamp to the solid cylinder — the nearest skin point —
+      // and the normal is the offset direction (top, wall, or rim blend).
+      const cr = inR ? radial : t.radius;
+      const cy = pos.y < t.bottom ? t.bottom : pos.y > t.top ? t.top : pos.y;
+      const point: Vec3 = { x: cr * dirx, y: cy, z: CAKE_Z + cr * dirz };
+      const dx = pos.x - point.x;
+      const dy = pos.y - point.y;
+      const dz = pos.z - point.z;
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      cand = {
+        d,
+        point,
+        normal:
+          d > 0
+            ? { x: dx / d, y: dy / d, z: dz / d }
+            : { x: dirx, y: 0, z: dirz },
+      };
+    }
+    if (best === null || cand.d < best.d) best = cand;
+  }
+  return { point: best!.point, normal: best!.normal };
 }
 
 /** Named scoring zones orders can demand. "peak" retired with the box cake

@@ -73,14 +73,17 @@ export const COVERAGE_GOOD = 0.7;
 export const COVERAGE_EXCELLENT = 0.9;
 /** The standing order's sprinkle row, IN GRAINS since the projectile pass
  * (plans/10: sprinkles burst into 40 payload capsules; the ask re-pins to
- * grain counts). MEASURED (room.test WIN line, 2026-07-05, after grain
- * damping): a good burst over paint delivers ~37–39 of its 40 grains onto
- * the frosting — confetti drag keeps the payload ON the landing zone. 60 =
- * two good bursts with slack: the SAME two-shot economy the old
- * "2 × sprinkles" asked. RE-PINS WITH THE DENSITY PICK (his eye chooses
- * 20/40/80 grains in-preview; the ask scales with the count — keep
- * ask ≈ 1.5 × grains). (The Patron's nag tightens it +1 — a comedy
- * crumb now: one more grain.) */
+ * grain counts). MEASURED (room.test WIN line, 2026-07-06, under the
+ * CONVERSION LAW plans/10 §8): a good burst over paint grips a PERFECT
+ * 40/40 — every grain hitting painted skin converts, and stuck records
+ * cannot be shoved. 60 = two good bursts with slack: the SAME two-shot
+ * economy the old "2 × sprinkles" asked — the slack now covers aim, not
+ * physics leakage, and BURIAL is the loss mode instead (frosting over
+ * your sprinkle work un-counts it). RE-PINS WITH THE DENSITY PICK (his
+ * eye chooses 20/40/80 grains in-preview; the ask scales with the count —
+ * keep ask ≈ 1.5 × grains; with grip at 100% he may want it higher).
+ * (The Patron's nag tightens it +1 — a comedy crumb now: one more
+ * grain.) */
 export const SPRINKLES_NEEDED = 60;
 
 /** Patience burns, seconds of clock per Patron look (patron.ts rules).

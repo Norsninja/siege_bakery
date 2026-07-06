@@ -28,8 +28,8 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
-import { FrostingField, STICKY_NEAR_M } from "../core/frosting";
-import { launchOrigin, launchVelocity } from "../core/ballistics";
+import { FrostingField, splatCovers, STICKY_NEAR_M } from "../core/frosting";
+import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
 import { isPaint, TOPPINGS } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
@@ -78,8 +78,15 @@ export class Room {
    * Recovery through play; the patron counts what he SEES. (The freeze law,
    * plans/09 §7, bounds this to real disturbances — frozen solids only move
    * when something flies near.) Paint entries have no body: a splat can
-   * never be re-mobilized. */
-  private settled: Array<SettledTopping & { body?: RAPIER.RigidBody }> = [];
+   * never be re-mobilized. STUCK entries (conversion law, plans/10 §8)
+   * have no body either — a gripped sprinkle is dessert surface data,
+   * permanent until a later splat BURIES it (removed here, the count
+   * drops — his law: "if they are not on top, they are IN the cake") or
+   * the fresh deal clears the ledger. The normal rides for the welcome
+   * snapshot's perch data. */
+  private settled: Array<
+    SettledTopping & { body?: RAPIER.RigidBody; stuck?: true; normal?: Vec3 }
+  > = [];
   /** The frosting field — paint events accumulate here (plans/07). Reset
    * with the order: a fresh cake wheels out between deals (paint is the
    * scoreboard; a fresh FROST row must not start half-met). */
@@ -97,8 +104,9 @@ export class Room {
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
-    // Sticky frosting (plans/10 addendum): grains freeze where they hit
-    // wet paint — walls included. The client binds its own field twin.
+    // The conversion law's paint oracle (plans/10 §8): grains grip where
+    // they hit wet paint ON the dessert skin — walls included. The client
+    // binds its own field twin.
     this.shots.stickyPaint = (p) => this.frosting.frostedNear(p, STICKY_NEAR_M);
   }
 
@@ -118,6 +126,17 @@ export class Room {
         .resting()
         .map((r) => ({ topping: r.topping, x: r.pos.x, y: r.pos.y, z: r.pos.z })),
       frosting: this.frosting.snapshot(),
+      stuck: this.settled
+        .filter((s) => s.stuck)
+        .map((s) => ({
+          topping: s.topping,
+          x: s.pos.x,
+          y: s.pos.y,
+          z: s.pos.z,
+          nx: s.normal!.x,
+          ny: s.normal!.y,
+          nz: s.normal!.z,
+        })),
       // Mid-banner joiners need the verdict (audit 2026-07-03): without it
       // a WON order renders as "TIME! the patron goes hungry".
       ...(this.flow.order.status !== "running"
@@ -208,10 +227,14 @@ export class Room {
     for (const im of ev.impacts) {
       if (!isPaint(im.topping)) continue;
       if (im.tag !== this.flow.deal) continue; // fired against a previous order
-      const painted = this.frosting.paint(
-        im.pos,
-        im.speed,
-        TOPPINGS[im.topping]?.splat,
+      const spec = TOPPINGS[im.topping]?.splat;
+      const painted = this.frosting.paint(im.pos, im.speed, spec);
+      // BURIAL (conversion law, plans/10 §8): stuck sprinkles under this
+      // splat's footprint are covered — IN the cake now, not on it. Their
+      // records leave the ledger and the count drops; the checks riding
+      // this tick's `scored` broadcast already show it.
+      this.settled = this.settled.filter(
+        (s) => !(s.stuck && splatCovers(s.pos, im.pos, im.speed, spec)),
       );
       this.settled.push({ topping: im.topping, pos: im.pos, onCake: painted > 0 });
       note(im.topping, painted > 0);
@@ -223,6 +246,21 @@ export class Room {
       const onCake = isOnCake(s.pos);
       this.settled.push({ topping: s.topping, pos: s.pos, onCake, body: s.body });
       note(s.topping, onCake);
+    }
+    // Gripped grains CONVERTED (plans/10 §8): bodiless ledger entries, on
+    // the cake by definition — they stuck to its skin, on its paint. A
+    // stale grip renders client-side but scores nothing, like any stale
+    // shot; it isn't even remembered here.
+    for (const st of ev.stuck) {
+      if (st.tag !== this.flow.deal) continue;
+      this.settled.push({
+        topping: st.topping,
+        pos: st.pos,
+        onCake: true,
+        stuck: true,
+        normal: st.normal,
+      });
+      note(st.topping, true);
     }
     if (groups.size === 0) return;
     const r = evaluateOrder(
@@ -280,8 +318,9 @@ export class Room {
       } else {
         // "redeal": the flow dealt fresh — THE FRESH-CAKE LAW (2026-07-05):
         // the finished dessert is gone and a naked cake wheels out. Paint,
-        // stuck grains, resting cherries — everything ON it leaves with it.
-        // Floor litter is the crew's mess, not the dessert's; it stays.
+        // stuck sprinkle records (they live in `settled`, plans/10 §8),
+        // resting cherries — everything ON it leaves with it. Floor
+        // litter is the crew's mess, not the dessert's; it stays.
         this.settled = [];
         this.frosting.reset();
         this.shots.clearCakeSolids(this.world);

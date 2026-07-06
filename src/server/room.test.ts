@@ -180,19 +180,23 @@ describe("Room: the match, headless over protocol", () => {
     const sprinkleRow = a
       .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting");
-    // A BURST now (plans/10): one 40-grain pop over the fresh splat — ALL
-    // 40 grains grip the paint (pinned, deterministic: confetti drag keeps
-    // the payload on the zone; STICKY FROSTING holds every grain that
-    // touches wet paint). Re-pin with the density pick.
+    // A BURST (plans/10) under the CONVERSION LAW (§8): one 40-grain pop
+    // over the fresh splat and EVERY grain grips — 40/40 as surface
+    // records, none left as bodies (pinned, deterministic; re-pin with
+    // the density pick). The grip gate costs nothing on a clean burst:
+    // the floor-crescent fix only ever refused floor impacts.
     expect(sprinkleRow?.current).toBe(40);
+    // All 40 records ride the welcome (perch data for late joiners).
+    const peek = connect(room, "peek").last("welcome");
+    expect(peek?.stuck).toHaveLength(40);
+    expect(peek?.stuck.every((s) => s.topping === "sprinkles")).toBe(true);
   });
 
-  it("scoring truth follows the bodies: bowled-off grains un-count (audit 2026-07-03)", () => {
-    // Live-truth ledger, the 2D "live cell scans" law re-bodied — grains
-    // edition (plans/10): cherries dropped onto the frozen grain patch wake
-    // and scatter it; grains knocked off the paint un-count. Confetti drag
-    // keeps knocks short, so it takes a small barrage (measured: cherry 1
-    // wedges in atop, cherries 2–3 each dislodge one grain — 39 → 37).
+  it("burial un-counts: frosting over stuck sprinkles removes them — they are IN the cake (plans/10 §8)", () => {
+    // THE BURIAL LAW, his words: "if they are not on top, they are
+    // covered, and not on the cake — they would be IN the cake." This
+    // replaces the retired knockability pin: the sprinkle eraser is now
+    // paint over them, displacement traceable to the shot that did it.
     const room = new Room();
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
@@ -204,19 +208,17 @@ describe("Room: the match, headless over protocol", () => {
       run(room, 600);
     };
     fire("frosting"); // paint the 6-click landing zone
-    fire("sprinkles"); // bursts over it → grains rest ON the frosting
+    fire("sprinkles"); // burst over it → grips + nearby settles
     const before = a
       .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting")?.current;
     expect(before).toBe(40); // the burst pin (see the test above)
-    fire("cherry"); // same arc, three times: the barrage plows the patch
-    fire("cherry");
-    fire("cherry");
-    run(room, 120); // two 1Hz check broadcasts later, everything at rest
+    fire("frosting"); // the SAME arc: the splat covers the gripped patch
     const after = a
-      .last("order")
+      .last("scored")
       ?.checks.find((c) => c.req.kind === "on-frosting")?.current;
-    expect(after).toBe(37); // knocked off the paint — he counts what he SEES
+    expect(after).toBe(2); // 38 buried under the fresh coat; 2 outside its
+    // footprint survive on the patch edge (pinned, deterministic)
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
@@ -413,24 +415,13 @@ describe("Room: the match, headless over protocol", () => {
     // samples (frac 0.5 × potential 0.42), and these 13 arcs union past
     // it (measured 0.566 effective). MANY SHOTS IS THE GAME now (plans/08);
     // re-run the study and re-cut this table when splats or census move.
-    // LIVE-TRUTH CHOREOGRAPHY (learned re-cutting this line): sprinkle 2
-    // fires AFTER the whole frost line — a late glob passing its ledge
-    // left it creeping, and 650 ticks later it had rolled 0.6m off its
-    // paint and honestly un-counted. THE FREEZE LAW (projectiles.ts,
-    // 2026-07-04) has since retired that failure mode — settled solids
-    // freeze and only wake for shots within WAKE_RADIUS — but the ordering
-    // stays: a glob passing within a meter still wakes and can still
-    // shove, so solids you care about go down when nothing will fly near.
+    // BURIAL CHOREOGRAPHY (the conversion law, plans/10 §8, replacing the
+    // old live-truth ordering note): sprinkles fire AFTER the whole frost
+    // line, because a later glob whose splat covers a stuck sprinkle
+    // BURIES it — the record leaves, the count drops ("if they are not on
+    // top, they are IN the cake"). Sprinkles-last IS the strategy now.
     turnTo(-1.5);
     fire("frosting", 6, 300);
-    // Burst 1 over the single fresh splat: 38 grains grip the paint
-    // (pinned; the frost line then flies PAST these grains for eleven more
-    // shots, waking and shoving honestly — the freeze law bounds the churn
-    // to real fly-bys). One burst alone can't meet the 60-grain ask.
-    fire("sprinkles", 6, 650);
-    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
-      38,
-    );
     turnTo(-1);
     fire("frosting", 7, 300);
     turnTo(-3);
@@ -458,21 +449,33 @@ describe("Room: the match, headless over protocol", () => {
     expect(lastChecks().find((c) => c.req.kind === "frost-coverage")?.met).toBe(
       true,
     );
-    // The Giant demanded his crown along the way (progress-triggered).
-    expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
-    // Second sprinkle on the flank's rich paint, now that the sky is clear.
+    // The sky is clear and every splat is down: NOW the sprinkles (burial
+    // choreography above). Burst 1 on the center's rich paint, burst 2 on
+    // the flank's — two good bursts IS the economy (game/tuning.ts).
     screw(-1);
+    turnTo(-1.5);
+    fire("sprinkles", 6, 650);
+    // Burst 1 on the center's rich paint: 40/40 grip (pinned — with
+    // sprinkles fired LAST there are no fly-by wakes and no burials;
+    // stuck records cannot be shoved at all). One burst alone can't meet
+    // the 60-grain ask.
+    expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
+      40,
+    );
     turnTo(-8.5);
     fire("sprinkles", 6, 650);
-    // Burst 2 on the flank's rich paint: cumulative 80 of the 60-grain ask
-    // (pinned — a perfect two-burst delivery, every grain gripping the
-    // paint) — two good bursts IS the economy (game/tuning.ts).
+    // Burst 2 on the flank: cumulative 80 of the ask (pinned — a perfect
+    // two-burst delivery) — two good bursts IS the economy (tuning.ts).
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.current).toBe(
       80,
     );
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
       true,
     );
+    // The Giant demanded his crown along the way — progress-triggered at
+    // a LOOK (12s cadence): the two burst waits span more than one look
+    // window, so by here the demand has certainly landed.
+    expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
     screw(1);
     turnTo(0);
     fire("cherry", 8, 650); // the tier-clearing crown shot

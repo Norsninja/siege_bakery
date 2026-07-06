@@ -35,8 +35,9 @@ const LANDING_MARKER_MAX = 30;
 
 /** Burst grains are MULTICOLOR (plans/10 — color-variety judgment stays
  * deferred; the confetti is the point). Palette by spawn index:
- * deterministic without touching the physics seed. */
-const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 0xfff0f5];
+ * deterministic without touching the physics seed. Shared with the stuck
+ * sprinkles (sprinkles-view) so a grain keeps its color class at grip. */
+export const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 0xfff0f5];
 
 export class ShotsView {
   private readonly shots = new ProjectileManager();
@@ -48,6 +49,10 @@ export class ShotsView {
    * rides along: fudge paints under its own splat law and renders dark. */
   onPaintImpact: ((topping: string, pos: Vec3, speed: number) => void) | null =
     null;
+  /** A grain GRIPPED in the local sim (the conversion law, plans/10 §8):
+   * its body is already gone — sync() sweeps the mesh — and main hands
+   * the record to the SprinklesView to perch on the frosting visual. */
+  onStuck: ((topping: string, pos: Vec3, normal: Vec3) => void) | null = null;
   /** The local deal generation — the mirror of the Room's stale-shot rule
    * (checkpoint audit 2026-07-03): a glob fired against the previous order
    * still visibly lands, but must not paint the fresh cake's local field
@@ -123,9 +128,9 @@ export class ShotsView {
     this.deal++;
   }
 
-  /** Sticky frosting (plans/10 addendum): main binds the local FrostingView
-   * field so grains freeze where they hit wet paint — the deterministic
-   * twin of the Room's binding. */
+  /** The conversion law's paint oracle (plans/10 §8): main binds the local
+   * FrostingView field so grains grip where they hit wet paint on the
+   * dessert skin — the deterministic twin of the Room's binding. */
   bindStickyPaint(check: (pos: Vec3) => boolean): void {
     this.shots.stickyPaint = check;
   }
@@ -150,6 +155,11 @@ export class ShotsView {
       }
       flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
     }
+    // Grips are QUIET like grain landings (the burst told the story); the
+    // stuck record goes to the SprinklesView, stale ones included — a
+    // stale burst visibly sticking to the fresh cake is accepted décor
+    // (plans/10 §8), cleared with the next fresh deal.
+    for (const st of ev.stuck) this.onStuck?.(st.topping, st.pos, st.normal);
     for (const im of ev.impacts) {
       // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
       // and 40 rings — the burst already told the story.

@@ -42,6 +42,24 @@ const GROUND_SPLAT_MAX = 40;
 /** Impacts below this height splat the floor (the arena ground is y 0). */
 const GROUND_SPLAT_BELOW_Y = 0.6;
 
+/** Blob swell factor at a coat level — THE one source of the blob's size
+ * (refresh() below scales instances by it; sprinkles-view perches stuck
+ * sprinkles on the crest it implies, plans/10 §8). */
+export function blobScale(coats: number): number {
+  return coats > 0 ? 0.8 + 0.25 * Math.min(coats, 3) : 0;
+}
+
+/** How far the blob VISUAL protrudes along its surface normal at a coat
+ * level: the 0.02 lift plus the flattened sphere's half-extent (geometry
+ * radius 0.35, squashed 0.4× along the normal). The render contract of
+ * the conversion law hangs on this number matching refresh() — a stuck
+ * sprinkle placed here sits ON the picture of the frosting, half-nestled,
+ * never swallowed (the cogency review's measured failure: grain centers
+ * at 0.045 vs blob crests at 0.147–0.217). */
+export function blobCrest(coats: number): number {
+  return 0.02 + 0.35 * blobScale(coats) * 0.4;
+}
+
 export class FrostingView {
   private readonly field = new FrostingField();
   private readonly blobs: THREE.InstancedMesh;
@@ -94,10 +112,16 @@ export class FrostingView {
     this.refresh();
   }
 
-  /** Sticky-frosting oracle for the local sim (plans/10 addendum): is
-   * there wet paint here to grip a grain? Same field the blobs render. */
+  /** The conversion law's paint oracle for the local sim (plans/10 §8):
+   * is there wet paint here to grip a grain? Same field the blobs render. */
   stickyNear(pos: Vec3): boolean {
     return this.field.frostedNear(pos, STICKY_NEAR_M);
+  }
+
+  /** Coat level near a grip point — the sprinkle perch reads the blob it
+   * lands on (plans/10 §8). */
+  coatsNear(pos: Vec3): number {
+    return this.field.coatsNear(pos);
   }
 
   private addGroundSplat(pos: Vec3, speed: number, topping = "frosting"): void {
@@ -129,7 +153,7 @@ export class FrostingView {
     for (let i = 0; i < CAKE_SAMPLES.length; i++) {
       const s = CAKE_SAMPLES[i]!;
       const coats = this.field.coatAt(i);
-      const k = coats > 0 ? 0.8 + 0.25 * Math.min(coats, 3) : 0;
+      const k = blobScale(coats);
       // Flatten along the surface normal: lying on tops, clinging to walls.
       nrm.set(s.normal.x, s.normal.y, s.normal.z);
       q.setFromUnitVectors(up, nrm);

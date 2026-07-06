@@ -55,6 +55,8 @@ function harness(): {
       restoreFrosting: (coats) => frosting.push(`restore:${coats.length}`),
       resetFrosting: () => frosting.push("reset"),
       clearCakeSolids: () => frosting.push("clear-cake"),
+      restoreStuck: (list) => frosting.push(`stuck:${list.length}`),
+      clearStuck: () => frosting.push("clear-stuck"),
       upsertGhost: (p) => ghosts.push(`+${p.id}`),
       removeGhost: (id) => ghosts.push(`-${id}`),
       flash: (msg) => flashes.push(msg),
@@ -87,6 +89,7 @@ describe("applyServerMsg", () => {
         poses: [{ id: 2, x: 0, y: 0, z: 0, yaw: 0 }],
         toppings: [{ topping: "cherry", x: 0, y: 3.8, z: -30 }],
         frosting: [0, 1, 2],
+        stuck: [],
       },
       h.fx,
     );
@@ -99,7 +102,7 @@ describe("applyServerMsg", () => {
     // The world as it lies: the settled cherry is recreated locally (F2)
     // and the painted cake comes back with it (plans/07).
     expect(h.spawned).toEqual(["rest:cherry"]);
-    expect(h.frosting).toEqual(["restore:3"]);
+    expect(h.frosting).toEqual(["restore:3", "stuck:0"]);
   });
 
   it("a fresh deal wheels out a fresh cake — paint AND on-cake solids clear; other order msgs never do", () => {
@@ -107,7 +110,7 @@ describe("applyServerMsg", () => {
     applyServerMsg(h.view, orderMsg(), h.fx); // 1Hz clock correction
     expect(h.frosting).toEqual([]);
     applyServerMsg(h.view, orderMsg({ fresh: true }), h.fx); // the re-deal
-    expect(h.frosting).toEqual(["reset", "clear-cake"]);
+    expect(h.frosting).toEqual(["reset", "clear-cake", "clear-stuck"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {

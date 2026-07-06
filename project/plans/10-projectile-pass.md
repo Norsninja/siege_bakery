@@ -150,7 +150,9 @@ unchanged). Walls are now decoratable — the coverage surface for
 sprinkle work grew by the whole wall census. Measured: a good burst
 went 37–39/40 on paint to a PERFECT 40/40; the WIN line pins 38/80.
 
-**THE FRESH-CAKE LAW (kills the "Giant licks" fiction).** He asked the
+**THE FRESH-CAKE LAW (kills the "Giant licks" fiction).** *(mechanics
+below; the sticky MECHANISM above is superseded by §8 — the law's INTENT,
+sprinkles stick to frosting, stands.)* He asked the
 right question: why does the Giant do anything between orders? He
 doesn't. The round ended; that dessert is GONE — eaten or taken away —
 and a naked cake wheels out. **Everything ON the dessert leaves with it**
@@ -162,3 +164,68 @@ identical set from body positions, no new wire traffic. The lick
 language is purged from every comment. (The old solids-persist litter
 rule was fine at three cherries; 40-grain bursts broke its legibility —
 stale grains read as progress.)
+
+## 8. THE CONVERSION LAW (2026-07-05, second addendum — supersedes §7's sticky MECHANISM)
+
+His live test found the two §7 laws NOT COGENT (sprinkles vanish inside
+frosting blobs; a frozen crescent of floor grains persisted at the cake
+base). A two-agent review confirmed both and designed four corrections to
+the freeze-in-place mechanism. Discussing them, the visionary reframed the
+requirement — *"sprinkles appear on the surface of the frosting skin; they
+don't need to move; only fudge or a repainting of frosting obscures them"*
+— and that spec removes the assumption the whole bug class stood on.
+
+**THE LAW: a grain that grips the dessert stops being a physics object and
+becomes dessert surface data.** Its grip point and outward normal are the
+record; the client dresses it atop the frosting VISUAL. The four
+corrections collapse: the grip predicate survives as the conversion test;
+the standoff becomes placement-by-construction; the wake and collision
+exemptions have nothing left to exempt.
+
+- **The grip (conversion test), in core at the one stick site:** first
+  impact with `distanceToCake ≤ GRIP_SKIN_M (0.12)` AND `stickyPaint(p)`.
+  ON the skin and ON the paint — a floor impact 0.13m from the wall foot
+  (the measured crescent: 23/40 grains, frozen forever) never grips; it
+  bounces and litters honestly. Walls and tops both grip as before.
+- **The stuck event replaces the landing:** body removed from the world;
+  event carries the skin point (new analytic `cakeSurface()` in
+  core/arena.ts — nearest point on the tier stack + outward normal,
+  sqrt-only, cross-engine exact) plus topping and tag.
+- **Stuck records are BODILESS LEDGER ENTRIES** — the exact class paint
+  entries already are: the live-truth re-read skips them (no body), redeal
+  clears them with `settled = []`, `checkRequirements` counts them
+  unchanged (`onCake: true` by definition — they stuck to the skin;
+  `frostedNear` true — they gripped paint). Zero new judgment machinery.
+- **BURIAL UN-COUNTS (his call, verbatim: "if they are not on top, they
+  are covered, and not on the cake. they would be IN the cake"):** a later
+  tag-matched paint event whose splat footprint covers a stuck record
+  (`splatCovers()` in core/frosting.ts — same band + radius math as
+  `splatSamples`, applied to one point) REMOVES the record: the count
+  drops, the instance disappears under the fresh blob. This replaces
+  knockability as the sprinkle eraser — displacement traceable to the
+  shot that caused it (research/07 razor), and a real co-op tension:
+  don't frost over your teammate's sprinkle work.
+- **LAW CHANGE, recorded:** sprinkle knockability is RETIRED — live-truth
+  for sprinkles becomes record-truth (stick, get buried, or leave with
+  the dessert; nothing in between). The "bowled-off grains un-count" pin
+  is deliberately replaced by the burial pin. Grains never crowned, so
+  knockability-as-the-only-eraser loses nothing it guarded; knocking 4cm
+  confetti was invisible anyway. Cherries/limes keep the freeze law
+  whole.
+- **The client perch:** capsule instances at
+  `skin + normal × (0.02 + blobExtent(coatsAtStick))` — the grain rides
+  the blob crest, half-nestled. Coats at stick time from the local field
+  twin. The welcome snapshot carries the stuck list (pos + normal); the
+  fresh deal clears it.
+- **REVERTED with the mechanism:** `DESSERT_SKIN_M` and the widened
+  `isOnCake` (back to `tierOf`), the `spawnAtRest` frozen-rejoin branch,
+  the floor-foot accepted edge. Plus one kept correction from the review:
+  the wake pass skips grain-mover → frozen-grain pairs (they cannot
+  collide — measured 39/40 pile grains cycling in waking forever).
+- **Re-pins:** the 40/40 and 38/80 burst pins move (floor-gripped grains
+  no longer count; conversion changes rest sets) — re-measured, one
+  deliberate move. SPRINKLES_NEEDED stays 60 pending the density review.
+
+Known-accepted (unchanged from the review): symmetric one-tick paint lag;
+a stale burst sticking visually to the fresh cake (rare, scores nothing,
+clears next deal; same décor class as ground splats).

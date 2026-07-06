@@ -14,6 +14,7 @@ import {
   type Settled,
 } from "./projectiles";
 import { buildArenaColliders, CAKE_Z } from "./arena";
+import { FrostingField, STICKY_NEAR_M } from "./frosting";
 import type { Vec3 } from "./ballistics";
 
 beforeAll(async () => {
@@ -208,33 +209,48 @@ describe("the cluster airburst (plans/10)", () => {
     expect(burst!.grains).toHaveLength(TEST_BURST.grains);
   });
 
-  it("sticky frosting: a grain hitting wet paint freezes ON A WALL, where it hit", () => {
+  it("the conversion law: a grain gripping a PAINTED WALL becomes a surface record", () => {
+    // REAL predicate (memory: verify-positions-not-counters): a real
+    // FrostingField painted where the grain will hit — no stubbed oracle.
     const world = makeArenaWorld();
     const shots = new ProjectileManager();
-    shots.stickyPaint = () => true; // everything is painted (the law's unit)
-    // A lone grain via a burst carrier flung flat at the tier-1 wall face.
+    const field = new FrostingField();
+    // Two dollops on the tier-1 wall's near face (slow = dollop, tidy).
+    field.paint({ x: 0, y: 1.0, z: CAKE_Z + 4 }, 3);
+    field.paint({ x: 0, y: 1.8, z: CAKE_Z + 4 }, 3);
+    shots.stickyPaint = (p) => field.frostedNear(p, STICKY_NEAR_M);
+    // A lone grain via a burst carrier flung flat at the painted face.
     shots.spawn(
       world,
       { x: 0, y: 1.2, z: CAKE_Z + 9 },
       { x: 0, y: 1.5, z: -9 },
       "sprinkles",
-      { burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0 }, seed: 5, tag: 0 },
+      { burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0 }, seed: 5, tag: 3 },
     );
     let stuck = null;
-    for (let i = 0; i < 600 && !stuck; i++)
-      stuck = shots.step(world).settled[0] ?? null;
+    let settles = 0;
+    let grainImpacts = 0;
+    for (let i = 0; i < 600 && !stuck; i++) {
+      const ev = shots.step(world);
+      settles += ev.settled.length;
+      grainImpacts += ev.impacts.filter((im) => im.grain).length;
+      stuck = ev.stuck[0] ?? null;
+    }
     expect(stuck).not.toBeNull();
-    // It froze clinging to the tier-1 WALL: at wall height (not on a top,
-    // not on the ground) and within a grain's reach of the skin.
+    expect(stuck!.topping).toBe("sprinkles");
+    expect(stuck!.tag).toBe(3);
+    // The record is the SKIN POINT: exactly on the tier-1 wall (radius 4),
+    // at wall height, with the outward radial normal (it came from +z).
+    const radial = Math.hypot(stuck!.pos.x, stuck!.pos.z - CAKE_Z);
+    expect(radial).toBeCloseTo(4, 5);
     expect(stuck!.pos.y).toBeGreaterThan(0.3);
     expect(stuck!.pos.y).toBeLessThan(2);
-    const radial = Math.hypot(stuck!.pos.x, stuck!.pos.z - CAKE_Z);
-    expect(Math.abs(radial - 4)).toBeLessThan(0.12); // tier-1 radius 4
-    expect(stuck!.body.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
-    // And ten seconds later it has not slid a hair — stuck means stuck.
-    for (let i = 0; i < 600; i++) shots.step(world);
-    const p = stuck!.body.translation();
-    expect(p.y).toBe(stuck!.pos.y);
+    expect(stuck!.normal.y).toBe(0);
+    expect(stuck!.normal.z).toBeGreaterThan(0.9);
+    // The grip REPLACED the landing: no impact, no settle — and no body.
+    expect(grainImpacts).toBe(0);
+    expect(settles).toBe(0);
+    expect(shots.resting()).toEqual([]);
     // Without paint there is no grip: the same shot just bounces off.
     const bare = new ProjectileManager(); // stickyPaint stays null
     const world2 = makeArenaWorld();
@@ -253,14 +269,106 @@ describe("the cluster airburst (plans/10)", () => {
     expect(bareRadial).toBeGreaterThan(4.12); // fell off the wall to the ground
   });
 
+  it("the grip's skin gate: a floor impact beside the painted wall base NEVER grips (the crescent, killed)", () => {
+    // The measured cogency failure (2026-07-05): grains hitting the FLOOR
+    // 0.13–0.19m from the wall foot gripped the wall-base paint through
+    // proximity alone and froze into a permanent crescent. The paint
+    // oracle here says YES everywhere — the SKIN gate alone must refuse.
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    shots.stickyPaint = () => true;
+    // A carrier dropped straight down 0.25m outside the wall foot; the
+    // fuse can't trip (proximity 0.001) so it floor-pops at contact and
+    // its one grain lands on the ground beside the cake.
+    shots.spawn(
+      world,
+      { x: 0, y: 2, z: CAKE_Z + 4.25 },
+      { x: 0, y: -5, z: 0 },
+      "sprinkles",
+      {
+        burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0, proximityM: 0.001 },
+        seed: 8,
+        tag: 0,
+      },
+    );
+    let settledGrain = null;
+    let stuckCount = 0;
+    for (let i = 0; i < 900; i++) {
+      const ev = shots.step(world);
+      stuckCount += ev.stuck.length;
+      settledGrain = ev.settled[0] ?? settledGrain;
+    }
+    expect(stuckCount).toBe(0); // no grip off the skin, however wet the base
+    expect(settledGrain).not.toBeNull();
+    expect(settledGrain!.pos.y).toBeLessThan(0.2); // honest floor litter
+    // And the fresh cake does NOT take it: floor litter is the crew's mess.
+    expect(shots.clearCakeSolids(world)).toBe(0);
+    expect(shots.resting()).toHaveLength(1);
+  });
+
+  it("impossible pairs never wake: a grain flying by leaves frozen grains frozen", () => {
+    // Cogency review finding 3 (2026-07-05): grains cannot collide with
+    // grains (constants.ts), so a grain mover waking a frozen grain is
+    // displacement nobody could cause — 39/40 pile grains cycled forever.
+    const world = makeArenaWorld();
+    const shots = new ProjectileManager();
+    // A grain litters the floor by the cake foot and freezes.
+    const first = shots.spawnAtRest(
+      world,
+      { x: 0, y: 0.11, z: CAKE_Z + 4.5 },
+      "sprinkles",
+      TEST_BURST.grain,
+    );
+    for (let i = 0; i < 120; i++) shots.step(world);
+    expect(first.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
+    // A second grain arrives OVERHEAD via a high proximity pop — the
+    // carrier ceases ~4m away (a carrier is a ball and CAN touch grains,
+    // so it must never come close), and only the grain flies past.
+    shots.spawn(
+      world,
+      { x: 0, y: 5, z: CAKE_Z + 9 },
+      { x: 0, y: -1, z: -6 },
+      "sprinkles",
+      {
+        burst: { ...TEST_BURST, grains: 1, jitterSpeed: 0, scatterRadius: 0, proximityM: 3 },
+        seed: 2,
+        tag: 0,
+      },
+    );
+    let mover: RAPIER.RigidBody | null = null;
+    let closest = Infinity;
+    for (let i = 0; i < 900; i++) {
+      const ev = shots.step(world);
+      mover = ev.bursts[0]?.grains[0] ?? mover;
+      if (mover && mover.isValid()) {
+        const m = mover.translation();
+        const f = first.translation();
+        closest = Math.min(closest, Math.hypot(m.x - f.x, m.y - f.y, m.z - f.z));
+      }
+      expect(first.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
+    }
+    // Not vacuous: the moving grain really did pass inside the wake radius.
+    expect(closest).toBeLessThan(WAKE_RADIUS);
+    // A CHERRY dropped there still wakes it — the eraser survives for
+    // pairs that CAN collide.
+    shots.spawn(world, { x: 0, y: 2, z: CAKE_Z + 4.5 }, { x: 0, y: 0, z: 0 }, "cherry");
+    let woke = false;
+    for (let i = 0; i < 300 && !woke; i++) {
+      shots.step(world);
+      woke = first.bodyType() === RAPIER.RigidBodyType.Dynamic;
+    }
+    expect(woke).toBe(true);
+  });
+
   it("the fresh-cake law: everything ON the dessert leaves with it; floor litter stays", () => {
     const world = makeArenaWorld();
     const shots = new ProjectileManager();
-    // One solid resting on a tier top, one skin-stuck grain, one on the floor.
+    // A solid on a tier top, a grain resting on BARE tier top (no paint,
+    // no grip — it settled as a body), and a lime on the floor.
     shots.spawnAtRest(world, { x: 0, y: 5.3, z: CAKE_Z }, "cherry");
     shots.spawnAtRest(
       world,
-      { x: 0, y: 1.5, z: CAKE_Z + 4.06 }, // clinging to the tier-1 wall skin
+      { x: 0.5, y: 5.2, z: CAKE_Z },
       "sprinkles",
       TEST_BURST.grain,
     );
@@ -268,7 +376,7 @@ describe("the cluster airburst (plans/10)", () => {
     for (let i = 0; i < 120; i++) shots.step(world); // settle + freeze
     expect(shots.resting()).toHaveLength(3);
     const removed = shots.clearCakeSolids(world);
-    expect(removed).toBe(2); // the cherry and the stuck grain left with the cake
+    expect(removed).toBe(2); // the cherry and the tier-top grain left with it
     const left = shots.resting();
     expect(left).toHaveLength(1);
     expect(left[0]!.topping).toBe("lime"); // the crew's mess stays

@@ -46,6 +46,7 @@ import { GhostManager } from "./ghosts";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
+import { SprinklesView } from "./sprinkles-view";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 
 const REACH_M = 2.8; // how far the baker can reach an interactable
@@ -69,14 +70,22 @@ async function main(): Promise<void> {
   const { renderer, scene, camera, rig, heldMesh } = gs;
   const shotsView = new ShotsView(physics, scene);
   const frostingView = new FrostingView(scene);
+  const sprinklesView = new SprinklesView(scene);
   // Paint lands in the local sim → the local field (deterministic twin of
   // the Room's — sync-shots-not-surfaces). The topping rides along: fudge
-  // paints under its own splat law and renders dark (plans/10).
-  shotsView.onPaintImpact = (topping, pos, speed) =>
+  // paints under its own splat law and renders dark (plans/10). The same
+  // splat BURIES stuck sprinkles under its footprint (conversion law,
+  // plans/10 §8) — the mirror of the Room's ledger filter.
+  shotsView.onPaintImpact = (topping, pos, speed) => {
     frostingView.paintImpact(topping, pos, speed);
-  // Sticky frosting (plans/10 addendum): grains freeze where they hit wet
-  // paint — the local field twin answers, same as the Room's binding.
+    sprinklesView.buryBy(pos, speed, TOPPINGS[topping]?.splat);
+  };
+  // The conversion law's paint oracle (plans/10 §8): grains grip where
+  // they hit wet paint — the local field twin answers, same as the Room's
+  // binding. A grip becomes a perched sprinkle on the blob crest.
   shotsView.bindStickyPaint((p) => frostingView.stickyNear(p));
+  shotsView.onStuck = (_topping, pos, normal) =>
+    sprinklesView.add(pos, normal, frostingView.coatsNear(pos));
   const ghosts = new GhostManager(scene);
 
   const hud = document.getElementById("hud");
@@ -99,6 +108,15 @@ async function main(): Promise<void> {
       shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
     },
     clearCakeSolids: () => shotsView.clearCakeSolids(),
+    restoreStuck: (list) => {
+      for (const s of list)
+        sprinklesView.add(
+          { x: s.x, y: s.y, z: s.z },
+          { x: s.nx, y: s.ny, z: s.nz },
+          frostingView.coatsNear({ x: s.x, y: s.y, z: s.z }),
+        );
+    },
+    clearStuck: () => sprinklesView.clear(),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
@@ -285,6 +303,7 @@ async function main(): Promise<void> {
       camera,
       baker,
       shots: shotsView,
+      sprinkles: sprinklesView,
       send: (m: Parameters<Transport["send"]>[0]) => transport.send(m),
       getMachine: () => ({ ...view.machine, crankTicks: view.crankTicks }),
       getTarget: () => target,

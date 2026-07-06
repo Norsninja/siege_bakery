@@ -7,7 +7,12 @@
  */
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import type { RequirementCheck } from "../game/judgment";
-import type { PlayerPose, RestingTopping, ServerMsg } from "../game/protocol";
+import type {
+  PlayerPose,
+  RestingTopping,
+  ServerMsg,
+  StuckTopping,
+} from "../game/protocol";
 import type { MatchView } from "./state";
 
 export type ShotMsg = Extract<ServerMsg, { t: "shot" }>;
@@ -27,6 +32,11 @@ export interface NetFx {
    * the dessert leaves with it; floor litter stays. The Room removed the
    * same set from its world — body positions are the shared truth. */
   clearCakeSolids(): void;
+  /** Adopt the welcome's stuck-sprinkle records (conversion law, plans/10
+   * §8) — perched on the frosting the snapshot just restored. */
+  restoreStuck(list: StuckTopping[]): void;
+  /** A fresh deal: the stuck sprinkles left with the dessert. */
+  clearStuck(): void;
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
@@ -51,6 +61,7 @@ export function applyServerMsg(
       for (const p of msg.poses) fx.upsertGhost(p);
       for (const t of msg.toppings) fx.spawnResting(t);
       fx.restoreFrosting(msg.frosting);
+      fx.restoreStuck(msg.stuck); // after the frosting: the perch reads coats
       break;
     case "join":
       fx.flash(`${msg.name} ran into the bakery!`);
@@ -100,6 +111,7 @@ export function applyServerMsg(
       if (msg.fresh) {
         fx.resetFrosting();
         fx.clearCakeSolids();
+        fx.clearStuck();
       }
       break;
     case "patron":
