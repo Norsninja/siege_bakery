@@ -75,16 +75,18 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-THE CONVERSION LAW BUILT AND VERIFIED (plans/10 §8, 2026-07-06; his live
-test confirmed): gripped sprinkles are dessert SURFACE DATA, not bodies —
-bodiless ledger entries, perched on the blob crest client-side; BURIAL
-un-counts ("not on top = IN the cake"); sprinkle knockability retired;
-DESSERT_SKIN_M reverted. The projectile pass underneath per plans/10
-§1–6; direction per plans/09; economy per plans/08 (research/06/10/11
-are the standing ceiling/union studies — research/11: two-town union
-75.2%@8 / 84.4%@9 / 15.6% moats). NEXT: the density review (his eye,
-20/40/80 via `__game.setGrainCount`, then re-pin grains+ask together —
-grip is 100% now, the ask may want raising) → towns slice (town-as-data,
-per-town intent, TENSION_MAX_CLICKS=10 bundled; the towns/upgrades
-design from the 2026-07-05 discussion) → dessert report → friend test.
-Port map: research/01-port-gap-analysis.md.
+HOLISTIC AUDIT RESOLVED (2026-07-06, HEAD debfb7e; 209 tests green, both
+tsc legs clean). The conversion law (plans/10 §8) stands; audit added:
+stuck records are COMPLETE STATE on the wire — perch is FIXED at grip
+(grip-time `coats` now travels; no re-derive, no "wizard" raising),
+"covered" = splat footprint over the record's point, client event order
+mirrors the Room (impacts/bury before stuck/add), determinism fence now
+includes server/ (minus main.ts). See the audit handoff for the 8-commit
+detail. Standing context: projectile pass per plans/10 §1–6; direction
+per plans/09; economy per plans/08 (research/11: two-town union 75.2%@8
+/ 84.4%@9 / 15.6% moats). NEXT: RESEARCH + PLAN THE TOWNS SLICE together
+(town-as-data, one-way split at a milestone, per-town upgrades, shared
+purse, TENSION_MAX_CLICKS=10 bundled — the 2026-07-05 design) BEFORE
+building; the density review (20/40/80 via `__game.setGrainCount`,
+re-pin SPRINKLES_NEEDED) is a natural precursor. Port map:
+research/01-port-gap-analysis.md.
