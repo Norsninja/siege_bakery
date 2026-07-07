@@ -157,6 +157,17 @@ const restLin = (grain: boolean): number =>
 const restAng = (grain: boolean): number =>
   grain ? GRAIN_REST_ANG_SPEED : REST_ANG_SPEED;
 
+/** |v| < limit as a mul/add-only squared compare. Math.hypot is NOT
+ * exactly rounded (the arena.ts cross-engine law; audit 2026-07-07
+ * K-HIGH-1), and these comparisons flip body TYPE — world state — so a
+ * last-ULP engine difference would freeze a body one tick apart on two
+ * replicas and fork the litter worlds. mul/add are IEEE-exact per op:
+ * every engine computes this predicate identically. */
+const slowerThan = (
+  v: { x: number; y: number; z: number },
+  limit: number,
+): boolean => v.x * v.x + v.y * v.y + v.z * v.z < limit * limit;
+
 /** A moving shot within this distance of a frozen solid wakes it (freeze
  * law above). Must beat closest-approach-per-tick: max launch speed is
  * 19 m/s (ballistics: 4 + 1.5 × 10 clicks, the towns-slice bump), ~20.1
@@ -377,8 +388,7 @@ export class ProjectileManager {
       for (const shot of this.tracked.values())
         movers.push({ body: shot.body, grain: shot.grain });
       for (const w of this.waking.values()) {
-        const v = w.body.linvel();
-        if (Math.hypot(v.x, v.y, v.z) >= restLin(w.grain))
+        if (!slowerThan(w.body.linvel(), restLin(w.grain)))
           movers.push({ body: w.body, grain: w.grain });
       }
       const r2 = WAKE_RADIUS * WAKE_RADIUS;
@@ -417,7 +427,10 @@ export class ProjectileManager {
     for (const shot of this.tracked.values()) {
       if (shot.impacted) continue;
       const v = shot.body.linvel();
-      shot.lastSpeed = Math.hypot(v.x, v.y, v.z);
+      // sqrt of a mul/add sum — exactly rounded, unlike hypot (see
+      // slowerThan): lastSpeed becomes Impact.speed, which drives the
+      // splat census on every replica.
+      shot.lastSpeed = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     }
     world.step(this.queue);
 
@@ -534,11 +547,9 @@ export class ProjectileManager {
 
     for (const [handle, shot] of this.tracked) {
       if (!shot.impacted) continue;
-      const v = shot.body.linvel();
-      const w = shot.body.angvel();
       const still =
-        Math.hypot(v.x, v.y, v.z) < restLin(shot.grain) &&
-        Math.hypot(w.x, w.y, w.z) < restAng(shot.grain);
+        slowerThan(shot.body.linvel(), restLin(shot.grain)) &&
+        slowerThan(shot.body.angvel(), restAng(shot.grain));
       shot.stillTicks = still ? shot.stillTicks + 1 : 0;
       if (shot.stillTicks < REST_TICKS) continue;
       const p = shot.body.translation();
@@ -559,11 +570,9 @@ export class ProjectileManager {
     // settle was scored when they first landed; the ledger follows their
     // bodies live, so a re-frozen position is already the scoring truth.
     for (const [handle, w] of this.waking) {
-      const v = w.body.linvel();
-      const av = w.body.angvel();
       const still =
-        Math.hypot(v.x, v.y, v.z) < restLin(w.grain) &&
-        Math.hypot(av.x, av.y, av.z) < restAng(w.grain);
+        slowerThan(w.body.linvel(), restLin(w.grain)) &&
+        slowerThan(w.body.angvel(), restAng(w.grain));
       w.stillTicks = still ? w.stillTicks + 1 : 0;
       if (w.stillTicks < REST_TICKS) continue;
       w.body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
