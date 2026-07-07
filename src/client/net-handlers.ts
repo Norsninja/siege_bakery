@@ -50,9 +50,12 @@ export function applyServerMsg(
   switch (msg.t) {
     case "welcome":
       view.myId = msg.id;
-      view.machine = msg.machine;
-      view.crankTicks = msg.crankTicks;
-      view.screwTicks = msg.screwTicks;
+      // BRIDGE until the client's two-town step (plans/11 §10 step 8):
+      // the view renders town 0's machine; machines[]/yourTown go fully
+      // live when the scene grows its second rig.
+      view.machine = msg.machines[0]!.machine;
+      view.crankTicks = msg.machines[0]!.crankTicks;
+      view.screwTicks = msg.machines[0]!.screwTicks;
       view.order = msg.order;
       view.checks = msg.checks;
       // Joined mid-banner: adopt the verdict, or the banner words gate-1
@@ -74,6 +77,9 @@ export function applyServerMsg(
       for (const p of msg.poses) fx.upsertGhost(p);
       break;
     case "machine":
+      // BRIDGE (step 8): one rig rendered, so town-1 machine state must
+      // not clobber the town-0 view; it is dropped, never misapplied.
+      if (msg.town !== 0) break;
       view.machine = msg.state;
       view.crankTicks = msg.crankTicks;
       view.screwTicks = msg.screwTicks;

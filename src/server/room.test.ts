@@ -43,7 +43,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const w = a.last("welcome");
     expect(w?.id).toBe(a.id);
-    expect(w?.machine.tensionClicks).toBe(0);
+    expect(w?.machines).toHaveLength(1); // dormant town 2: one machine
+    expect(w?.machines[0]!.machine.tensionClicks).toBe(0);
+    expect(w?.yourTown).toBe(0);
     expect(w?.order.status).toBe("running");
     expect(w?.checks.length).toBeGreaterThan(0); // the standing order has rows
     expect(w?.checks.every((c) => !c.met)).toBe(true);
@@ -153,6 +155,7 @@ describe("Room: the match, headless over protocol", () => {
     const shotB = b.last("shot");
     expect(shotA).toEqual({
       t: "shot",
+      town: 0, // WHERE FROM — replicas replay from TOWNS[town] (plans/11 §4)
       topping: "cherry",
       traverseDeg: 0,
       tiltNotch: 0,
@@ -440,6 +443,48 @@ describe("Room: the match, headless over protocol", () => {
     expect(towns()[1]!.machine.tensionClicks).toBe(2); // alice's, town 1
     expect(towns()[0]!.machine.traverseDeg).toBeGreaterThan(0); // bob turned
     expect(towns()[1]!.machine.traverseDeg).toBe(0); // alice didn't
+  });
+
+  it("the wire knows WHERE FROM: a town-1 shot carries its town and lands on the SHARED cake (step 6)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    room.onMessage(a.id, { t: "unlockTown2" });
+    // Reach the pick window (the Giant burns the clock early).
+    let elapsed = 0;
+    const cap = (ORDER_SECONDS + 60) * 60;
+    while (elapsed < cap) {
+      room.tick();
+      elapsed++;
+      const om = a.last("order");
+      if (om && om.order.status !== "running") break;
+    }
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    // A late joiner's welcome now carries BOTH machines; joiners start home.
+    const peek = connect(room, "peek");
+    expect(peek.last("welcome")?.machines).toHaveLength(2);
+    expect(peek.last("welcome")?.yourTown).toBe(0);
+    // Alice fires her fort's 6-click cake shot — the pinned scoring window,
+    // rotated — all inside the linger window (crank 270t + flight ≈ 520t
+    // of the 600t linger).
+    room.onMessage(a.id, { t: "load", topping: "cherry" });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 1);
+    const shot = a.last("shot");
+    expect(shot?.town).toBe(1); // where from — the replay origin
+    expect(shot?.tensionClicks).toBe(6);
+    // ...and the Room's own copy lands ON the shared cake: the rotated
+    // fort fires TOWARD the middle (facing through the whole room path),
+    // resting on the FAR hemisphere — town 1's near side.
+    run(room, 248);
+    type Settled = { topping: string; onCake: boolean; pos: { z: number } };
+    const cherry = (room as unknown as { settled: Settled[] }).settled.find(
+      (s) => s.topping === "cherry",
+    );
+    expect(cherry?.onCake).toBe(true);
+    expect(cherry!.pos.z).toBeLessThan(-30); // beyond the cake axis
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {

@@ -81,14 +81,25 @@ export type ClientMsg =
    * plumbing it will drive. */
   | { t: "pickTown"; town: number };
 
+/** One town's machine as the wire carries it (welcome; the `machine`
+ * broadcast is the same trio flattened + its town index). */
+export interface TownMachine {
+  machine: CatapultState;
+  crankTicks: number;
+  screwTicks: number;
+}
+
 // --- server → client ---
 export type ServerMsg =
   | {
       t: "welcome";
       id: number;
-      machine: CatapultState;
-      crankTicks: number;
-      screwTicks: number;
+      /** Every ACTIVE town's machine, indexed by town (plans/11 §4) —
+       * length 1 until the second town is unlocked/purchased. */
+      machines: TownMachine[];
+      /** The town YOU crew (assigned state, default 0) — the client
+       * spawns and orients at TOWNS[yourTown] (plans/11 §10 step 8). */
+      yourTown: number;
       order: OrderState;
       checks: RequirementCheck[];
       poses: PlayerPose[];
@@ -115,14 +126,24 @@ export type ServerMsg =
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }
   | { t: "poses"; poses: PlayerPose[] }
-  | { t: "machine"; state: CatapultState; crankTicks: number; screwTicks: number }
+  | {
+      t: "machine";
+      /** Whose machine this is — replicas index their rigs by it. */
+      town: number;
+      state: CatapultState;
+      crankTicks: number;
+      screwTicks: number;
+    }
   /** Fire! Every receiver (and the room itself) spawns this projectile
    * locally — deterministic ballistics make all copies land identically.
    * This is sync-shots-not-surfaces. `seed` is the reserved seed S of the
    * pivot record (plans/06), live at last (plans/10): burst toppings
-   * replay their seeded scatter from it, identically everywhere. */
+   * replay their seeded scatter from it, identically everywhere. `town`
+   * is WHERE FROM: replicas replay the lob from TOWNS[town].base along
+   * its facing — the origin is part of the event's determinism. */
   | {
       t: "shot";
+      town: number;
       topping: string;
       traverseDeg: number;
       tiltNotch: number;

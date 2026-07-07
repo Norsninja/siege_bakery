@@ -81,9 +81,10 @@ describe("applyServerMsg", () => {
       {
         t: "welcome",
         id: 7,
-        machine: { ...h.view.machine, tensionClicks: 3 },
-        crankTicks: 5,
-        screwTicks: 12,
+        machines: [
+          { machine: { ...h.view.machine, tensionClicks: 3 }, crankTicks: 5, screwTicks: 12 },
+        ],
+        yourTown: 0,
         order: createOrder([], 42),
         checks: [check(1)],
         poses: [{ id: 2, x: 0, y: 0, z: 0, yaw: 0 }],
@@ -117,11 +118,29 @@ describe("applyServerMsg", () => {
     const h = harness();
     applyServerMsg(
       h.view,
-      { t: "shot", topping: "cherry", traverseDeg: -10, tiltNotch: 1, tensionClicks: 8, seed: 7 },
+      { t: "shot", town: 0, topping: "cherry", traverseDeg: -10, tiltNotch: 1, tensionClicks: 8, seed: 7 },
       h.fx,
     );
     expect(h.spawned).toEqual(["cherry"]);
     expect(h.flashes[0]).toBe("LOOSED! cherry · 8 clicks · -10° · arc +15°");
+  });
+
+  it("BRIDGE (until step 8): a town-1 machine broadcast never clobbers the single-rig view", () => {
+    const h = harness();
+    applyServerMsg(
+      h.view,
+      {
+        t: "machine",
+        town: 1,
+        state: { ...h.view.machine, tensionClicks: 9 },
+        crankTicks: 1,
+        screwTicks: 2,
+      },
+      h.fx,
+    );
+    // Dropped, never misapplied: the view still shows town 0's machine.
+    expect(h.view.machine.tensionClicks).toBe(0);
+    expect(h.view.crankTicks).toBe(0);
   });
 
   it("scored: the flash names progress, on-cake-but-useless, or the miss", () => {

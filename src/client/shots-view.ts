@@ -22,7 +22,7 @@ import {
   PROJECTILE_RADIUS,
   type GrainBody,
 } from "../core/projectiles";
-import { MACHINE_BASE } from "../core/arena";
+import { TOWNS } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import { isPaint, TOPPINGS } from "../game/toppings";
 import type { RestingTopping } from "../game/protocol";
@@ -70,13 +70,19 @@ export class ShotsView {
    * bursts: the shot event's seed replays the identical scatter here. */
   spawn(msg: ShotMsg): void {
     const burst = TOPPINGS[msg.topping]?.burst;
+    // The event says WHERE FROM: replay from the firing town's base along
+    // its facing, mirroring the Room exactly (the origin is part of the
+    // shot's determinism — sync-shots-not-surfaces).
+    const facing = TOWNS[msg.town]?.facingDeg ?? 0;
+    const base = TOWNS[msg.town]?.base ?? TOWNS[0]!.base;
     const body = this.shots.spawn(
       this.world,
-      launchOrigin(MACHINE_BASE, msg.traverseDeg),
+      launchOrigin(base, msg.traverseDeg + facing),
       launchVelocity(
         msg.traverseDeg,
         msg.tensionClicks,
         msg.tiltNotch * TILT_DEG_PER_NOTCH,
+        facing,
       ),
       msg.topping,
       // Paint globs are consumed at impact (plans/07): the manager removes

@@ -144,12 +144,12 @@ export class Room {
     send({
       t: "welcome",
       id,
-      // Wire is single-machine until the towns wire step (plans/11 §10
-      // step 6): town 0's machine travels; town 1's joins the welcome
-      // when `town`/`yourTown` do.
-      machine: this.towns[0]!.machine,
-      crankTicks: this.towns[0]!.crankTicks,
-      screwTicks: this.towns[0]!.screwTicks,
+      machines: this.towns.map((t) => ({
+        machine: t.machine,
+        crankTicks: t.crankTicks,
+        screwTicks: t.screwTicks,
+      })),
+      yourTown: this.roster.townOf(id),
       order: this.flow.order,
       checks: this.currentChecks(),
       poses: this.roster.poseList(id),
@@ -258,6 +258,7 @@ export class Room {
       );
       this.roster.broadcast({
         t: "shot",
+        town: i,
         topping: r.shot.topping,
         traverseDeg: r.shot.traverseDeg,
         tiltNotch: r.shot.tiltNotch,
@@ -265,7 +266,7 @@ export class Room {
         seed,
       });
       // Arm state changed sharply; don't wait for the 15Hz cadence.
-      this.broadcastMachine();
+      this.broadcastMachine(i);
     }
   }
 
@@ -409,7 +410,8 @@ export class Room {
         if (others.length > 0) this.roster.sendTo(id, { t: "poses", poses: others });
       }
     }
-    if (this.tickCount % MACHINE_BROADCAST_EVERY === 0) this.broadcastMachine();
+    if (this.tickCount % MACHINE_BROADCAST_EVERY === 0)
+      for (let i = 0; i < this.towns.length; i++) this.broadcastMachine(i);
     // 1Hz clock correction — only while the clock is actually moving, so the
     // message that ENDS an order (carrying the verdict) stays the last word.
     if (
@@ -456,13 +458,13 @@ export class Room {
     return this.roster.count();
   }
 
-  private broadcastMachine(): void {
-    // Single-machine wire until the towns wire step (step 6): town 0's.
+  private broadcastMachine(town: number): void {
     this.roster.broadcast({
       t: "machine",
-      state: this.towns[0]!.machine,
-      crankTicks: this.towns[0]!.crankTicks,
-      screwTicks: this.towns[0]!.screwTicks,
+      town,
+      state: this.towns[town]!.machine,
+      crankTicks: this.towns[town]!.crankTicks,
+      screwTicks: this.towns[town]!.screwTicks,
     });
   }
 }
