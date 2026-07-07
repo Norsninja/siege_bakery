@@ -344,6 +344,11 @@ async function main(): Promise<void> {
         const burst = TOPPINGS["sprinkles"]?.burst;
         if (burst) burst.grains = Math.max(1, Math.round(n));
       },
+      // The fork-2 purchase's dev stand-in (plans/11 §1): activates the
+      // dormant second town. UNLIKE setGrainCount this is safe over the
+      // net — it is an INPUT the Room applies authoritatively, not a
+      // module mutation — which is what the dev-toggle friend test needs.
+      unlockTown2: () => transport.send({ t: "unlockTown2" }),
     };
   }
 }

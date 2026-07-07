@@ -27,7 +27,7 @@
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
-import { buildArenaColliders, isOnCake, MACHINE_BASE } from "../core/arena";
+import { buildArenaColliders, isOnCake, TOWNS } from "../core/arena";
 import { FrostingField, splatCovers, STICKY_NEAR_M } from "../core/frosting";
 import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
@@ -47,7 +47,7 @@ import {
 } from "../game/judgment";
 import { evaluateOrder } from "../game/order";
 import { OrderFlow, standardRequirements } from "../game/order-flow";
-import type { ClientMsg, ServerMsg } from "../game/protocol";
+import { mergeIntents, type ClientMsg, type ServerMsg } from "../game/protocol";
 import { Roster } from "./roster";
 
 // Re-export: the standing order's shape moved to game/order-flow.ts with
@@ -60,12 +60,33 @@ const POSE_BROADCAST_EVERY = 3; // ticks → 20Hz
 const MACHINE_BROADCAST_EVERY = 4; // ticks → 15Hz
 const ORDER_CLOCK_EVERY = 60; // ticks → 1Hz clock correction
 
+/** One town's live machine — the per-crew slice of Room state (plans/11
+ * §4). Everything ELSE stays singular: one world, one ProjectileManager,
+ * one FrostingField, one settled ledger, one OrderFlow — two crews, one
+ * dessert. The town's GEOMETRY (base, facing) is not runtime state; it
+ * reads from core's TOWNS table by index. NO ECS at N=2 — a plain typed
+ * record array is strictly better (external scout, plans/11 §11). */
+interface TownRuntime {
+  machine: CatapultState;
+  crankTicks: number;
+  screwTicks: number;
+}
+
+const freshTown = (): TownRuntime => ({
+  machine: createCatapult(),
+  crankTicks: 0,
+  screwTicks: 0,
+});
+
 export class Room {
   private readonly world: RAPIER.World;
   private readonly shots = new ProjectileManager();
-  private machine: CatapultState = createCatapult();
-  private crankTicks = 0;
-  private screwTicks = 0;
+  /** THE CORE LAW (plans/11 §1): the second town is a PURCHASED upgrade,
+   * never a forced split. This array's length IS activeTowns; it starts
+   * at 1 — the exact pre-towns game — and grows to 2 only through the
+   * unlockTown2 input (the fork-2 purchase's dev stand-in). It never
+   * shrinks and nothing here ever moves a player. */
+  private towns: TownRuntime[] = [freshTown()];
   /** The order lifecycle — clock, patron, linger, deal tags (game/). */
   private readonly flow = new OrderFlow();
   /** Everything at rest THIS order — the census the checklist counts from.
@@ -123,9 +144,12 @@ export class Room {
     send({
       t: "welcome",
       id,
-      machine: this.machine,
-      crankTicks: this.crankTicks,
-      screwTicks: this.screwTicks,
+      // Wire is single-machine until the towns wire step (plans/11 §10
+      // step 6): town 0's machine travels; town 1's joins the welcome
+      // when `town`/`yourTown` do.
+      machine: this.towns[0]!.machine,
+      crankTicks: this.towns[0]!.crankTicks,
+      screwTicks: this.towns[0]!.screwTicks,
       order: this.flow.order,
       checks: this.currentChecks(),
       poses: this.roster.poseList(id),
@@ -161,8 +185,17 @@ export class Room {
   }
 
   /** Wire-input validation lives in the Roster (message TRUTH; main.ts
-   * owns transport HEALTH — frame size, heartbeats, member cap). */
+   * owns transport HEALTH — frame size, heartbeats, member cap). The one
+   * ROOM-level message is town activation: it mutates match state (the
+   * towns array), which the Roster by design knows nothing about. */
   onMessage(id: number, msg: ClientMsg): void {
+    if (msg.t === "unlockTown2") {
+      // Idempotent, capped at the arena's towns. Rides the input stream:
+      // a headless replica fed the same messages grows the same array at
+      // the same tick (determinism law — no out-of-band mutation).
+      if (this.towns.length < TOWNS.length) this.towns.push(freshTown());
+      return;
+    }
     this.roster.handleMessage(id, msg);
   }
 
@@ -175,44 +208,60 @@ export class Room {
     this.tickBroadcastPhase();
   }
 
-  /** Merged intents drive the machine; a release becomes a tagged shot. */
+  /** Merged intents drive each town's machine; a release becomes a tagged
+   * shot from that town's base, along that town's facing. Towns tick in
+   * index order — deterministic. */
   private tickMachinePhase(): void {
-    const intent = this.roster.machineIntent(this.machine.loaded === null);
-    const r = tickMachine(this.machine, this.crankTicks, intent, this.screwTicks);
-    this.machine = r.state;
-    this.crankTicks = r.crankTicks;
-    this.screwTicks = r.screwTicks;
-    if (!r.shot) return;
-    this.flow.noteShot();
-    const seed = Math.floor(this.shotSeed() * 0x100000000);
-    this.shots.spawn(
-      this.world,
-      launchOrigin(MACHINE_BASE, r.shot.traverseDeg),
-      launchVelocity(
-        r.shot.traverseDeg,
-        r.shot.tensionClicks,
-        r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
-      ),
-      r.shot.topping,
-      {
-        consumeOnImpact: isPaint(r.shot.topping),
-        tag: this.flow.deal,
+    for (let i = 0; i < this.towns.length; i++) {
+      const town = this.towns[i]!;
+      // Crew intent is town 0's merged roster until the owner-implicit
+      // assignment step (plans/11 §10 step 5) filters by member.town;
+      // an activated town 1 idles until then — it cannot fire, so the
+      // still-townless shot wire cannot carry a wrong-origin replay.
+      const intent =
+        i === 0
+          ? this.roster.machineIntent(town.machine.loaded === null)
+          : mergeIntents([], 0, []);
+      const r = tickMachine(town.machine, town.crankTicks, intent, town.screwTicks);
+      town.machine = r.state;
+      town.crankTicks = r.crankTicks;
+      town.screwTicks = r.screwTicks;
+      if (!r.shot) continue;
+      this.flow.noteShot();
+      const seed = Math.floor(this.shotSeed() * 0x100000000);
+      const facing = TOWNS[i]!.facingDeg;
+      this.shots.spawn(
+        this.world,
+        // Full yaw = traverse + facing: the clearance nudge must point at
+        // the actual throw (core/ballistics.ts launchOrigin note).
+        launchOrigin(TOWNS[i]!.base, r.shot.traverseDeg + facing),
+        launchVelocity(
+          r.shot.traverseDeg,
+          r.shot.tensionClicks,
+          r.shot.tiltNotch * TILT_DEG_PER_NOTCH,
+          facing,
+        ),
+        r.shot.topping,
+        {
+          consumeOnImpact: isPaint(r.shot.topping),
+          tag: this.flow.deal,
+          seed,
+          ...(TOPPINGS[r.shot.topping]?.burst
+            ? { burst: TOPPINGS[r.shot.topping]!.burst }
+            : {}),
+        },
+      );
+      this.roster.broadcast({
+        t: "shot",
+        topping: r.shot.topping,
+        traverseDeg: r.shot.traverseDeg,
+        tiltNotch: r.shot.tiltNotch,
+        tensionClicks: r.shot.tensionClicks,
         seed,
-        ...(TOPPINGS[r.shot.topping]?.burst
-          ? { burst: TOPPINGS[r.shot.topping]!.burst }
-          : {}),
-      },
-    );
-    this.roster.broadcast({
-      t: "shot",
-      topping: r.shot.topping,
-      traverseDeg: r.shot.traverseDeg,
-      tiltNotch: r.shot.tiltNotch,
-      tensionClicks: r.shot.tensionClicks,
-      seed,
-    });
-    // Arm state changed sharply; don't wait for the 15Hz cadence.
-    this.broadcastMachine();
+      });
+      // Arm state changed sharply; don't wait for the 15Hz cadence.
+      this.broadcastMachine();
+    }
   }
 
   /** Step physics; landings become scored deliveries (stale tags litter,
@@ -403,11 +452,12 @@ export class Room {
   }
 
   private broadcastMachine(): void {
+    // Single-machine wire until the towns wire step (step 6): town 0's.
     this.roster.broadcast({
       t: "machine",
-      state: this.machine,
-      crankTicks: this.crankTicks,
-      screwTicks: this.screwTicks,
+      state: this.towns[0]!.machine,
+      crankTicks: this.towns[0]!.crankTicks,
+      screwTicks: this.towns[0]!.screwTicks,
     });
   }
 }

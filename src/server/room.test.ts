@@ -330,6 +330,37 @@ describe("Room: the match, headless over protocol", () => {
     expect((wA?.stuck.length ?? 0)).toBeGreaterThan(0);
   });
 
+  it("the second town is DORMANT until the unlockTown2 INPUT — idempotent, capped, town 0 untouched (plans/11 §1)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    type TownPeek = {
+      machine: { tensionClicks: number; loaded: string | null };
+      crankTicks: number;
+    };
+    const towns = (): TownPeek[] =>
+      (room as unknown as { towns: TownPeek[] }).towns;
+    // THE CORE LAW: the default is ONE town, always.
+    expect(towns().length).toBe(1);
+    room.onMessage(a.id, { t: "unlockTown2" });
+    expect(towns().length).toBe(2);
+    const second = towns()[1];
+    // A fresh, unwound machine — never a copy of town 0's.
+    expect(second!.machine.tensionClicks).toBe(0);
+    expect(second!.machine.loaded).toBe(null);
+    // Idempotent AND capped at the arena's town count.
+    room.onMessage(a.id, { t: "unlockTown2" });
+    room.onMessage(a.id, { t: "unlockTown2" });
+    expect(towns().length).toBe(2);
+    expect(towns()[1]).toBe(second); // repeats never re-create it
+    // Town 0's play is untouched by activation: cranking winds ITS winch;
+    // the crewless town 1 idles (owner-implicit filtering is step 5).
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 3);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    expect(towns()[0]!.machine.tensionClicks).toBe(3);
+    expect(towns()[1]!.machine.tensionClicks).toBe(0);
+  });
+
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
     const room = new Room();
     const a = connect(room, "alice");

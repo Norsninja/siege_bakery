@@ -57,11 +57,22 @@ export interface StuckTopping {
 export type ClientMsg =
   | { t: "hello"; name: string }
   | { t: "pose"; pose: Pose }
-  /** Hold state on the machine, sent on CHANGE (not per tick). */
+  /** Hold state on the machine, sent on CHANGE (not per tick). NOTE
+   * (towns, plans/11 §4): op/lever/load carry NO town — routing is
+   * OWNER-IMPLICIT; the server derives the machine from the sender's
+   * assigned town and never trusts a client-supplied one. */
   | { t: "op"; turn: -1 | 0 | 1; screw: -1 | 0 | 1; crank: boolean }
   /** Edges: consumed by the room exactly once. */
   | { t: "lever" }
-  | { t: "load"; topping: string };
+  | { t: "load"; topping: string }
+  /** DEV STAND-IN for the fork-2 shop purchase (plans/11 §1): activates
+   * the dormant second town. An INPUT, not out-of-band state — it rides
+   * the message stream so headless replicas replay it identically, and
+   * it works over the net for the dev-toggle friend test. Idempotent.
+   * The real purchase (purse + eligibility gate) replaces this handler
+   * in fork 2; until then the trust model is plans/02 co-op-among-
+   * friends, same as client-authoritative poses. */
+  | { t: "unlockTown2" };
 
 // --- server → client ---
 export type ServerMsg =
