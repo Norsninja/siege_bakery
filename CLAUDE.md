@@ -75,21 +75,29 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-TOWNS SPINE BUILT (2026-07-07, the eight TOWNS n/8 commits; 221 tests
-green, both tsc legs). Plans/11 stratum A is live: two-fort arena
-(rotational symmetry, open fronts, ground spans both), facingDeg
-ballistics, clicks→10 (TOLL GEOMETRY, not a buff — Option B split the
-tables: TOWN_POTENTIAL = measured truth, TOWN_ASK_POTENTIAL = authored
-ask, solo HELD at 0.42 with a DECISION PIN test), TownRuntime[] dormant
-behind activeTowns=1 flipped only by the {t:"unlockTown2"} INPUT (fork-2
-purchase's dev stand-in; works over the net), owner-implicit crew
-assignment + pickTown (locked while the order runs; honored picks
-broadcast {t:"town"} acks), town on shot/machine + machines[]/yourTown
-on welcome, client two full stations + Baker spawns behind first
-welcome. The core law (plans/11 §1) is structural: default one town,
-second town purchased, nobody ever moved. Standing context: conversion
-law plans/10 §8; direction plans/09; economy plans/08. OPEN: friend-test
-scope (plans/11 §11 — is the dev toggle enough for friend test 1, shop
-a fast-follow? Chronus recommends yes; undecided). NEXT: the two-PC
-friend test of dev-toggle two-town mode, then fork 2 (shop/purse/
-turntable). Port map: research/01-port-gap-analysis.md.
+SPINE REVIEWED + GATES/CARRY-HOME BUILT (2026-07-07 evening: WALLS/
+TEST/LINGER commits; 232 tests green, both tsc legs). The towns spine
+(the eight TOWNS n/8 commits) is live per plans/11 stratum A: two-fort
+rotational arena, facingDeg ballistics, clicks→10 toll geometry with
+Option B tables (TOWN_POTENTIAL = measured truth, TOWN_ASK_POTENTIAL =
+authored ask, solo PINNED 0.42), TownRuntime[] behind activeTowns=1
+flipped only by the {t:"unlockTown2"} INPUT, owner-implicit crew +
+pickTown at order boundaries with {t:"town"} acks, town on the wire,
+client two stations + boot behind welcome. NEW LAWS this session
+(visionary amendments): the OPEN FRONT IS RETIRED — each fort's front
+wall is back with a doorway beside the machine (plinth owns the
+centerline; plans/11 §3 "open mouth = sightline" is DEPRECATED — a 1m
+wall never blocked the eye line); during an order YOUR gate is a shut
+baker-only fence (client/gates.ts — shots never see it; latch, not
+threshold), open in the linger; the banner counts the linger down and
+the CARRY-HOME LAW places any baker not in his town at his town's spawn
+when the deal lands (warned first: "YOU ARE NOT IN YOUR TOWN — HURRY").
+depthIntoTown is the one "in your town" truth. A two-Room convergence
+test now covers unlock+pick+town-1 fire. The core law (plans/11 §1)
+stands: default one town, second purchased, the system moves nobody
+mid-play (deal-time carry-home is designed placement, not a move).
+Standing context: conversion law plans/10 §8; direction plans/09;
+economy plans/08. OPEN: friend-test scope (Chronus: dev toggle now
+suffices; awaiting the visionary's word). NEXT: solo two-town
+play-through via __game, then the two-PC friend test, then fork 2
+(shop/purse/turntable). Port map: research/01-port-gap-analysis.md.
