@@ -75,18 +75,21 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-HOLISTIC AUDIT RESOLVED (2026-07-06, HEAD debfb7e; 209 tests green, both
-tsc legs clean). The conversion law (plans/10 §8) stands; audit added:
-stuck records are COMPLETE STATE on the wire — perch is FIXED at grip
-(grip-time `coats` now travels; no re-derive, no "wizard" raising),
-"covered" = splat footprint over the record's point, client event order
-mirrors the Room (impacts/bury before stuck/add), determinism fence now
-includes server/ (minus main.ts). See the audit handoff for the 8-commit
-detail. Standing context: projectile pass per plans/10 §1–6; direction
-per plans/09; economy per plans/08 (research/11: two-town union 75.2%@8
-/ 84.4%@9 / 15.6% moats). NEXT: RESEARCH + PLAN THE TOWNS SLICE together
-(town-as-data, one-way split at a milestone, per-town upgrades, shared
-purse, TENSION_MAX_CLICKS=10 bundled — the 2026-07-05 design) BEFORE
-building; the density review (20/40/80 via `__game.setGrainCount`,
-re-pin SPRINKLES_NEEDED) is a natural precursor. Port map:
-research/01-port-gap-analysis.md.
+TOWNS SPINE BUILT (2026-07-07, the eight TOWNS n/8 commits; 221 tests
+green, both tsc legs). Plans/11 stratum A is live: two-fort arena
+(rotational symmetry, open fronts, ground spans both), facingDeg
+ballistics, clicks→10 (TOLL GEOMETRY, not a buff — Option B split the
+tables: TOWN_POTENTIAL = measured truth, TOWN_ASK_POTENTIAL = authored
+ask, solo HELD at 0.42 with a DECISION PIN test), TownRuntime[] dormant
+behind activeTowns=1 flipped only by the {t:"unlockTown2"} INPUT (fork-2
+purchase's dev stand-in; works over the net), owner-implicit crew
+assignment + pickTown (locked while the order runs; honored picks
+broadcast {t:"town"} acks), town on shot/machine + machines[]/yourTown
+on welcome, client two full stations + Baker spawns behind first
+welcome. The core law (plans/11 §1) is structural: default one town,
+second town purchased, nobody ever moved. Standing context: conversion
+law plans/10 §8; direction plans/09; economy plans/08. OPEN: friend-test
+scope (plans/11 §11 — is the dev toggle enough for friend test 1, shop
+a fast-follow? Chronus recommends yes; undecided). NEXT: the two-PC
+friend test of dev-toggle two-town mode, then fork 2 (shop/purse/
+turntable). Port map: research/01-port-gap-analysis.md.
