@@ -207,7 +207,8 @@ export class Room {
       // (integer, active town) is the Roster's. Deterministic, no RNG:
       // the system never assigns, the player always chooses.
       if (this.flow.order.status === "running") return;
-      this.roster.setTown(id, msg.town, this.towns.length);
+      if (this.roster.setTown(id, msg.town, this.towns.length))
+        this.roster.broadcast({ t: "town", id, town: msg.town });
       return;
     }
     this.roster.handleMessage(id, msg);

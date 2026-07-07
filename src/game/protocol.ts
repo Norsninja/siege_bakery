@@ -125,6 +125,12 @@ export type ServerMsg =
     }
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }
+  /** A pickTown was HONORED (plans/11 §5): member `id` now crews `town`.
+   * The picker re-targets its HUD/controls from this — assignment is
+   * server truth, never assumed at send. (Also the seam the later
+   * color-by-town glue reads for ghosts.) Assignment is not position:
+   * nobody teleports — you run to your new fort. */
+  | { t: "town"; id: number; town: number }
   | { t: "poses"; poses: PlayerPose[] }
   | {
       t: "machine";

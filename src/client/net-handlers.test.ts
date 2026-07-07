@@ -8,7 +8,7 @@ import { createOrder } from "../game/order";
 import type { Judgment, RequirementCheck } from "../game/judgment";
 import type { ServerMsg } from "../game/protocol";
 import { applyServerMsg, type NetFx } from "./net-handlers";
-import { createMatchView, type MatchView } from "./state";
+import { createMatchView, myMachine, type MatchView } from "./state";
 
 const check = (current: number, target = 3): RequirementCheck => ({
   req: { kind: "count-on-cake", topping: "cherry", needed: target },
@@ -38,17 +38,20 @@ function harness(): {
   spawned: string[];
   ghosts: string[];
   frosting: string[];
+  bound: number[];
 } {
   const flashes: string[] = [];
   const spawned: string[] = [];
   const ghosts: string[] = [];
   const frosting: string[] = [];
+  const bound: number[] = [];
   return {
     view: createMatchView(),
     flashes,
     spawned,
     ghosts,
     frosting,
+    bound,
     fx: {
       spawnShot: (m) => spawned.push(m.topping),
       spawnResting: (t) => spawned.push(`rest:${t.topping}`),
@@ -60,6 +63,7 @@ function harness(): {
       upsertGhost: (p) => ghosts.push(`+${p.id}`),
       removeGhost: (id) => ghosts.push(`-${id}`),
       flash: (msg) => flashes.push(msg),
+      bindTown: (t) => bound.push(t),
     },
   };
 }
@@ -82,7 +86,7 @@ describe("applyServerMsg", () => {
         t: "welcome",
         id: 7,
         machines: [
-          { machine: { ...h.view.machine, tensionClicks: 3 }, crankTicks: 5, screwTicks: 12 },
+          { machine: { ...myMachine(h.view).machine, tensionClicks: 3 }, crankTicks: 5, screwTicks: 12 },
         ],
         yourTown: 0,
         order: createOrder([], 42),
@@ -95,9 +99,11 @@ describe("applyServerMsg", () => {
       h.fx,
     );
     expect(h.view.myId).toBe(7);
-    expect(h.view.machine.tensionClicks).toBe(3);
-    expect(h.view.crankTicks).toBe(5);
-    expect(h.view.screwTicks).toBe(12);
+    expect(myMachine(h.view).machine.tensionClicks).toBe(3);
+    expect(myMachine(h.view).crankTicks).toBe(5);
+    expect(myMachine(h.view).screwTicks).toBe(12);
+    expect(h.view.yourTown).toBe(0);
+    expect(h.bound).toEqual([0]); // the scene re-targeted to my town
     expect(h.view.checks[0]?.current).toBe(1);
     expect(h.ghosts).toEqual(["+2"]);
     // The world as it lies: the settled cherry is recreated locally (F2)
@@ -125,22 +131,34 @@ describe("applyServerMsg", () => {
     expect(h.flashes[0]).toBe("LOOSED! cherry · 8 clicks · -10° · arc +15°");
   });
 
-  it("BRIDGE (until step 8): a town-1 machine broadcast never clobbers the single-rig view", () => {
+  it("machine broadcasts index by town — a town-1 update grows the array, never clobbers town 0", () => {
     const h = harness();
     applyServerMsg(
       h.view,
       {
         t: "machine",
         town: 1,
-        state: { ...h.view.machine, tensionClicks: 9 },
+        state: { ...myMachine(h.view).machine, tensionClicks: 9 },
         crankTicks: 1,
         screwTicks: 2,
       },
       h.fx,
     );
-    // Dropped, never misapplied: the view still shows town 0's machine.
-    expect(h.view.machine.tensionClicks).toBe(0);
-    expect(h.view.crankTicks).toBe(0);
+    // Town 0 (mine) untouched; town 1 adopted at its index.
+    expect(myMachine(h.view).machine.tensionClicks).toBe(0);
+    expect(h.view.machines[1]?.machine.tensionClicks).toBe(9);
+  });
+
+  it("a town ack for ME re-targets the view and the scene; someone else's doesn't", () => {
+    const h = harness();
+    h.view.myId = 7;
+    applyServerMsg(h.view, { t: "town", id: 9, town: 1 }, h.fx); // not me
+    expect(h.view.yourTown).toBe(0);
+    expect(h.bound).toEqual([]);
+    applyServerMsg(h.view, { t: "town", id: 7, town: 1 }, h.fx); // me
+    expect(h.view.yourTown).toBe(1);
+    expect(h.bound).toEqual([1]);
+    expect(h.flashes.some((f) => f.includes("town 2"))).toBe(true);
   });
 
   it("scored: the flash names progress, on-cake-but-useless, or the miss", () => {

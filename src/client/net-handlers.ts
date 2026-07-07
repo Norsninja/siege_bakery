@@ -13,7 +13,7 @@ import type {
   ServerMsg,
   StuckTopping,
 } from "../game/protocol";
-import type { MatchView } from "./state";
+import { freshTownMachine, type MatchView } from "./state";
 
 export type ShotMsg = Extract<ServerMsg, { t: "shot" }>;
 
@@ -40,6 +40,10 @@ export interface NetFx {
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
+  /** MY town changed (welcome or an honored pick): re-target the scene's
+   * interactables/highlights at TOWNS[town]'s rig and pantry. Assignment,
+   * not position — the baker runs to the new fort on foot. */
+  bindTown(town: number): void;
 }
 
 export function applyServerMsg(
@@ -50,12 +54,9 @@ export function applyServerMsg(
   switch (msg.t) {
     case "welcome":
       view.myId = msg.id;
-      // BRIDGE until the client's two-town step (plans/11 §10 step 8):
-      // the view renders town 0's machine; machines[]/yourTown go fully
-      // live when the scene grows its second rig.
-      view.machine = msg.machines[0]!.machine;
-      view.crankTicks = msg.machines[0]!.crankTicks;
-      view.screwTicks = msg.machines[0]!.screwTicks;
+      view.machines = msg.machines;
+      view.yourTown = msg.yourTown;
+      fx.bindTown(msg.yourTown);
       view.order = msg.order;
       view.checks = msg.checks;
       // Joined mid-banner: adopt the verdict, or the banner words gate-1
@@ -77,12 +78,25 @@ export function applyServerMsg(
       for (const p of msg.poses) fx.upsertGhost(p);
       break;
     case "machine":
-      // BRIDGE (step 8): one rig rendered, so town-1 machine state must
-      // not clobber the town-0 view; it is dropped, never misapplied.
-      if (msg.town !== 0) break;
-      view.machine = msg.state;
-      view.crankTicks = msg.crankTicks;
-      view.screwTicks = msg.screwTicks;
+      // Indexed by town. Grow to fit: a town-1 broadcast can precede any
+      // two-town welcome (the unlock happened after we joined) — a
+      // placeholder rig state is honest until its next broadcast.
+      while (view.machines.length <= msg.town)
+        view.machines.push(freshTownMachine());
+      view.machines[msg.town] = {
+        machine: msg.state,
+        crankTicks: msg.crankTicks,
+        screwTicks: msg.screwTicks,
+      };
+      break;
+    case "town":
+      // An honored pick. Mine re-targets HUD/controls; assignment is
+      // server truth — never assumed at send time (plans/11 §5).
+      if (msg.id === view.myId) {
+        view.yourTown = msg.town;
+        fx.bindTown(msg.town);
+        fx.flash(`you now crew town ${msg.town + 1} — run to your machine!`, 5000);
+      }
       break;
     case "shot":
       fx.spawnShot(msg);

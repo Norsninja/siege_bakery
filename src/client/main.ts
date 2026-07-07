@@ -22,7 +22,7 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
-import { BAKER_SPAWN, buildArenaColliders } from "../core/arena";
+import { TOWNS, buildArenaColliders } from "../core/arena";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
 import { connectLoopback, connectWs, type Transport } from "./net";
@@ -39,7 +39,7 @@ import {
   deriveMove,
   machineEngaged,
 } from "./input";
-import { createMatchView, predictClock } from "./state";
+import { createMatchView, myMachine, predictClock } from "./state";
 import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
@@ -56,10 +56,12 @@ async function main(): Promise<void> {
   await RAPIER.init();
 
   // --- Local physics: baker movement + visual projectile sim ---
+  // NOTE: the local Baker spawns AFTER the first `welcome` (below) — the
+  // boot-order fix (plans/11 §4): with two towns the client doesn't know
+  // WHERE to spawn until the room says which town is ours.
   const physics = new RAPIER.World(GRAVITY);
   physics.timestep = FIXED_DT;
   buildArenaColliders(physics);
-  const baker = new Baker(physics, BAKER_SPAWN);
 
   // --- The match, as this client knows it (state.ts) ---
   const view = createMatchView();
@@ -67,7 +69,7 @@ async function main(): Promise<void> {
   // --- The world on screen (scene.ts) ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
   const gs = buildGameScene(canvas);
-  const { renderer, scene, camera, rig, heldMesh } = gs;
+  const { renderer, scene, camera, heldMesh } = gs;
   const shotsView = new ShotsView(physics, scene);
   const frostingView = new FrostingView(scene);
   const sprinklesView = new SprinklesView(scene);
@@ -124,9 +126,17 @@ async function main(): Promise<void> {
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
+    bindTown: (t) => gs.bindTown(t),
   };
-  const handleServerMsg = (msg: ServerMsg): void =>
+  let welcomeSeen: (() => void) | null = null;
+  const firstWelcome = new Promise<void>((res) => (welcomeSeen = res));
+  const handleServerMsg = (msg: ServerMsg): void => {
     applyServerMsg(view, msg, fx);
+    if (msg.t === "welcome" && welcomeSeen) {
+      welcomeSeen();
+      welcomeSeen = null;
+    }
+  };
 
   // --- Transport pick: explicit ?join, room-server origin, else loopback ---
   const joinParam = new URLSearchParams(location.search).get("join");
@@ -175,6 +185,19 @@ async function main(): Promise<void> {
     }
   };
 
+  // --- THE BOOT-ORDER FIX (plans/11 §4): spawn behind the first welcome ---
+  // Spawn-then-teleport was the classic two-base bug the research pass
+  // warned about; so is forgetting spawn ORIENTATION. Loopback welcomes
+  // synchronously (no visible beat); over ws this is the brief joining
+  // wait the netStatus line already narrates.
+  if (hud) hud.textContent = "joining the bakery…";
+  renderer.render(scene, camera); // the arena on screen while we wait
+  await firstWelcome;
+  const homeTown = TOWNS[view.yourTown] ?? TOWNS[0]!;
+  const baker = new Baker(physics, homeTown.spawn);
+  // Open looking down your own run — machine first, the shared cake beyond.
+  input.yaw = (homeTown.facingDeg * Math.PI) / 180;
+
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
   /** GRAB SEMANTICS (input.ts): the control you engage with E stays gripped
@@ -212,7 +235,7 @@ async function main(): Promise<void> {
       }
       // Edges: pickup / lever / load — the RULES live in interactions.ts
       // (tested); this is the wiring that executes them.
-      const act = tickInteraction(eEdge, target, view.carrying, view.machine.loaded);
+      const act = tickInteraction(eEdge, target, view.carrying, myMachine(view).machine.loaded);
       view.carrying = act.carrying;
       for (const m of act.send) transport.send(m);
       if (act.flash) flash(act.flash.msg, act.flash.ms);
@@ -261,12 +284,22 @@ async function main(): Promise<void> {
     camera.position.set(p.x, p.y + EYE_HEIGHT_OFFSET, p.z);
     camera.rotation.set(input.pitch, input.yaw, 0);
 
-    // The moment a notch engages, say so — the CLUNK is the readout.
-    rig.update(view, (notch) => {
-      const dir = notch > rig.shownTiltNotch ? "raised" : "lowered";
-      flash(
-        `CLUNK — arc ${dir} to +${notch * TILT_DEG_PER_NOTCH}° ${arcGlyph(notch)}`,
-        2500,
+    // Every fort's rig animates from its broadcast state; only YOUR rig
+    // speaks — the far crew's screw must not flash your HUD.
+    gs.rigs.forEach((rig, i) => {
+      const tm = view.machines[i];
+      if (!tm) return;
+      rig.update(
+        tm,
+        i === view.yourTown
+          ? (notch) => {
+              const dir = notch > rig.shownTiltNotch ? "raised" : "lowered";
+              flash(
+                `CLUNK — arc ${dir} to +${notch * TILT_DEG_PER_NOTCH}° ${arcGlyph(notch)}`,
+                2500,
+              );
+            }
+          : () => {},
       );
     });
     heldMesh.visible = view.carrying !== null;
@@ -282,8 +315,8 @@ async function main(): Promise<void> {
       hud.textContent = hudLines({
         order: view.order,
         checks: view.checks,
-        machine: view.machine,
-        crankTicks: view.crankTicks,
+        machine: myMachine(view).machine,
+        crankTicks: myMachine(view).crankTicks,
         carrying: view.carrying,
         netStatus: view.netStatus,
         ghostCount: ghosts.count,
@@ -309,7 +342,13 @@ async function main(): Promise<void> {
       shots: shotsView,
       sprinkles: sprinklesView,
       send: (m: Parameters<Transport["send"]>[0]) => transport.send(m),
-      getMachine: () => ({ ...view.machine, crankTicks: view.crankTicks }),
+      getMachine: () => ({
+        ...myMachine(view).machine,
+        crankTicks: myMachine(view).crankTicks,
+      }),
+      getYourTown: () => view.yourTown,
+      getMachines: () =>
+        view.machines.map((m) => ({ ...m.machine, crankTicks: m.crankTicks })),
       getTarget: () => target,
       getOrder: () => ({ ...view.order }),
       getChecks: () => view.checks.map((c) => ({ ...c })),

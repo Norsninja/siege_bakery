@@ -13,18 +13,16 @@ import * as THREE from "three";
 import {
   WALLS,
   WALL_HEIGHT,
-  MACHINE_BASE,
   CAKE_Z,
   CAKE_TIERS,
   TOWNS,
   GROUND_HALF_X,
   GROUND_HALF_Z,
   GROUND_CENTER_Z,
-  PANTRY_POS,
   PANTRY_HALF,
-  PLINTH_POS,
   PLINTH_HALF,
 } from "../core/arena";
+import type { Vec3 } from "../core/ballistics";
 import {
   CRANK_TICKS_PER_CLICK,
   TENSION_MAX_CLICKS,
@@ -32,8 +30,8 @@ import {
   TILT_DEG_PER_NOTCH,
   TILT_MAX_NOTCH,
 } from "../game/catapult";
+import type { TownMachine } from "../game/protocol";
 import type { InteractableKind } from "./hud";
-import type { MatchView } from "./state";
 
 export const TOPPING_COLORS: Record<string, number> = {
   cherry: 0xc23b4e,
@@ -114,10 +112,15 @@ export class MachineRig {
   private lastTiltNotch = 0;
   private totalCrankSpins = 0; // visual-only: winch drum angle
   private lastCrankTicks = 0;
+  /** The town's facing (plans/11 §4): the rig's whole yaw is facing +
+   * traverse, exactly the ballistics composition — the machine LOOKS
+   * where it throws. */
+  private readonly facingRad: number;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, base: Vec3, facingDeg: number) {
+    this.facingRad = (facingDeg * Math.PI) / 180;
     this.group = new THREE.Group();
-    this.group.position.set(MACHINE_BASE.x, MACHINE_BASE.y, MACHINE_BASE.z);
+    this.group.position.set(base.x, base.y, base.z);
     scene.add(this.group);
 
     // The FRAME tilts; its pivot sits at the REAR ground contact so the
@@ -170,17 +173,20 @@ export class MachineRig {
     this.screwHandle = box(0.4, 0.06, 0.06, 0x8a6b3d, 0, 0.62, 0, screwGroup);
   }
 
-  /** Per-frame animation from the MatchView. `clunk` fires the moment a
-   * notch engages — the CLUNK is the readout. */
-  update(view: MatchView, clunk: (notch: number) => void): void {
-    this.group.rotation.y = (view.machine.traverseDeg * Math.PI) / 180;
+  /** Per-frame animation from THIS town's machine state. `clunk` fires
+   * the moment a notch engages — the CLUNK is the readout (main.ts passes
+   * a real callback only for the LOCAL town's rig; the far fort's screw
+   * must not flash your HUD). */
+  update(tm: TownMachine, clunk: (notch: number) => void): void {
+    this.group.rotation.y =
+      this.facingRad + (tm.machine.traverseDeg * Math.PI) / 180;
     // Partial screw progress previews the coming notch; post height is the
     // analog gauge.
     const tiltDeg = Math.min(
       TILT_MAX_NOTCH * TILT_DEG_PER_NOTCH,
       Math.max(
         0,
-        (view.machine.tiltNotch + view.screwTicks / SCREW_TICKS_PER_NOTCH) *
+        (tm.machine.tiltNotch + tm.screwTicks / SCREW_TICKS_PER_NOTCH) *
           TILT_DEG_PER_NOTCH,
       ),
     );
@@ -191,24 +197,24 @@ export class MachineRig {
     this.screwPost.scale.y = postScale;
     this.screwPost.position.y = 0.3 * postScale;
     this.screwHandle.position.y = 0.6 * postScale + 0.02;
-    this.screwHandle.rotation.y = view.screwTicks * 0.3; // the jack handle works
-    if (view.machine.tiltNotch !== this.lastTiltNotch) {
-      clunk(view.machine.tiltNotch);
-      this.lastTiltNotch = view.machine.tiltNotch;
+    this.screwHandle.rotation.y = tm.screwTicks * 0.3; // the jack handle works
+    if (tm.machine.tiltNotch !== this.lastTiltNotch) {
+      clunk(tm.machine.tiltNotch);
+      this.lastTiltNotch = tm.machine.tiltNotch;
     }
     const tensionFrac =
-      (view.machine.tensionClicks + view.crankTicks / CRANK_TICKS_PER_CLICK) /
+      (tm.machine.tensionClicks + tm.crankTicks / CRANK_TICKS_PER_CLICK) /
       TENSION_MAX_CLICKS;
     this.armPivot.rotation.x = 0.5 + tensionFrac * 0.7; // arm winches down and back
-    if (view.crankTicks !== this.lastCrankTicks) {
+    if (tm.crankTicks !== this.lastCrankTicks) {
       this.totalCrankSpins += 1;
-      this.lastCrankTicks = view.crankTicks;
+      this.lastCrankTicks = tm.crankTicks;
     }
     this.drumMesh.rotation.x = this.totalCrankSpins * 0.05;
-    this.toppingMesh.visible = view.machine.loaded !== null;
-    if (view.machine.loaded !== null)
+    this.toppingMesh.visible = tm.machine.loaded !== null;
+    if (tm.machine.loaded !== null)
       (this.toppingMesh.material as THREE.MeshStandardMaterial).color.setHex(
-        TOPPING_COLORS[view.machine.loaded] ?? 0xc23b4e,
+        TOPPING_COLORS[tm.machine.loaded] ?? 0xc23b4e,
       );
   }
 
@@ -222,13 +228,20 @@ export interface GameScene {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
-  rig: MachineRig;
+  /** One rig per town, indexed like TOWNS/machines (plans/11 §10 step 8). */
+  rigs: MachineRig[];
   /** What's in the baker's hands, rendered at the bottom of the view. */
   heldMesh: THREE.Mesh;
+  /** The LOCAL town's interactables — what E can grab. Re-pointed by
+   * bindTown; the far fort's controls are scenery to this player (their
+   * inputs would drive the local machine — owner-implicit — so offering
+   * them would be a lie). */
   interactables: Record<InteractableKind, THREE.Mesh[]>;
   raycastTargets: THREE.Mesh[];
   kindOf: Map<THREE.Object3D, InteractableKind>;
   setHighlight(kind: InteractableKind | null): void;
+  /** Target town `t`'s rig + pantry (welcome, or an honored pickTown). */
+  bindTown(t: number): void;
 }
 
 export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
@@ -279,11 +292,6 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     m.position.set(0, (t.top + t.bottom) / 2, CAKE_Z);
     scene.add(m);
   });
-  // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): the
-  // wind instrument you read from the firing position — when wind arrives,
-  // this flag is the forecast.
-  box(0.06, 2.4, 0.06, 0xefe3d0, PLINTH_POS.x + 1.8, 1.2, PLINTH_POS.z - 0.6, scene);
-  box(0.7, 0.3, 0.02, 0xd8452e, PLINTH_POS.x + 2.18, 2.2, PLINTH_POS.z - 0.6, scene);
   // Crossing stripes — each town's pantry↔machine run gets its own.
   for (const t of TOWNS)
     for (let i = 0; i <= 4; i++) {
@@ -291,65 +299,76 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
       box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z, scene);
     }
 
-  const rig = new MachineRig(scene);
-
-  // Pantry crates — the ammo. E takes ONE; you carry it by hand. Five
-  // crates since the projectile pass (plans/10): frosting first (the base
-  // layer), fudge beside the garnish, the lime decoy LAST — never ordered,
-  // always tempting.
-  const crateY = PANTRY_POS.y + PANTRY_HALF.y + 0.25;
-  const crate = (x: number, bodyColor: number, topping: string): THREE.Mesh[] => [
-    box(0.8, 0.5, 0.7, bodyColor, x, crateY, PANTRY_POS.z, scene),
-    sphere(0.2, TOPPING_COLORS[topping] ?? 0xffffff, x, crateY + 0.4, PANTRY_POS.z, scene),
-  ];
-  const frostingCrate = crate(-1.6, 0xc9a7b8, "frosting");
-  const cherryCrate = crate(-0.8, 0x8c3038, "cherry");
-  const sprinklesCrate = crate(0, 0x6b4a8a, "sprinkles");
-  const fudgeCrate = crate(0.8, 0x3a2413, "fudge");
-  const limeCrate = crate(1.6, 0x4f7a35, "lime");
+  // Every fort gets its full crew station (rig, pennant, crates) — the
+  // 180° rotation flips local offsets by `s`, so each crew's "left is
+  // left" holds for the furniture too (plans/11 §3).
+  const rigs: MachineRig[] = [];
+  const townInteractables: Array<Record<InteractableKind, THREE.Mesh[]>> = [];
+  for (const t of TOWNS) {
+    const rig = new MachineRig(scene, t.base, t.facingDeg);
+    rigs.push(rig);
+    const s = t.facingDeg === 0 ? 1 : -1; // rotate local offsets with the fort
+    // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): the
+    // wind instrument you read from the firing position — when wind
+    // arrives, this flag is the forecast.
+    box(0.06, 2.4, 0.06, 0xefe3d0, t.plinth.x + 1.8 * s, 1.2, t.plinth.z - 0.6 * s, scene);
+    box(0.7, 0.3, 0.02, 0xd8452e, t.plinth.x + 2.18 * s, 2.2, t.plinth.z - 0.6 * s, scene);
+    // Pantry crates — the ammo. E takes ONE; you carry it by hand. Five
+    // crates since the projectile pass (plans/10): frosting first (the
+    // base layer), fudge beside the garnish, the lime decoy LAST — never
+    // ordered, always tempting.
+    const crateY = t.pantry.y + PANTRY_HALF.y + 0.25;
+    const crate = (dx: number, bodyColor: number, topping: string): THREE.Mesh[] => [
+      box(0.8, 0.5, 0.7, bodyColor, t.pantry.x + dx * s, crateY, t.pantry.z, scene),
+      sphere(0.2, TOPPING_COLORS[topping] ?? 0xffffff, t.pantry.x + dx * s, crateY + 0.4, t.pantry.z, scene),
+    ];
+    townInteractables.push({
+      wheel: [rig.wheelMesh],
+      winch: [rig.drumMesh, rig.winchHandle],
+      screw: [rig.screwPost, rig.screwHandle],
+      lever: [rig.leverStick, rig.leverKnob],
+      bucket: [rig.bucketMesh, rig.toppingMesh],
+      "shelf-frosting": crate(-1.6, 0xc9a7b8, "frosting"),
+      "shelf-cherry": crate(-0.8, 0x8c3038, "cherry"),
+      "shelf-sprinkles": crate(0, 0x6b4a8a, "sprinkles"),
+      "shelf-fudge": crate(0.8, 0x3a2413, "fudge"),
+      "shelf-lime": crate(1.6, 0x4f7a35, "lime"),
+    });
+  }
 
   // What's in the baker's hands, rendered at the bottom of the view.
   scene.add(camera); // camera children only render if the camera is in-scene
   const heldMesh = sphere(0.12, 0xffffff, 0.28, -0.22, -0.5, camera);
   heldMesh.visible = false;
 
-  const interactables: Record<InteractableKind, THREE.Mesh[]> = {
-    wheel: [rig.wheelMesh],
-    winch: [rig.drumMesh, rig.winchHandle],
-    screw: [rig.screwPost, rig.screwHandle],
-    lever: [rig.leverStick, rig.leverKnob],
-    bucket: [rig.bucketMesh, rig.toppingMesh],
-    "shelf-frosting": frostingCrate,
-    "shelf-cherry": cherryCrate,
-    "shelf-sprinkles": sprinklesCrate,
-    "shelf-fudge": fudgeCrate,
-    "shelf-lime": limeCrate,
-  };
-  const raycastTargets: THREE.Mesh[] = Object.values(interactables).flat();
-  const kindOf = new Map<THREE.Object3D, InteractableKind>();
-  for (const [kind, meshes] of Object.entries(interactables) as Array<
-    [InteractableKind, THREE.Mesh[]]
-  >)
-    for (const m of meshes) kindOf.set(m, kind);
-
-  const setHighlight = (kind: InteractableKind | null): void => {
-    for (const meshes of Object.values(interactables))
-      for (const m of meshes)
-        (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x000000);
-    if (kind)
-      for (const m of interactables[kind])
-        (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x443300);
-  };
-
-  return {
+  const gs: GameScene = {
     renderer,
     scene,
     camera,
-    rig,
+    rigs,
     heldMesh,
-    interactables,
-    raycastTargets,
-    kindOf,
-    setHighlight,
+    interactables: townInteractables[0]!,
+    raycastTargets: [],
+    kindOf: new Map(),
+    setHighlight(kind: InteractableKind | null): void {
+      for (const meshes of Object.values(gs.interactables))
+        for (const m of meshes)
+          (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x000000);
+      if (kind)
+        for (const m of gs.interactables[kind])
+          (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x443300);
+    },
+    bindTown(t: number): void {
+      gs.setHighlight(null); // drop any glow on the old town's gear
+      gs.interactables = townInteractables[t] ?? townInteractables[0]!;
+      gs.raycastTargets = Object.values(gs.interactables).flat();
+      gs.kindOf = new Map();
+      for (const [kind, meshes] of Object.entries(gs.interactables) as Array<
+        [InteractableKind, THREE.Mesh[]]
+      >)
+        for (const m of meshes) gs.kindOf.set(m, kind);
+    },
   };
+  gs.bindTown(0); // pre-welcome default; the welcome re-binds to yourTown
+  return gs;
 }

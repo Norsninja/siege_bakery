@@ -87,12 +87,15 @@ export class Roster {
   /** The pickTown mechanism's field half (plans/11 §5). The Room owns the
    * ORDER gate (locked while running — match truth lives there); this owns
    * the FIELD truth: an integer, an ACTIVE town (a dormant fort cannot be
-   * crewed), else ignored whole like any malformed wire input. */
-  setTown(id: number, town: number, activeTowns: number): void {
+   * crewed), else ignored whole like any malformed wire input. Returns
+   * whether the assignment CHANGED — the Room announces honored picks. */
+  setTown(id: number, town: number, activeTowns: number): boolean {
     const m = this.members.get(id);
-    if (!m) return;
-    if (!Number.isInteger(town) || town < 0 || town >= activeTowns) return;
+    if (!m) return false;
+    if (!Number.isInteger(town) || town < 0 || town >= activeTowns) return false;
+    if (m.town === town) return false;
     m.town = town;
+    return true;
   }
 
   /** A member's current town, for shot attribution and yourTown. */
