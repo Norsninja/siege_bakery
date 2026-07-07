@@ -25,7 +25,7 @@ import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { TOWNS, buildArenaColliders } from "../core/arena";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
-import { connectLoopback, connectWs, type Transport } from "./net";
+import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
 import {
   arcGlyph,
   bannerText,
@@ -144,10 +144,9 @@ async function main(): Promise<void> {
     }
   };
 
-  // --- Transport pick: explicit ?join, room-server origin, else loopback ---
-  const joinParam = new URLSearchParams(location.search).get("join");
-  const wsUrl =
-    joinParam ?? (location.port === "5175" ? `ws://${location.host}` : null);
+  // --- Transport pick: explicit ?join, room-server origin, else loopback
+  // (pickWsUrl, net.ts — the tunnel-gate law, pinned in net.test.ts) ---
+  const wsUrl = pickWsUrl(location, import.meta.env.PROD);
   let transport: Transport;
   let tickRoom: (() => void) | null = null;
   if (wsUrl) {

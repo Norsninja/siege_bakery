@@ -18,6 +18,34 @@ export interface Transport {
   close(): void;
 }
 
+/**
+ * The transport pick — ?join wins, then room-server origin, else loopback.
+ *
+ * THE TUNNEL GATE (friend-test prep, 2026-07-07): the old rule keyed on
+ * literal port 5175 with a hardcoded ws://. Behind an https tunnel
+ * (cloudflared quick tunnel — the chosen friend-test transport) the page
+ * arrives on port 443, so the check failed and the friend SILENTLY fell
+ * back to loopback — playing alone in a private bakery with no error to
+ * say so. And even with the port right, an https page may not open ws://
+ * (mixed content); it must speak wss.
+ *
+ * The law, restated so it survives any port or tunnel: a BUILT page is
+ * only ever served by the room server (it serves dist/ — CLAUDE.md), so
+ * `isBuilt` auto-joins its own origin, protocol-matched. The literal 5175
+ * check stays for a dev bundle served alongside the room server; the vite
+ * dev page (5174) still defaults to loopback solo.
+ */
+export function pickWsUrl(
+  loc: { protocol: string; port: string; host: string; search: string },
+  isBuilt: boolean,
+): string | null {
+  const join = new URLSearchParams(loc.search).get("join");
+  if (join) return join;
+  if (isBuilt || loc.port === "5175")
+    return `${loc.protocol === "https:" ? "wss" : "ws"}://${loc.host}`;
+  return null;
+}
+
 export interface LoopbackConnection {
   transport: Transport;
   /** Advance the in-process room one fixed tick. Call from the sim loop. */
