@@ -11,12 +11,15 @@
  */
 import * as THREE from "three";
 import {
-  CROSS_HALF,
   WALLS,
   WALL_HEIGHT,
   MACHINE_BASE,
   CAKE_Z,
   CAKE_TIERS,
+  TOWNS,
+  GROUND_HALF_X,
+  GROUND_HALF_Z,
+  GROUND_CENTER_Z,
   PANTRY_POS,
   PANTRY_HALF,
   PLINTH_POS,
@@ -250,14 +253,20 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   sun.position.set(8, 14, 6);
   scene.add(sun);
 
-  // Arena visuals mirror core/arena's physics definitions exactly.
-  box(80, 0.2, 80, 0x7a9e6b, 0, -0.1, 0, scene); // ground
+  // Arena visuals mirror core/arena's physics definitions exactly. BOTH
+  // forts render (towns slice step 1): every static collider has a mesh —
+  // the render contract. Crew gear (crates, pennant, machine rig) stays
+  // town-0-only until the client's two-town step (plans/11 §10 step 8).
+  box(GROUND_HALF_X * 2, 0.2, GROUND_HALF_Z * 2, 0x7a9e6b,
+    0, -0.1, GROUND_CENTER_Z, scene); // ground — spans both forts
   for (const w of WALLS)
     box(w.hx * 2, WALL_HEIGHT, w.hz * 2, 0x9a9a9a, w.x, WALL_HEIGHT / 2, w.z, scene);
-  box(PANTRY_HALF.x * 2, PANTRY_HALF.y * 2, PANTRY_HALF.z * 2, 0xb98a4a,
-    PANTRY_POS.x, PANTRY_POS.y, PANTRY_POS.z, scene);
-  box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
-    PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z, scene);
+  for (const t of TOWNS) {
+    box(PANTRY_HALF.x * 2, PANTRY_HALF.y * 2, PANTRY_HALF.z * 2, 0xb98a4a,
+      t.pantry.x, t.pantry.y, t.pantry.z, scene);
+    box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
+      t.plinth.x, t.plinth.y, t.plinth.z, scene);
+  }
   // The cake: three ROUND tiers straight from core/arena (plans/07 phase R),
   // sponge paling toward the summit so the climb is READABLE from the
   // catapult.
@@ -275,8 +284,12 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // this flag is the forecast.
   box(0.06, 2.4, 0.06, 0xefe3d0, PLINTH_POS.x + 1.8, 1.2, PLINTH_POS.z - 0.6, scene);
   box(0.7, 0.3, 0.02, 0xd8452e, PLINTH_POS.x + 2.18, 2.2, PLINTH_POS.z - 0.6, scene);
-  for (let z = -CROSS_HALF; z <= CROSS_HALF; z += 6)
-    box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z, scene); // crossing stripes
+  // Crossing stripes — each town's pantry↔machine run gets its own.
+  for (const t of TOWNS)
+    for (let i = 0; i <= 4; i++) {
+      const z = t.plinth.z + ((t.pantry.z - t.plinth.z) * i) / 4;
+      box(3, 0.02, 0.15, 0xdddddd, 0, 0.01, z, scene);
+    }
 
   const rig = new MachineRig(scene);
 

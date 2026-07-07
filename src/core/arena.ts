@@ -6,6 +6,16 @@
  * duplicates geometry. When Blender becomes the level editor this file is
  * what its export replaces.
  *
+ * TWO FORTS, ONE CAKE (the towns slice, plans/11 §3): the arena is two
+ * bounded enclosures besieging a giant cake in the no-man's-land between
+ * them. Town 1 is the 180° ROTATION of town 0 about the cake axis —
+ * research/11's proven transform, a rotation NOT a mirror, so each crew's
+ * "left is left". Each enclosure has side + back walls; its FRONT (facing
+ * the cake) is OPEN — the sightline across the firing range is load-bearing
+ * (plans/11 §9). The greybox enclosure is a placeholder keyed to the town's
+ * anchors: a later Blender pass drops town models onto the SAME `TOWNS`
+ * coordinates without touching game logic.
+ *
  * core/ law: deterministic, may import Rapier, no DOM, no three.js.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -16,14 +26,6 @@ export const CROSS_HALF = ARENA_CROSSING_M / 2; // 12
 export const ARENA_HALF_LENGTH = CROSS_HALF + 1; // walls just past endpoints
 export const ARENA_HALF_WIDTH = 8;
 export const WALL_HEIGHT = 1;
-
-/** The machine's floor point: top of the plinth. */
-export const MACHINE_BASE: Vec3 = { x: 0, y: 1, z: -CROSS_HALF };
-export const PANTRY_POS: Vec3 = { x: 0, y: 0.75, z: CROSS_HALF };
-export const PANTRY_HALF: Vec3 = { x: 2, y: 0.75, z: 0.5 };
-export const PLINTH_POS: Vec3 = { x: 0, y: 0.5, z: -CROSS_HALF };
-export const PLINTH_HALF: Vec3 = { x: 1, y: 0.5, z: 1 };
-export const BAKER_SPAWN: Vec3 = { x: 0, y: 1.2, z: CROSS_HALF - 2 };
 
 /** The cake: three concentric ROUND tiers at the old cake spot — plinth to
  * center still 18 m. Square (plans/05) went cylindrical at the front of the
@@ -59,17 +61,98 @@ export interface WallDef {
   x: number;
   z: number;
 }
-export const WALLS: WallDef[] = [
+
+/** 180° rotation about the cake axis: (x, z) → (−x, 2·CAKE_Z − z). */
+function rotateAboutCake(p: Vec3): Vec3 {
+  return { x: -p.x, y: p.y, z: 2 * CAKE_Z - p.z };
+}
+
+/** Walls are axis-aligned cuboids; under a 180° rotation the half-extents
+ * survive and only the center moves. */
+function rotateWall(w: WallDef): WallDef {
+  return { ...w, x: -w.x, z: 2 * CAKE_Z - w.z };
+}
+
+/** Town 0's enclosure: side walls + back wall, OPEN front toward the cake.
+ * Same footprint as the original single-town arena minus its front wall
+ * (z=−13) — retired by the towns slice so shots and sightlines cross the
+ * range unobstructed. */
+const TOWN0_WALLS: readonly WallDef[] = [
   { hx: 0.25, hy: WALL_HEIGHT / 2, hz: ARENA_HALF_LENGTH, x: -ARENA_HALF_WIDTH, z: 0 },
   { hx: 0.25, hy: WALL_HEIGHT / 2, hz: ARENA_HALF_LENGTH, x: ARENA_HALF_WIDTH, z: 0 },
-  { hx: ARENA_HALF_WIDTH, hy: WALL_HEIGHT / 2, hz: 0.25, x: 0, z: -ARENA_HALF_LENGTH },
   { hx: ARENA_HALF_WIDTH, hy: WALL_HEIGHT / 2, hz: 0.25, x: 0, z: ARENA_HALF_LENGTH },
 ];
+
+/** One fort: the anchors a crew's whole world hangs on. The sim never
+ * knows whether a town is five grey cuboids or a detailed Blender model —
+ * only these coordinates (plans/11 §3). */
+export interface Town {
+  /** The machine's floor point: top of the plinth. */
+  base: Vec3;
+  pantry: Vec3;
+  plinth: Vec3;
+  spawn: Vec3;
+  /** Machine facing, degrees: 0 fires −Z (town 0's throw toward the cake);
+   * 180 fires +Z (town 1's). Composes with traverse — both Y-rotations. */
+  facingDeg: number;
+  /** Side + back walls; the front (facing the cake) is OPEN. */
+  walls: readonly WallDef[];
+}
+
+const TOWN0: Town = {
+  base: { x: 0, y: 1, z: -CROSS_HALF },
+  pantry: { x: 0, y: 0.75, z: CROSS_HALF },
+  plinth: { x: 0, y: 0.5, z: -CROSS_HALF },
+  spawn: { x: 0, y: 1.2, z: CROSS_HALF - 2 },
+  facingDeg: 0,
+  walls: TOWN0_WALLS,
+};
+
+/** THE TOWNS TABLE (plans/11 §3). [0] is the original town; [1] its 180°
+ * rotation about the cake axis (pantry at z=−72, machine at z=−48, back
+ * wall at z=−73). BOTH forts always exist physically — an uncrewed fort is
+ * scenery (plans/09 §3); whether town 1's machine is CREWED is `activeTowns`
+ * runtime state (server), never geometry. */
+export const TOWNS: readonly Town[] = [
+  TOWN0,
+  {
+    base: rotateAboutCake(TOWN0.base),
+    pantry: rotateAboutCake(TOWN0.pantry),
+    plinth: rotateAboutCake(TOWN0.plinth),
+    spawn: rotateAboutCake(TOWN0.spawn),
+    facingDeg: 180,
+    walls: TOWN0_WALLS.map(rotateWall),
+  },
+];
+
+// The single-town names, kept as TOWNS[0] aliases — research scripts and
+// the pre-towns codebase import these; nothing churns (plans/11 §3).
+export const MACHINE_BASE: Vec3 = TOWNS[0]!.base;
+export const PANTRY_POS: Vec3 = TOWNS[0]!.pantry;
+export const PLINTH_POS: Vec3 = TOWNS[0]!.plinth;
+export const BAKER_SPAWN: Vec3 = TOWNS[0]!.spawn;
+/** Prop half-extents, shared by every town's pantry/plinth. */
+export const PANTRY_HALF: Vec3 = { x: 2, y: 0.75, z: 0.5 };
+export const PLINTH_HALF: Vec3 = { x: 1, y: 0.5, z: 1 };
+
+/** Every wall in the arena — both enclosures, flattened. Renderers and
+ * research scripts loop this exactly as before. */
+export const WALLS: readonly WallDef[] = TOWNS.flatMap((t) => t.walls);
+
+/** The ground slab spans BOTH forts and the no-man's-land between them:
+ * centered on the cake axis (z=−30), reaching past town 1's back wall
+ * (z=−73) and town 0's (z=+13) with the same 5m margin each way. The old
+ * origin-centered 40-half slab ended at z=−40 — short of town 1 entirely
+ * (research/11 had to lay its own extra slab to study long shots). */
+export const GROUND_HALF_X = 40;
+export const GROUND_HALF_Z = 48;
+export const GROUND_CENTER_Z = CAKE_Z;
 
 /** Build the static world every simulation agrees on. */
 export function buildArenaColliders(world: RAPIER.World): void {
   world.createCollider(
-    RAPIER.ColliderDesc.cuboid(40, 0.1, 40).setTranslation(0, -0.1, 0),
+    RAPIER.ColliderDesc.cuboid(GROUND_HALF_X, 0.1, GROUND_HALF_Z)
+      .setTranslation(0, -0.1, GROUND_CENTER_Z),
   );
   for (const w of WALLS) {
     world.createCollider(
@@ -80,14 +163,16 @@ export function buildArenaColliders(world: RAPIER.World): void {
       ),
     );
   }
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(PANTRY_HALF.x, PANTRY_HALF.y, PANTRY_HALF.z)
-      .setTranslation(PANTRY_POS.x, PANTRY_POS.y, PANTRY_POS.z),
-  );
-  world.createCollider(
-    RAPIER.ColliderDesc.cuboid(PLINTH_HALF.x, PLINTH_HALF.y, PLINTH_HALF.z)
-      .setTranslation(PLINTH_POS.x, PLINTH_POS.y, PLINTH_POS.z),
-  );
+  for (const t of TOWNS) {
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(PANTRY_HALF.x, PANTRY_HALF.y, PANTRY_HALF.z)
+        .setTranslation(t.pantry.x, t.pantry.y, t.pantry.z),
+    );
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(PLINTH_HALF.x, PLINTH_HALF.y, PLINTH_HALF.z)
+        .setTranslation(t.plinth.x, t.plinth.y, t.plinth.z),
+    );
+  }
   for (const t of CAKE_TIERS) {
     const hy = (t.top - t.bottom) / 2;
     world.createCollider(
