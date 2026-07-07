@@ -123,6 +123,23 @@ describe("bannerText — three endings, culprit always named", () => {
     expect(text).toContain("the patron goes hungry");
     expect(text).toContain("✗ 3 × cherry ON the cake");
   });
+
+  it("the linger countdown shows the clock; the gates close with the deal", () => {
+    const order = { ...createOrder([], 100), status: "lost" as const };
+    const text = bannerText(order, rows, null, { seconds: 7, away: false });
+    expect(text).toContain("a new order in 7s");
+    expect(text).toContain("the gates close with it");
+    expect(text).not.toContain("HURRY"); // home bakers aren't nagged
+  });
+
+  it("a baker out of his town is WARNED before the deal carries him home (2026-07-07)", () => {
+    const order = { ...createOrder([], 100), status: "lost" as const };
+    const text = bannerText(order, rows, null, { seconds: 4, away: true });
+    expect(text).toContain("a new order in 4s");
+    expect(text).toContain("YOU ARE NOT IN YOUR TOWN!");
+    expect(text).toContain("carried home");
+    expect(text).toContain("HURRY!");
+  });
 });
 
 describe("hudLines", () => {

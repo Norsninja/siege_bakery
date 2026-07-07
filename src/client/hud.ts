@@ -93,12 +93,25 @@ export function promptFor(
   }
 }
 
+/** The linger countdown as the banner tells it (2026-07-07, the carry-home
+ * law): the linger window is the ONLY time the gates stand open, so the
+ * banner must show the clock — and warn a baker who is out of his town
+ * that the deal will CARRY him home. `seconds` is the client's local
+ * prediction off ORDER_RESET_TICKS (advisory, like predictClock — the
+ * fresh deal itself is server truth). */
+export interface NextOrderNote {
+  seconds: number;
+  /** True when the local baker is NOT inside his assigned town. */
+  away: boolean;
+}
+
 /** The end-of-order banner. The checklist names the culprit — a lost order
  * must say WHICH row failed, never contradict the player's memory. */
 export function bannerText(
   order: OrderState,
   checks: readonly RequirementCheck[],
   verdict: Judgment | null,
+  next?: NextOrderNote,
 ): string {
   const list = checks
     .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
@@ -119,7 +132,14 @@ export function bannerText(
     // Gate 1 failure: the clock died first.
     text = `TIME!\n${list}\nthe patron goes hungry`;
   }
-  return `${text}\n\na new order is coming…`;
+  // The countdown + the carry-home warning (the gates close with the deal;
+  // a baker out of his town is placed home — say so BEFORE it happens).
+  const coming = next
+    ? next.away
+      ? `a new order in ${next.seconds}s — YOU ARE NOT IN YOUR TOWN!\nwhen it lands you'll be carried home. HURRY!`
+      : `a new order in ${next.seconds}s — the gates close with it…`
+    : "a new order is coming…";
+  return `${text}\n\n${coming}`;
 }
 
 export interface HudView {

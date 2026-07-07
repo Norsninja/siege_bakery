@@ -43,8 +43,9 @@ import { createMatchView, myMachine, predictClock } from "./state";
 import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
-import { TownGates } from "./gates";
+import { depthIntoTown, TownGates } from "./gates";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
+import { ORDER_RESET_TICKS } from "../game/tuning";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";
@@ -209,6 +210,8 @@ async function main(): Promise<void> {
    * until E is released. */
   let heldTarget: InteractableKind | null = null;
   let tickCounter = 0;
+  /** Linger countdown, in ticks — armed when the banner shows. */
+  let lingerTicks = 0;
   let last = performance.now();
   let accumulator = 0;
   function frame(now: number): void {
@@ -282,12 +285,34 @@ async function main(): Promise<void> {
         const b = bannerLatch(view.order.status, bannerShown);
         if (b === "show") {
           bannerShown = true;
-          banner.textContent = bannerText(view.order, view.checks, view.verdict);
+          // The linger countdown, predicted locally off ORDER_RESET_TICKS
+          // (advisory, like predictClock — the deal itself is server
+          // truth). A mid-linger JOINER over-reads by however deep the
+          // server already is; the carry-home below still fires on time.
+          lingerTicks = ORDER_RESET_TICKS;
           banner.style.display = "flex";
         } else if (b === "hide") {
           // The room dealt a fresh order — clear the slate.
           bannerShown = false;
           banner.style.display = "none";
+          // THE CARRY-HOME LAW (visionary, 2026-07-07): the deal PLACES a
+          // baker who isn't in his town at his town's spawn — the linger
+          // banner warned him first. Client-side like all baker movement
+          // (plans/02); the gate then latches shut behind him as usual.
+          if (depthIntoTown(view.yourTown, baker.position()) <= 0) {
+            const home = TOWNS[view.yourTown] ?? TOWNS[0]!;
+            baker.teleport(home.spawn);
+            input.yaw = (home.facingDeg * Math.PI) / 180;
+            flash("the order landed — you were carried home to your town!", 5000);
+          }
+        }
+        if (bannerShown) {
+          // Re-worded every tick: the countdown + the away warning live.
+          lingerTicks = Math.max(0, lingerTicks - 1);
+          banner.textContent = bannerText(view.order, view.checks, view.verdict, {
+            seconds: Math.ceil(lingerTicks / 60),
+            away: depthIntoTown(view.yourTown, baker.position()) <= 0,
+          });
         }
       }
       accumulator -= FIXED_DT;

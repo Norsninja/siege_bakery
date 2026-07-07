@@ -15,13 +15,14 @@
  * running AND i is YOUR town AND you are clearly inside it. Consequences:
  * - Penned at home for the round — no midfield wandering, no slab-edge
  *   falls, no cake climbing (the §6 quirk list, answered structurally).
- * - The LOCKOUT case self-heals: caught outside at deal time, your gate
- *   stands open until you're home, then shuts behind you (one-way in).
- * - Foreign forts never seal: you can't reach them from home anyway, and
- *   sealing them traps a mid-crossing baker on the wrong side (the
- *   hysteresis trap the review found). A locked-out wanderer standing in
- *   the far fort is useless but harmless — its controls aren't his
- *   (owner-implicit routing), and the next linger frees him.
+ * - The LOCKOUT case is answered by the CARRY-HOME LAW (visionary,
+ *   2026-07-07): the fresh deal PLACES a baker who isn't in his town at
+ *   his town's spawn (main.ts, on the banner-hide transition; the linger
+ *   banner counts down and warns first). The open-while-outside clause
+ *   below survives as belt-and-braces for anything that slips past it.
+ * - Foreign forts never seal: mid-order you can't reach them from home
+ *   anyway, and sealing them traps a mid-crossing baker on the wrong
+ *   side (the hysteresis trap the review found).
  *
  * THE LATCH (measured, first build): closing and staying-closed need
  * DIFFERENT predicates. CLOSE_MARGIN guards only the closing transition —
@@ -42,11 +43,21 @@ import { GATE_COLLISION_GROUPS } from "../core/constants";
 
 const CLOSE_MARGIN = 1.0;
 
+/** How far a position is INSIDE town i's front-wall plane (negative = out
+ * in the field). The side/back walls bound the rest; depth past the gate
+ * plane is the whole "are you in your town" truth — the gate rule reads
+ * it, and so does the carry-home check (main.ts). The fort interior lies
+ * on the pantry's side of the gate. */
+export function depthIntoTown(
+  town: number,
+  pos: { z: number },
+): number {
+  const t = TOWNS[town] ?? TOWNS[0]!;
+  return (pos.z - t.gate.z) * Math.sign(t.pantry.z - t.gate.z);
+}
+
 export class TownGates {
   private readonly fences: RAPIER.Collider[];
-  /** +1 when the fort interior lies at z > gate.z (town 0), −1 when below
-   * (town 1) — the pantry is always deep inside, so it tells us the side. */
-  private readonly inward: number[];
 
   constructor(world: RAPIER.World) {
     this.fences = TOWNS.map((t) => {
@@ -58,13 +69,6 @@ export class TownGates {
       fence.setEnabled(false); // gates start open; update() takes over
       return fence;
     });
-    this.inward = TOWNS.map((t) => Math.sign(t.pantry.z - t.gate.z));
-  }
-
-  /** How far a position is INSIDE town i's doorway (negative = out in the
-   * field). The side walls bound x; depth past the gate plane is the truth. */
-  private depthInto(town: number, pos: { z: number }): number {
-    return (pos.z - TOWNS[town]!.gate.z) * this.inward[town]!;
   }
 
   /** Call once per fixed tick, BEFORE Baker.step, so this tick's movement
@@ -80,7 +84,7 @@ export class TownGates {
         fence.setEnabled(false); // linger window / not your gate: open
         continue;
       }
-      const depth = this.depthInto(i, bakerPos);
+      const depth = depthIntoTown(i, bakerPos);
       if (fence.isEnabled()) {
         // LATCHED shut; the valve reopens only past the plane (see header).
         if (depth < 0) fence.setEnabled(false);

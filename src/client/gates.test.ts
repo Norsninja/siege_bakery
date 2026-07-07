@@ -12,7 +12,7 @@ import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, TOWNS } from "../core/arena";
 import { Baker, type BakerInput } from "../core/baker";
 import { ProjectileManager } from "../core/projectiles";
-import { TownGates } from "./gates";
+import { depthIntoTown, TownGates } from "./gates";
 
 const GATE0_Z = TOWNS[0]!.gate.z; // -13
 const GATE1_Z = TOWNS[1]!.gate.z; // -47
@@ -118,6 +118,38 @@ describe("TownGates: the switch-between-orders fence", () => {
     const atDoor = new Baker(w, { x: DOOR0_X, y: 0.85, z: -8 });
     march(w, gates, atDoor, SPRINT_NEG_Z, 300, false, 0);
     expect(atDoor.position().z).toBeLessThan(GATE0_Z - 3); // the doorway is real too
+  });
+
+  it("depthIntoTown is the 'in your town' truth, both rotations", () => {
+    // Town 0's fort is z > -13; town 1's is z < -47. Positive = home.
+    expect(depthIntoTown(0, { z: -8 })).toBeCloseTo(5);
+    expect(depthIntoTown(0, { z: -20 })).toBeCloseTo(-7); // midfield = away
+    expect(depthIntoTown(1, { z: -52 })).toBeCloseTo(5);
+    expect(depthIntoTown(1, { z: -20 })).toBeCloseTo(-27); // away from town 1
+  });
+
+  it("CARRY-HOME composes: a baker placed at his spawn is home, and the gate latches over him", () => {
+    const w = world();
+    const gates = new TownGates(w);
+    const baker = new Baker(w, { x: 4, y: 0.85, z: -20 }); // caught outside at deal time
+    expect(depthIntoTown(0, baker.position())).toBeLessThan(0); // the carry-home trigger
+    baker.teleport(TOWNS[0]!.spawn); // what main.ts does on the fresh deal
+    expect(depthIntoTown(0, baker.position())).toBeGreaterThan(1);
+    // The gate shuts on the very next update, and the pen holds: a sprint
+    // AIMED AT THE DOORWAY (yaw −0.172 from spawn — not straight −Z, which
+    // would press the plinth and prove nothing) ends at the fence, not
+    // through it.
+    march(
+      w,
+      gates,
+      baker,
+      { forward: 1, strafe: 0, sprint: true, yaw: -0.172 },
+      400,
+      true,
+      0,
+    );
+    expect(gates.isClosed(0)).toBe(true);
+    expect(baker.position().z).toBeGreaterThan(GATE0_Z + 0.3);
   });
 
   it("a shot sails THROUGH a shut gate: the fence is baker-only physics", () => {

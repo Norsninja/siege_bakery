@@ -130,6 +130,17 @@ export class Baker {
     });
   }
 
+  /** Snap the baker to a new spot — the carry-home law (2026-07-07): the
+   * fresh deal PLACES a baker who isn't in his town at his town's spawn.
+   * A hard set, not a walk: baker position is client-authoritative
+   * (plans/02), so a snap is as legal as any step; vertical velocity
+   * resets so he lands standing, not falling at his old speed. */
+  teleport(pos: { x: number; y: number; z: number }): void {
+    this.body.setTranslation(pos, true);
+    this.body.setNextKinematicTranslation(pos);
+    this.verticalVelocity = 0;
+  }
+
   position(): { x: number; y: number; z: number } {
     const p = this.body.translation();
     return { x: p.x, y: p.y, z: p.z };
