@@ -905,6 +905,40 @@ describe("Room: the match, headless over protocol", () => {
     expect(dave.last("welcome")?.judgment).toBeUndefined();
   });
 
+  it("a mid-banner welcome serves the FROZEN verdict, not a re-judgment (audit 2026-07-07 S-MED-1)", () => {
+    // Machines still fire during the linger and the ledger stays live. The
+    // welcome must serve the verdict the room's banner shows — captured at
+    // the moment the order ended — not re-judge the post-verdict world.
+    const room = new Room();
+    const a = connect(room, "alice");
+    // Wind full tension while the order runs (tension persists), then let
+    // the patience-burned clock kill it — the stale-glob test's recipe.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 6);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    let guard = 0;
+    while (
+      (a.last("order")?.order.status ?? "running") === "running" &&
+      guard++ < (ORDER_SECONDS + 10) * 60
+    )
+      room.tick();
+    const frozen = a.all("order").find((m) => m.judgment)?.judgment;
+    expect(frozen).toBeDefined(); // the ended broadcast carried the verdict
+    // Linger play: a 6-click frost glob lands on the DEAD order's cake.
+    room.onMessage(a.id, { t: "load", topping: "frosting" });
+    run(room, 1);
+    room.onMessage(a.id, { t: "lever" });
+    run(room, 300); // impact ~170 ticks out — lands well inside the linger
+    // Non-vacuous: the linger paint really moved the live re-judgment…
+    const live = (
+      room as unknown as { judgeNow(): { score: number } }
+    ).judgeNow();
+    expect(live.score).not.toBe(frozen!.score);
+    // …and the mid-banner joiner still gets the frozen one, byte-for-byte.
+    const carol = connect(room, "carol");
+    expect(carol.last("welcome")?.judgment).toEqual(frozen);
+  });
+
   it("a glob fired during the linger cannot paint the NEXT order (audit 2026-07-03)", () => {
     const room = new Room();
     const a = connect(room, "alice");

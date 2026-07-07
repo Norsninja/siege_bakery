@@ -42,6 +42,7 @@ import {
 import {
   checkRequirements,
   judge,
+  type Judgment,
   type RequirementCheck,
   type SettledTopping,
 } from "../game/judgment";
@@ -122,6 +123,13 @@ export class Room {
   private readonly roster = new Roster();
   private tickCount = 0;
   private patronSeq = 0;
+  /** THE FROZEN VERDICT (audit 2026-07-07 S-MED-1): the judgment captured
+   * at the moment the order ended — what the room's banner shows. Machines
+   * still fire during the linger and the ledger stays live, so a welcome
+   * that RE-judged would hand a mid-banner joiner a different score than
+   * everyone else is celebrating. Served in the welcome; cleared at the
+   * redeal. */
+  private lingerVerdict: Judgment | null = null;
   /** Mints the per-shot seed S (plans/10): a burst's scatter is drawn from
    * mulberry32(seed) on every replica — the wire carries the seed, never
    * the grains. The stream itself is seeded, so a headless re-run of the
@@ -170,10 +178,11 @@ export class Room {
           coats: s.coats ?? 0,
         })),
       // Mid-banner joiners need the verdict (audit 2026-07-03): without it
-      // a WON order renders as "TIME! the patron goes hungry".
-      ...(this.flow.order.status !== "running"
-        ? { judgment: this.judgeNow() }
-        : {}),
+      // a WON order renders as "TIME! the patron goes hungry". They get
+      // the FROZEN one (audit 2026-07-07 S-MED-1) — re-judging here read
+      // the live ledger + shot count, so linger play could hand the
+      // joiner a verdict the room's banner disagrees with.
+      ...(this.lingerVerdict ? { judgment: this.lingerVerdict } : {}),
     });
     this.roster.broadcast({ t: "join", id, name: settledName }, id);
     return id;
@@ -352,13 +361,15 @@ export class Room {
         order: this.flow.order,
         checks: r.checks,
       });
-    if (r.judgment)
+    if (r.judgment) {
+      this.lingerVerdict = r.judgment; // the WIN path freezes its verdict
       this.roster.broadcast({
         t: "order",
         order: this.flow.order,
         checks: r.checks,
         judgment: r.judgment,
       });
+    }
   }
 
   /** The order lifecycle: patron looks, the clock, linger, re-deal. The
@@ -382,11 +393,12 @@ export class Room {
     for (const event of this.flow.tickClock()) {
       if (event === "ended") {
         // The clock died first: gate 1 fails — the patron goes hungry.
+        this.lingerVerdict = this.judgeNow(); // frozen at this tick
         this.roster.broadcast({
           t: "order",
           order: this.flow.order,
           checks: this.currentChecks(),
-          judgment: this.judgeNow(),
+          judgment: this.lingerVerdict,
         });
       } else {
         // "redeal": the flow dealt fresh — THE FRESH-CAKE LAW (2026-07-05):
@@ -397,6 +409,7 @@ export class Room {
         this.settled = [];
         this.frosting.reset();
         this.shots.clearCakeSolids(this.world);
+        this.lingerVerdict = null; // the fresh deal owes nobody a verdict
         this.roster.broadcast({
           t: "order",
           order: this.flow.order,
