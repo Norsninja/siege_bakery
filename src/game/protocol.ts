@@ -118,9 +118,11 @@ export type ServerMsg =
        * surface records, rendered perched on the frosting; cleared with
        * the fresh cake. */
       stuck: StuckTopping[];
-      /** Present exactly when the order is ENDED (the 10s banner linger):
+      /** Present exactly when the order is ENDED (the ORDER_RESET_TICKS
+       * banner linger — never a literal duration here; it retunes):
        * a joiner/refresher mid-banner needs the verdict or a WON order
-       * renders as the sad gate-1 loss (checkpoint audit 2026-07-03). */
+       * renders as the sad gate-1 loss (checkpoint audit 2026-07-03).
+       * The verdict served is the FROZEN one (audit 2026-07-07 S-MED-1). */
       judgment?: Judgment;
     }
   | { t: "join"; id: number; name: string }
@@ -191,7 +193,9 @@ export interface HeldOp {
   crank: boolean;
 }
 
-export const IDLE_OP: HeldOp = { turn: 0, screw: 0, crank: false };
+// Frozen for the same reason as IDLE_INTENT (catapult.ts): spread it,
+// never write through the shared reference.
+export const IDLE_OP: HeldOp = Object.freeze({ turn: 0, screw: 0, crank: false });
 
 /**
  * Many hands, one machine: merge every player's holds and queued edges into

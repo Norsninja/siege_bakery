@@ -48,12 +48,12 @@ export interface BakerInput {
   yaw: number;
 }
 
-export const IDLE_INPUT: BakerInput = {
+export const IDLE_INPUT: BakerInput = Object.freeze({
   forward: 0,
   strafe: 0,
   sprint: false,
   yaw: 0,
-};
+});
 
 export class Baker {
   readonly body: RAPIER.RigidBody;

@@ -420,25 +420,17 @@ async function main(): Promise<void> {
         input.yaw = y;
         input.pitch = p;
       },
-      // The density review knob (plans/10 §2): mutates the SHARED pantry
-      // table — in loopback the Room reads the same module object, so the
-      // next sprinkle shot bursts at the new count on both sides. LOOPBACK
-      // ONLY (a net game would desync against an unmutated server); the
-      // visionary's eye picks 20/40/80, then the number gets PINNED in
-      // game/toppings.ts and this knob's job is done.
-      setGrainCount: (n: number) => {
-        // LOOPBACK ONLY, enforced not just documented: mutating the shared
-        // pantry table makes the local replica burst N grains while a joined
-        // server still bursts its own — a visual desync. In a networked game
-        // (tickRoom null) this is a no-op.
-        if (!tickRoom) return;
-        const burst = TOPPINGS["sprinkles"]?.burst;
-        if (burst) burst.grains = Math.max(1, Math.round(n));
-      },
+      // setGrainCount lived here 2026-07-03..07-07: the density-review
+      // knob whose own contract said "the number gets PINNED in
+      // game/toppings.ts and this knob's job is done." It is (grains: 40,
+      // confirmed 2026-07-06) — the knob retired with the review (audit
+      // 2026-07-07). A future density review re-adds it from the TUNNEL
+      // commit's parent, loopback-guarded as before.
+      //
       // The fork-2 purchase's dev stand-in (plans/11 §1): activates the
-      // dormant second town. UNLIKE setGrainCount this is safe over the
-      // net — it is an INPUT the Room applies authoritatively, not a
-      // module mutation — which is what the dev-toggle friend test needs.
+      // dormant second town. Safe over the net — it is an INPUT the Room
+      // applies authoritatively, not a module mutation — which is what
+      // the dev-toggle friend test needs.
       unlockTown2: () => transport.send({ t: "unlockTown2" }),
     };
   }

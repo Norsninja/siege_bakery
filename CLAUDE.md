@@ -75,29 +75,28 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-SPINE REVIEWED + GATES/CARRY-HOME BUILT (2026-07-07 evening: WALLS/
-TEST/LINGER commits; 232 tests green, both tsc legs). The towns spine
-(the eight TOWNS n/8 commits) is live per plans/11 stratum A: two-fort
-rotational arena, facingDeg ballistics, clicks→10 toll geometry with
-Option B tables (TOWN_POTENTIAL = measured truth, TOWN_ASK_POTENTIAL =
-authored ask, solo PINNED 0.42), TownRuntime[] behind activeTowns=1
-flipped only by the {t:"unlockTown2"} INPUT, owner-implicit crew +
-pickTown at order boundaries with {t:"town"} acks, town on the wire,
-client two stations + boot behind welcome. NEW LAWS this session
-(visionary amendments): the OPEN FRONT IS RETIRED — each fort's front
-wall is back with a doorway beside the machine (plinth owns the
-centerline; plans/11 §3 "open mouth = sightline" is DEPRECATED — a 1m
-wall never blocked the eye line); during an order YOUR gate is a shut
-baker-only fence (client/gates.ts — shots never see it; latch, not
-threshold), open in the linger; the banner counts the linger down and
-the CARRY-HOME LAW places any baker not in his town at his town's spawn
-when the deal lands (warned first: "YOU ARE NOT IN YOUR TOWN — HURRY").
-depthIntoTown is the one "in your town" truth. A two-Room convergence
-test now covers unlock+pick+town-1 fire. The core law (plans/11 §1)
-stands: default one town, second purchased, the system moves nobody
-mid-play (deal-time carry-home is designed placement, not a move).
-Standing context: conversion law plans/10 §8; direction plans/09;
-economy plans/08. OPEN: friend-test scope (Chronus: dev toggle now
-suffices; awaiting the visionary's word). NEXT: solo two-town
-play-through via __game, then the two-PC friend test, then fork 2
-(shop/purse/turntable). Port map: research/01-port-gap-analysis.md.
+AUDITED + FRIEND-TEST READY (2026-07-07 night: solo two-town
+play-through done via __game; LINGER retune 600→1080 ticks — the
+measured switch run needs ~9.8s, 10s made dawdling optimal, 18s is the
+visionary's "comfortable"; TUNNEL commit — pickWsUrl in client/net.ts,
+built pages auto-join their origin wss-on-https, cloudflared vendored
+at tools/, runbook plans/12; then the HOLISTIC AUDIT research/12 — six
+verified auditors, no CRITICALs, tranche A fixed the two HIGHs
+(dead-link hang; hypot out of the freeze gates — slowerThan is the
+exactness law now), the frozen lingerVerdict, town-ack machine growth,
+engine chunk split; tranche B trued the written record incl. plans/11's
+deprecation notes). 239+ tests green, both tsc legs. The towns spine
+stands as before: two-fort rotational arena behind gated fronts
+(client/gates.ts latch; depthIntoTown the one truth; carry-home at the
+deal), Option B tables (TOWN_POTENTIAL measured 0.55/0.84 ≤9 clicks,
+TOWN_ASK_POTENTIAL authored, solo PINNED 0.42), unlockTown2/pickTown
+INPUTS with acks, convergence-tested. DECIDED (do not re-litigate):
+friend-test scope = dev toggle + cloudflared (plans/12), AMENDED to
+include the DESSERT-REPORT SNAPSHOT (visionary: an in-world camera
+snapshots the dessert at Judgment — plans/09 §1's promoted hook; design
+to be scoped). Standing ledger: audit tranche C (research/12 fix plan)
+post-friend-test; wind has NO owning plan (pennant is static scenery)
+and the Bite/integrity axis re-pins the whole score economy when built
+— both need plans before more pins accrete. NEXT: dessert-report
+snapshot slice, then the two-PC friend test, then tranche C, then fork
+2 (shop/purse/turntable). Port map: research/01-port-gap-analysis.md.

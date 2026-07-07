@@ -6,8 +6,10 @@
  * from wall-clock (server). Everything that steps the sim uses this. */
 export const FIXED_DT = 1 / 60;
 
-/** Standard gravity for every physics world in the game. */
-export const GRAVITY = { x: 0, y: -9.81, z: 0 };
+/** Standard gravity for every physics world in the game. Frozen (audit
+ * 2026-07-07): one stray `GRAVITY.y = 0` would fork every world silently —
+ * shared constants must not be writable. */
+export const GRAVITY = Object.freeze({ x: 0, y: -9.81, z: 0 });
 
 /**
  * Collision groups (Rapier packs them as (membership << 16) | filter; a

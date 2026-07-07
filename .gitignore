@@ -1,4 +1,6 @@
 node_modules/
 dist/
 *.local
-tools/
+# Only the vendored binary — a future checked-in tool script must not
+# silently vanish (audit 2026-07-07).
+tools/cloudflared.exe

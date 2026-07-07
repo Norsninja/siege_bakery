@@ -17,9 +17,18 @@
  * STANDING RE-PIN TOOL (like research/04 §3): splat-constant or census
  * changes re-run this and re-pin the TOWN_POTENTIAL table in game/tuning.ts.
  * Reproducible: `npx tsx project/research/06-coverage-ceiling-study.mts`.
- * Measured 2026-07-03 (the numbers TOWN_POTENTIAL pins): 1 town 43.7%,
- * 2 towns 75.2%, 3 towns 86.7%, 4 towns 94.6% — one town sees only its
- * near hemisphere of a round cake; every region caps near half.
+ *
+ * !! ENVELOPE WARNING (audit 2026-07-07 H-D5): this script's click ladder
+ * is hardcoded 4-8, PRE-BUMP. TENSION_MAX_CLICKS is 10 since plans/11
+ * DECISION 1, and TOWN_POTENTIAL[1]/[2] are pinned 0.55/0.84 from
+ * research/11's ≤9-click sweep. Re-running THIS file as-is re-measures the
+ * old envelope and would re-pin BACKWARDS. Extend the ladder to the shipped
+ * TENSION_MAX_CLICKS before trusting its numbers.
+ *
+ * Measured 2026-07-03 at clicks ≤8 (SUPERSEDED for [1]/[2] — see above):
+ * 1 town 43.7%, 2 towns 75.2%, 3 towns 86.7%, 4 towns 94.6% — one town
+ * sees only its near hemisphere of a round cake; every region caps near
+ * half. [3]/[4] still carry these stale values in tuning.ts, flagged there.
  *
  * NOTE: the constants below MIRROR src/core/frosting.ts on purpose (this
  * study also runs against PROPOSED laws before they ship); after a ship,

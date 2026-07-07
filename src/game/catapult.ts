@@ -177,13 +177,16 @@ export interface MachineIntent {
   load: string | null;
 }
 
-export const IDLE_INTENT: MachineIntent = {
+// Frozen: shared idle constants get spread (`{...IDLE_INTENT}`), never
+// mutated — one careless `merged.turn = 1` on the reference would poison
+// every consumer (audit 2026-07-07).
+export const IDLE_INTENT: MachineIntent = Object.freeze({
   turn: 0,
   screw: 0,
   crank: false,
   pullLever: false,
   load: null,
-};
+});
 
 export interface MachineTickResult {
   state: CatapultState;

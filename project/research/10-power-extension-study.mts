@@ -39,6 +39,8 @@
  *   TOWN_POTENTIAL stays pinned at 0.42 (rung-authored asks, plans/09
  *     §4): the pass never assumes expert lobs; reach 0.557 over a 0.42
  *     denominator is exactly the 2★/3★ climbing territory.
+ *     [POST-SPLIT NOTE 2026-07-07: under Option B that 0.42 is now
+ *     TOWN_ASK_POTENTIAL[1]; TOWN_POTENTIAL[1] is the measured 0.55.]
  *   ARENA DEBT: the greybox ground (±40) ends 8m short of the mirrored
  *     town-2 base (z=-48) — the towns slice must extend it (this study
  *     adds its own strip at z=-60, see the fire loop).

@@ -94,6 +94,14 @@ TOWNS: readonly Town[]   // [0] = today's town; [1] = the 180° rotation
   sourced): mirrored layouts flip left/right and are hard to learn; rotational
   keeps each crew's "left is left." Town 0 plinth at z=−12 rotates to z=−48;
   the cake stays central at z=−30.
+- **[AMENDED 2026-07-07 — the open front is RETIRED.** The visionary's
+  correction: switching towns was always meant to happen only between
+  orders, and a 1m wall never blocked the 1.5m eye line — the sightline
+  rationale below is deprecated. Each fort's front wall is back with a 3m
+  doorway BESIDE the machine (the plinth owns the centerline); during an
+  order YOUR gate is a shut baker-only fence, open in the linger. See
+  arena.ts header, client/gates.ts, and handoff 2026-07-07-gates-carryhome
+  §3. The original text is kept below as the record of what was tried.]
 - **Each enclosure has side + back walls, but its FRONT (facing the cake) is
   OPEN.** The open mouth is load-bearing: it preserves the sightline across
   the firing range to the cake and the far town (§9 Visibility). This
@@ -218,7 +226,11 @@ band** (2026-07-05 §6).
 `TENSION_MAX_CLICKS` stays one `game/catapult.ts` constant, set to 10 for
 everyone. This buffs the one-town game too — solo reach 43.7%→~55.7% — so
 **`TOWN_POTENTIAL[1]` re-pins 0.42→~0.55 now**, and today's live order re-pins
-with it. On a one-town rung click 10 has nothing to overshoot into (inert —
+with it. [AMENDED 2026-07-07 — Option B superseded this sentence: the table
+SPLIT instead. `TOWN_POTENTIAL` = measured truth (0.55/0.84, re-measured at
+≤9 clicks), `TOWN_ASK_POTENTIAL` = the authored ask dealt to orders, solo
+PINNED at 0.42 — the live order did NOT re-pin. See tuning.ts's two-table
+header.] On a one-town rung click 10 has nothing to overshoot into (inert —
 self-mess, honest). The rung/town-scoped alternative was rejected: cleaner on
 paper, needs a per-rung machine-config surface we don't have, for a welcome
 flat buff.
@@ -280,10 +292,12 @@ tasks (visionary, 2026-07-07). The failure mode is "two solo games sharing a
 scorecard" (external design scout); the antidote is making the crews meet
 *continuously on the cake surface*, via three deepening levers:
 
-- **Visibility** (cheapest; some rides the spine for free): open fronts +
-  simultaneous independent machines → **arcs crossing over the cake in real
-  time**, the strongest "we're both doing this now" signal. Later: **color by
-  town on trails AND splats** so the cake visibly fills from two sources.
+- **Visibility** (cheapest; some rides the spine for free): ~~open fronts~~
+  [AMENDED 2026-07-07: gated fronts — the arcs still cross over the wall;
+  see §3's amendment] + simultaneous independent machines → **arcs crossing
+  over the cake in real time**, the strongest "we're both doing this now"
+  signal. Later: **color by town on trails AND splats** so the cake visibly
+  fills from two sources.
 - **Overlap** (the north star for the economy): research/11's **contested band
   — 27.4% of the cake both towns reach at click 9** — is where their work
   literally interacts (burial, co-frosting). **Never let an order cut the cake
@@ -302,10 +316,11 @@ and the art pass — recorded here so those passes serve integration.
 ## 10. The spine build sequence (STRATUM A — ordered, each testable)
 
 1. **`TOWNS` table + mirrored-enclosure arena** (core/arena.ts). Two towns'
-   pantry/plinth/enclosure walls (open front), ground spanning past z=−48, cake
-   central; old z=±13 bounding walls retired. Keep old position exports as
-   aliases. VERIFY BY POSITIONS: a town-1 centered shot lands on the cake,
-   rotation of town 0's.
+   pantry/plinth/enclosure walls (open front — [AMENDED 2026-07-07: built,
+   then the open front was retired for the gated wall; see §3]), ground
+   spanning past z=−48, cake central; old z=±13 bounding walls retired.
+   Keep old position exports as aliases. VERIFY BY POSITIONS: a town-1
+   centered shot lands on the cake, rotation of town 0's.
 2. **`launchVelocity` facing param** (core/ballistics.ts). Add `facingDeg`
    (default 0); update the three direct callers. Ballistics tests + research/11
    keep passing on the default.
@@ -353,10 +368,10 @@ non-negotiable.
 - **Symmetry** (§3): rotational (180°), already what research/11 uses.
 
 **Open — the visionary's call:**
-- **Friend-test scope:** is the dev-toggle two-town mode enough for the FIRST
-  friend test (shop a fast-follow), or must experiencing the *purchase* be part
-  of what the first friend test validates (making the fork-2 shop a friend-test
-  prerequisite)? Not yet decided.
+- **Friend-test scope:** ~~Not yet decided.~~ [RESOLVED 2026-07-07: the
+  dev toggle suffices — the shop is fork 2's. Transport: cloudflared quick
+  tunnel. The runbook is plans/12. AMENDED same session: the dessert-report
+  snapshot (plans/09 §1) joins the friend-test scope — see plans/12.]
 
 **Research provenance (four-agent pass, 2026-07-06):** two internal codebase
 maps (server/game + client) inventoried every single-town assumption with

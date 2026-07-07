@@ -533,8 +533,9 @@ describe("Room: the match, headless over protocol", () => {
     expect(peek.last("welcome")?.machines).toHaveLength(2);
     expect(peek.last("welcome")?.yourTown).toBe(0);
     // Alice fires her fort's 6-click cake shot — the pinned scoring window,
-    // rotated — all inside the linger window (crank 270t + flight ≈ 520t
-    // of the 600t linger).
+    // rotated — all inside the linger window (crank 270t + flight ≈ 520t;
+    // ORDER_RESET_TICKS must stay above ~530 or this squeeze breaks — the
+    // towns convergence test below covers the honest post-deal path).
     room.onMessage(a.id, { t: "load", topping: "cherry" });
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
     run(room, CRANK_TICKS_PER_CLICK * 6);

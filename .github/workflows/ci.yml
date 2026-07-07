@@ -16,5 +16,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test
+      # The FULL gate, same as pre-commit: root tsc + the headless leg
+      # (tsconfig.headless.json — the twice-enforced law) + vitest. A bare
+      # tsc+test here silently dropped the second enforcement (audit
+      # 2026-07-07 H-D7).
+      - run: npm run check

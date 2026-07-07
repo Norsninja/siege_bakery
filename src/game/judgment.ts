@@ -30,11 +30,12 @@ export type Requirement =
   | { kind: "crown"; topping: string }
   /** Frost this fraction of the firing line's POTENTIAL coverage — the
    * one fractional row. A round cake only shows each town its near
-   * hemisphere, so `potential` (game/tuning.ts TOWN_POTENTIAL, measured
-   * by research/06) is the census fraction this table's towns can EVER
-   * reach, and `frac` is the ask as a share of that: the Patron grades
-   * against what was possible — "that's pretty good for one town"
-   * (plans/08). current is the live covered-fraction-of-potential. */
+   * hemisphere, so `potential` is the AUTHORED ask ceiling the deal hands
+   * this row (game/tuning.ts TOWN_ASK_POTENTIAL — Option B, 2026-07-07;
+   * TOWN_POTENTIAL is the MEASURED reference and is never dealt), and
+   * `frac` is the ask as a share of that: the Patron grades against what
+   * was asked — "that's pretty good for one town" (plans/08). current is
+   * the live covered-fraction-of-potential. */
   | { kind: "frost-coverage"; frac: number; potential: number }
   /** Solids that count only where frosting already is — the 2D support-
    * chain rule ("sprinkles sit ON frosting"), re-bodied as a census lookup.

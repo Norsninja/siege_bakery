@@ -69,7 +69,9 @@
  *     mid-wall moats + a thin ±x sliver — decor bands no order should
  *     demand, or turntable/upgrade territory (plans/09 §4) — and
  *     TOWN_POTENTIAL 0.42 stays honest: each town still owns ~0.56
- *     reach over a 0.42 ask, with 0.27 contested.
+ *     reach over a 0.42 ask, with 0.27 contested. [POST-SPLIT NOTE
+ *     2026-07-07: under Option B the 0.42 ask is TOWN_ASK_POTENTIAL[1];
+ *     TOWN_POTENTIAL[1] holds this file's measured 0.55.]
  *
  * NOTE: splat/census constants MIRROR src/core/frosting.ts (law A on the
  * G1 area-honest grid) — keep in step after any splat ship, same as
