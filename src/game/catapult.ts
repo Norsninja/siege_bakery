@@ -23,8 +23,17 @@ export const TRAVERSE_MAX_DEG = 60;
 export const TRAVERSE_DEG_PER_SECOND = 30;
 
 /** Tension ratchets up in discrete clicks — dead reckoning depends on
- * repeatable, countable power settings, not an analog slider. */
-export const TENSION_MAX_CLICKS = 8;
+ * repeatable, countable power settings, not an analog slider.
+ *
+ * 10 since the towns slice (DECISION 1, plans/11 §6): a GLOBAL FLAT power
+ * increase whose purpose is TOLL GEOMETRY, not reach reward — click 9
+ * reaches the shared cake's far hemisphere; click 10 adds ZERO coverage
+ * (research/11) and exists purely as the overshoot/toll shot: centered
+ * and untilted it parks on the OTHER town's plinth. Never purchased,
+ * never per-rung; on a one-town table it is inert self-mess, honest.
+ * The order's ask did NOT rise with it (Option B, 2026-07-07): the
+ * authored ask table in game/tuning.ts held at today's workload. */
+export const TENSION_MAX_CLICKS = 10;
 /** Real seconds of cranking per click — winching is WORK; this pacing is
  * where the "takes real seconds" pressure comes from. Client enforces it. */
 export const CRANK_SECONDS_PER_CLICK = 0.75;

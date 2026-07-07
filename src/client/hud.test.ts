@@ -155,7 +155,7 @@ describe("hudLines", () => {
       }),
     );
     expect(lines[lines.length - 1]).toBe(
-      "machine — traverse -12° · arc +15° ▮▮▯▯ · tension 6/8 · bucket: cherry · hands: lime",
+      "machine — traverse -12° · arc +15° ▮▮▯▯ · tension 6/10 · bucket: cherry · hands: lime",
     );
   });
 

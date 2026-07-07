@@ -158,10 +158,13 @@ const restAng = (grain: boolean): number =>
   grain ? GRAIN_REST_ANG_SPEED : REST_ANG_SPEED;
 
 /** A moving shot within this distance of a frozen solid wakes it (freeze
- * law above). Must beat closest-approach-per-tick: max launch speed today
- * is 16 m/s (ballistics: 4 + 1.5 × 8 clicks) = 0.27m per tick, plus two
- * ball radii = 0.87m closing. RE-CHECK when TENSION_MAX_CLICKS or launch
- * speeds move (the power-extension study will move them). */
+ * law above). Must beat closest-approach-per-tick: max launch speed is
+ * 19 m/s (ballistics: 4 + 1.5 × 10 clicks, the towns-slice bump), ~20.1
+ * m/s closing at ground level after the 2.2m launch-height fall = 0.335m
+ * per tick, plus two ball radii = 0.935m closing — still under 1.0, the
+ * re-check the old comment demanded (done 2026-07-07 with clicks 8→10;
+ * research/11 fired clicks up to 12 through this manager, no tunneling).
+ * RE-CHECK again if TENSION_MAX_CLICKS or launch speeds move. */
 export const WAKE_RADIUS = 1.0;
 
 /** The GRIP gate (conversion law, plans/10 §8): a grain converts only if

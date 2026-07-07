@@ -12,18 +12,27 @@ import {
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   SPRINKLES_NEEDED,
-  TOWN_POTENTIAL,
+  TOWN_ASK_POTENTIAL,
 } from "./tuning";
 
 describe("standardRequirements", () => {
   it("the honest order: frost-of-potential + sprinkles, fresh rows each call", () => {
     const a = standardRequirements();
     expect(a).toEqual([
-      { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_POTENTIAL[1] },
+      // The AUTHORED ask, never the measured ceiling (Option B, 2026-07-07):
+      // 0.42 held — the clicks→10 bump must not raise the live solo order.
+      { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_ASK_POTENTIAL[1] },
       { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
     ]);
     // Orders are mutable; rows must never be shared between deals.
     expect(a[0]).not.toBe(standardRequirements()[0]);
+  });
+
+  it("DECISION PIN (Option B, 2026-07-07): the solo ask HELD at 0.42", () => {
+    // The clicks→10 bump grew measured reach to ~0.55 but the live order's
+    // workload must not silently rise ~31% with it. Moving this number is
+    // a design decision — restate the tuning.ts workload math when you do.
+    expect(TOWN_ASK_POTENTIAL[1]).toBe(0.42);
   });
 });
 

@@ -5,17 +5,25 @@
  * re-pinned, this is the diff; the relationships below are the math the
  * numbers play against. game/ law: imports core/ only.
  *
- * ── Potential coverage (the towns law, plans/08) ──────────────────────
- * The cake is ROUND and a town only ever paints its near hemisphere: with
- * idealized aim over the whole discrete envelope, ONE town's coverage
- * ceiling is ~44% of the census (research/06 — every region caps near
- * half). More towns raise the ceiling; nothing else does. So every
- * coverage ask and tier below is a fraction OF POTENTIAL — "frost half of
- * what your firing line can reach" — and the Patron grades harder the
- * more towns are at the table ("that's pretty good for one town").
- * TOWN_POTENTIAL pins the measured ceilings, a hair UNDER the idealized
- * greedy numbers (43.7 / 75.2 / 86.7 / 94.6) because no real crew aims
- * like a set-cover solver: the top tier must be asymptotic, not imaginary.
+ * ── Potential coverage (the towns law, plans/08 + plans/11 §6) ────────
+ * The cake is ROUND and a town only ever paints its near hemisphere:
+ * more towns raise the reach ceiling; nothing else does. Every coverage
+ * ask and tier below is a fraction OF POTENTIAL — "frost half of what
+ * your firing line can reach" — and the Patron grades harder the more
+ * towns are at the table ("that's pretty good for one town").
+ *
+ * TWO TABLES since the towns slice (Option B, 2026-07-07). The clicks→10
+ * bump (game/catapult.ts) is TOLL GEOMETRY, not a reach reward — but it
+ * really does grow what a line can paint (click 9 reaches the far
+ * hemisphere), so measurement and demand split:
+ *   - TOWN_POTENTIAL — the MEASURED reference table, what a firing line
+ *     can physically reach. Honesty only; NEVER handed to orders.
+ *   - TOWN_ASK_POTENTIAL — the AUTHORED table, what the standing order
+ *     actually demands. The rung/difficulty knob of the future plugs in
+ *     here (plans/09 §4: potential is rung-authored, never runtime-
+ *     measured); today it is one number per active-town count.
+ * Both pinned a hair UNDER measurement because no real crew aims like a
+ * set-cover solver: the top tier must be asymptotic, not imaginary.
  *
  * ── The effective clock ───────────────────────────────────────────────
  * The order NOMINALLY runs ORDER_SECONDS, but patience IS the clock: the
@@ -30,8 +38,8 @@
  * CLICK · clicks, game/catapult.ts) + aim + flight — measured ~12–18s.
  * One small splat paints ~7–12 census samples ≈ 1.3% of the cake
  * (core/frosting.ts constants against the 661-sample census, pinned as
- * WIRE FORMAT in frosting.test.ts). The PASS ask (FROST_FRAC of one
- * town's potential) ≈ 0.50 · 0.42 · 661 ≈ 139 samples ≈ 11–14 idealized
+ * WIRE FORMAT in frosting.test.ts). The PASS ask (FROST_FRAC of the
+ * AUTHORED ask) ≈ 0.50 · 0.42 · 661 ≈ 139 samples ≈ 11–14 idealized
  * shots (research/06 greedy), ~18–22 with human aim — tight for a solo
  * baker on the effective clock, comfortable for two. Solo is hard mode
  * in a co-op party game, ON PURPOSE. 2★/3★ (COVERAGE_GOOD/_EXCELLENT of
@@ -42,7 +50,9 @@
  * Splat-constant or census changes REQUIRE re-running research/04 §3 AND
  * research/06 (the ceiling study), then re-pinning FROST_FRAC /
  * TOWN_POTENTIAL / ORDER_PAR_SHOTS / ORDER_SECONDS together — and the
- * census count pin (661) moves only on purpose.
+ * census count pin (661) moves only on purpose. TOWN_ASK_POTENTIAL is
+ * exempt from mechanical re-pinning: it is AUTHORED — it moves only by
+ * design decision, and any move must restate the workload math above.
  */
 import { FIXED_DT } from "../core/constants";
 
@@ -56,10 +66,27 @@ export const ORDER_RESET_TICKS = 600; // 10s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 
-/** What fraction of the census each firing line can EVER paint, by town
- * count (measured: research/06; pinned a hair under — header note).
- * Index by towns; [0] is a guard (no towns, no reach). */
-export const TOWN_POTENTIAL: readonly number[] = [0, 0.42, 0.73, 0.85, 0.93];
+/** MEASURED: what fraction of the census each firing line can EVER paint,
+ * by town count (pinned a hair under — header note). Index by towns; [0]
+ * is a guard (no towns, no reach). [1]/[2] re-measured at ≤9 clicks after
+ * the clicks→10 bump (research/11's sweep: 55.7% / 84.4%; clicks 10–12
+ * add nothing — 10 is the toll shot). [3]/[4] are STALE PRE-BUMP values
+ * (research/06, ≤8 clicks) — RE-MEASURE before any 3-/4-town work; they
+ * exist only so the table's shape survives. NEVER handed to orders —
+ * that is TOWN_ASK_POTENTIAL's job below. */
+export const TOWN_POTENTIAL: readonly number[] = [0, 0.55, 0.84, 0.85, 0.93];
+
+/** AUTHORED: the potential the standing order actually hands its frost
+ * row, by ACTIVE town count — the deliberate difficulty knob (Option B,
+ * 2026-07-07; plans/11 §6 as amended). [1] HELD at 0.42, today's absolute
+ * solo workload (~139 samples): the clicks→10 bump must not silently make
+ * the live game 31% harder — a crew exploiting click 9 earns slack, which
+ * play may later claw back HERE, one number. [2] starts at 0.75, the
+ * bottom of the sanctioned 0.75–0.84 band: two crews ask ~44% of their
+ * measured reach vs solo's ~38% — a mild, deliberate ratio rise at
+ * purchase, defensible on doubled throughput; a playtest hypothesis like
+ * every number in this file (plans/08). */
+export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
 
 /** The standing order's frost row: the PASS ask, as a fraction of
  * potential (plans/08 — "50% is just passing"; the 2D game asked 50 too,

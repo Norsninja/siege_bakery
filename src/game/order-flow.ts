@@ -28,7 +28,7 @@ import {
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   SPRINKLES_NEEDED,
-  TOWN_POTENTIAL,
+  TOWN_ASK_POTENTIAL,
 } from "./tuning";
 
 /** THE HONEST ORDER (plans/07 phase O) — the decorating truth as a ticket:
@@ -44,11 +44,11 @@ import {
  * rows every deal — orders are mutable, never share row objects. */
 export function standardRequirements(): Requirement[] {
   return [
-    // ONE town today: the frost ask is a fraction of what this firing line
-    // can reach (plans/08). The towns slice replaces this with the RUNG-
-    // AUTHORED potential (plans/09 §4) — the level says what reach the
-    // Patron expects; TOWN_POTENTIAL stays the measured reference table.
-    { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_POTENTIAL[1]! },
+    // The frost ask is AUTHORED (plans/09 §4, Option B 2026-07-07): the
+    // order says what the Patron expects, from the ask table — never the
+    // measured ceiling. Hardcoded [1] until the spine plumbs the active
+    // town count through (plans/11 §10 step 7).
+    { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_ASK_POTENTIAL[1]! },
     { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
   ];
 }
