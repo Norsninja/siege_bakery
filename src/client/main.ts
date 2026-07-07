@@ -153,6 +153,15 @@ async function main(): Promise<void> {
     view.netStatus = "connecting";
     transport = connectWs(wsUrl, handleServerMsg, (s) => {
       view.netStatus = s;
+      // THE DEAD-LINK TRUTH (audit 2026-07-07 C-HIGH-1): before the first
+      // welcome, nothing else repaints — the render loop that words
+      // netStatus starts only after the welcome await. Without this line a
+      // friend clicking an expired tunnel stares at "joining the bakery…"
+      // forever: the same silent-wrong-mode class pickWsUrl killed at the
+      // URL layer, at the connect layer.
+      if (s === "closed" && welcomeSeen && hud)
+        hud.textContent =
+          "could not reach the bakery — the link may have expired; ask the host for a fresh one, then refresh";
     });
   } else {
     const loop = connectLoopback(handleServerMsg);
