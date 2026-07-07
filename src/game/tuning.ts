@@ -61,8 +61,15 @@ export const ORDER_SECONDS = 300;
 /** Shots for full waste credit — a good line's count, not a perfect one:
  * ~20 frost + 2 sprinkles + 1 crown + slack (plans/08 math above). */
 export const ORDER_PAR_SHOTS = 24;
-/** How long a finished order's banner lingers before the fresh deal. */
-export const ORDER_RESET_TICKS = 600; // 10s
+/** How long a finished order's banner lingers before the fresh deal —
+ * ALSO the whole town-switch window (the gates stand open only here).
+ * MEASURED (2026-07-07 solo play-through): a frame-perfect scripted run
+ * town 0 → town 1, pre-staged at the doorway, needs ~9.8s — 10s made the
+ * run humanly impossible and dawdling into the carry-home the only real
+ * switch. 18s covers a human start from anywhere in the fort (reaction +
+ * un-staged + imperfect line ≈ 13–14s) with slack, without dragging the
+ * between-orders beat for non-switchers (visionary's call: comfortable). */
+export const ORDER_RESET_TICKS = 1080; // 18s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 

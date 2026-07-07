@@ -877,7 +877,7 @@ describe("Room: the match, headless over protocol", () => {
     expect(end?.judgment?.stars).toBe(1);
     expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
     // The linger passes; the fresh deal starts honestly unmet.
-    run(room, 700);
+    run(room, ORDER_RESET_TICKS + 100);
     const fresh = a.all("order").find((m) => m.fresh);
     expect(fresh?.order.status).toBe("running");
     expect(fresh?.checks.every((c) => c.current === 0 && !c.met)).toBe(true);
@@ -899,7 +899,7 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.judgment?.met).toBe(false); // the verdict rides the welcome
     expect(w?.judgment?.stars).toBe(0);
     // Once the fresh order deals, welcomes stop carrying a verdict.
-    run(room, 600);
+    run(room, ORDER_RESET_TICKS);
     const dave = connect(room, "dave");
     expect(dave.last("welcome")?.order.status).toBe("running");
     expect(dave.last("welcome")?.judgment).toBeUndefined();
@@ -920,9 +920,11 @@ describe("Room: the match, headless over protocol", () => {
     )
       room.tick();
     expect(a.last("order")?.order.status).toBe("lost");
-    // Deep in the 600-tick linger, fire a frosting glob timed to be IN
-    // FLIGHT when the room deals fresh (6-click impact is ~170 ticks out).
-    run(room, 520);
+    // Deep in the linger, fire a frosting glob timed to be IN FLIGHT when
+    // the room deals fresh (~80 ticks before the redeal; 6-click impact is
+    // ~170 ticks out). Relative to the linger's END so the boundary-
+    // crossing geometry survives any ORDER_RESET_TICKS retune.
+    run(room, ORDER_RESET_TICKS - 80);
     room.onMessage(a.id, { t: "load", topping: "frosting" });
     run(room, 1);
     room.onMessage(a.id, { t: "lever" });
