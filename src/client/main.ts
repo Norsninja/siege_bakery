@@ -43,6 +43,7 @@ import { createMatchView, myMachine, predictClock } from "./state";
 import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
+import { TownGates } from "./gates";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
@@ -62,6 +63,10 @@ async function main(): Promise<void> {
   const physics = new RAPIER.World(GRAVITY);
   physics.timestep = FIXED_DT;
   buildArenaColliders(physics);
+  // The switch-between-orders law's fence (client/gates.ts): baker-only
+  // colliders in the shared world — shots never see them (collision
+  // groups), so the deterministic arcs are untouched.
+  const gates = new TownGates(physics);
 
   // --- The match, as this client knows it (state.ts) ---
   const view = createMatchView();
@@ -240,6 +245,15 @@ async function main(): Promise<void> {
       for (const m of act.send) transport.send(m);
       if (act.flash) flash(act.flash.msg, act.flash.ms);
 
+      // Gate fences first (they shape THIS tick's movement): your fort's
+      // gate shuts while the order runs and you're home; opens with the
+      // linger window — switching towns is a run through the doorway.
+      gates.update(
+        view.order.status === "running",
+        view.yourTown,
+        baker.position(),
+      );
+
       // Hands on the machine = feet planted. Otherwise, normal movement.
       const engaged = machineEngaged(grip, eHeld);
       const move: BakerInput =
@@ -310,6 +324,11 @@ async function main(): Promise<void> {
 
     ghosts.update();
     shotsView.sync();
+    // The portcullis panel shows exactly while its fence is shut — the
+    // fence must never be an invisible wall.
+    gs.gateMeshes.forEach((m, i) => {
+      m.visible = gates.isClosed(i);
+    });
 
     if (hud) {
       hud.textContent = hudLines({

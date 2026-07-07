@@ -16,6 +16,7 @@ import {
   CAKE_Z,
   CAKE_TIERS,
   TOWNS,
+  GATE_HALF_WIDTH,
   GROUND_HALF_X,
   GROUND_HALF_Z,
   GROUND_CENTER_Z,
@@ -230,6 +231,11 @@ export interface GameScene {
   camera: THREE.PerspectiveCamera;
   /** One rig per town, indexed like TOWNS/machines (plans/11 §10 step 8). */
   rigs: MachineRig[];
+  /** One gate panel per town, indexed like TOWNS — visible exactly while
+   * that town's fence is shut (client/gates.ts; main.ts syncs it). The
+   * translucent panel is the greybox portcullis: the fence must never be
+   * an invisible wall. */
+  gateMeshes: THREE.Mesh[];
   /** What's in the baker's hands, rendered at the bottom of the view. */
   heldMesh: THREE.Mesh;
   /** The LOCAL town's interactables — what E can grab. Re-pointed by
@@ -336,6 +342,25 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     });
   }
 
+  // The gate panels — the greybox portcullis. Hidden while a gate stands
+  // open; main.ts shows each exactly while its fence is shut.
+  const gateMeshes: THREE.Mesh[] = TOWNS.map((t) => {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(GATE_HALF_WIDTH * 2, WALL_HEIGHT, 0.1),
+      // Wood-toned, not wall-grey (eye check 2026-07-07): a shut gate must
+      // read as a DOOR in the wall line, or the doorway is never learned.
+      new THREE.MeshStandardMaterial({
+        color: 0x8a5a2e,
+        transparent: true,
+        opacity: 0.75,
+      }),
+    );
+    m.position.set(t.gate.x, WALL_HEIGHT / 2, t.gate.z);
+    m.visible = false;
+    scene.add(m);
+    return m;
+  });
+
   // What's in the baker's hands, rendered at the bottom of the view.
   scene.add(camera); // camera children only render if the camera is in-scene
   const heldMesh = sphere(0.12, 0xffffff, 0.28, -0.22, -0.5, camera);
@@ -346,6 +371,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     scene,
     camera,
     rigs,
+    gateMeshes,
     heldMesh,
     interactables: townInteractables[0]!,
     raycastTargets: [],

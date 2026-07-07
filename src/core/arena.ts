@@ -10,11 +10,16 @@
  * bounded enclosures besieging a giant cake in the no-man's-land between
  * them. Town 1 is the 180° ROTATION of town 0 about the cake axis —
  * research/11's proven transform, a rotation NOT a mirror, so each crew's
- * "left is left". Each enclosure has side + back walls; its FRONT (facing
- * the cake) is OPEN — the sightline across the firing range is load-bearing
- * (plans/11 §9). The greybox enclosure is a placeholder keyed to the town's
- * anchors: a later Blender pass drops town models onto the SAME `TOWNS`
- * coordinates without touching game logic.
+ * "left is left". Each enclosure is FULLY walled; the front wall (facing
+ * the cake) has a GATE opening on the run centerline. (Plans/11 §3's
+ * "open mouth = sightline glue" is DEPRECATED — visionary, 2026-07-07: a
+ * 1m wall never blocked the 1.5m eye line or the arcs; the front came
+ * back for the switch-between-orders law. The gate's FENCE — closed while
+ * an order runs — is client-side baker-only physics, client/gates.ts;
+ * this file only owns the geometry.) The greybox enclosure is a
+ * placeholder keyed to the town's anchors: a later Blender pass drops
+ * town models onto the SAME `TOWNS` coordinates without touching game
+ * logic.
  *
  * core/ law: deterministic, may import Rapier, no DOM, no three.js.
  */
@@ -73,14 +78,40 @@ function rotateWall(w: WallDef): WallDef {
   return { ...w, x: -w.x, z: 2 * CAKE_Z - w.z };
 }
 
-/** Town 0's enclosure: side walls + back wall, OPEN front toward the cake.
- * Same footprint as the original single-town arena minus its front wall
- * (z=−13) — retired by the towns slice so shots and sightlines cross the
- * range unobstructed. */
+/** The gate opening in each town's front wall: half-width of the gap the
+ * crew runs through when switching towns between orders. Wide enough for
+ * the 0.35-radius baker with room to spare, narrow enough that the front
+ * reads as a wall with a doorway, not a missing wall. */
+export const GATE_HALF_WIDTH = 1.5;
+/** The doorway sits BESIDE the machine (local +x), never behind it: the
+ * plinth (x −1..1, z −13..−11) owns the wall's center — a centerline gate
+ * would open onto the machine's back (measured: the first gate build put
+ * it there and the plinth, not the fence, blocked every crossing). The
+ * 180° rotation carries the gate to each fort's SAME local side. */
+const GATE_X = 4;
+
+/** Town 0's enclosure: side walls + back wall + a GATED front wall toward
+ * the cake (the original single-town footprint, front restored 2026-07-07
+ * with a doorway — the towns slice had retired it whole; see header). */
 const TOWN0_WALLS: readonly WallDef[] = [
   { hx: 0.25, hy: WALL_HEIGHT / 2, hz: ARENA_HALF_LENGTH, x: -ARENA_HALF_WIDTH, z: 0 },
   { hx: 0.25, hy: WALL_HEIGHT / 2, hz: ARENA_HALF_LENGTH, x: ARENA_HALF_WIDTH, z: 0 },
   { hx: ARENA_HALF_WIDTH, hy: WALL_HEIGHT / 2, hz: 0.25, x: 0, z: ARENA_HALF_LENGTH },
+  // The front wall's two unequal flanks; the gap between them is the gate.
+  {
+    hx: (GATE_X - GATE_HALF_WIDTH + ARENA_HALF_WIDTH) / 2,
+    hy: WALL_HEIGHT / 2,
+    hz: 0.25,
+    x: (GATE_X - GATE_HALF_WIDTH - ARENA_HALF_WIDTH) / 2,
+    z: -ARENA_HALF_LENGTH,
+  },
+  {
+    hx: (ARENA_HALF_WIDTH - GATE_X - GATE_HALF_WIDTH) / 2,
+    hy: WALL_HEIGHT / 2,
+    hz: 0.25,
+    x: (GATE_X + GATE_HALF_WIDTH + ARENA_HALF_WIDTH) / 2,
+    z: -ARENA_HALF_LENGTH,
+  },
 ];
 
 /** One fort: the anchors a crew's whole world hangs on. The sim never
@@ -95,7 +126,10 @@ export interface Town {
   /** Machine facing, degrees: 0 fires −Z (town 0's throw toward the cake);
    * 180 fires +Z (town 1's). Composes with traverse — both Y-rotations. */
   facingDeg: number;
-  /** Side + back walls; the front (facing the cake) is OPEN. */
+  /** Center of the gate opening in the front wall (ground plane). The
+   * fort interior lies on the pantry's side of this point. */
+  gate: { x: number; z: number };
+  /** Side + back + gated-front walls (the gate gap has no wall). */
   walls: readonly WallDef[];
 }
 
@@ -105,6 +139,7 @@ const TOWN0: Town = {
   plinth: { x: 0, y: 0.5, z: -CROSS_HALF },
   spawn: { x: 0, y: 1.2, z: CROSS_HALF - 2 },
   facingDeg: 0,
+  gate: { x: GATE_X, z: -ARENA_HALF_LENGTH },
   walls: TOWN0_WALLS,
 };
 
@@ -121,6 +156,7 @@ export const TOWNS: readonly Town[] = [
     plinth: rotateAboutCake(TOWN0.plinth),
     spawn: rotateAboutCake(TOWN0.spawn),
     facingDeg: 180,
+    gate: { x: -TOWN0.gate.x, z: 2 * CAKE_Z - TOWN0.gate.z },
     walls: TOWN0_WALLS.map(rotateWall),
   },
 ];

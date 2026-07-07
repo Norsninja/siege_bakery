@@ -36,3 +36,9 @@ export const SHOT_COLLISION_GROUPS =
  * needs no pile physics, and skipping it also skips the n² contact bill). */
 export const GRAIN_COLLISION_GROUPS =
   (GROUP_GRAIN << 16) | (GROUP_WORLD | GROUP_SHOT);
+/** Town gates (the switch-between-orders law, 2026-07-07): a gate fence is
+ * WORLD to bakers and NOTHING to shots/grains — membership WORLD (bakers
+ * filter it), filter BAKER only (a shot's side of the product is zero, so
+ * the deterministic arcs never know the fence exists; the shared shot
+ * world stays byte-identical on every replica whatever the gate does). */
+export const GATE_COLLISION_GROUPS = (GROUP_WORLD << 16) | GROUP_BAKER;
