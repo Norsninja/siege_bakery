@@ -42,13 +42,17 @@ import {
  * sprinkles, clock, par) live in game/tuning.ts — the dashboard — with
  * the re-pin law and the economy math; the row SHAPES live here. Fresh
  * rows every deal — orders are mutable, never share row objects. */
-export function standardRequirements(): Requirement[] {
+export function standardRequirements(activeTowns = 1): Requirement[] {
+  // The frost ask is AUTHORED (plans/09 §4, Option B 2026-07-07): the
+  // order says what the Patron expects — the ask table at the ACTIVE
+  // town count, never the measured ceiling. "Scoring rises to the
+  // two-town ask ONLY on purchase" (§1) is exactly this lookup: one
+  // town asks one town's number, forever. Clamped to the table's top
+  // so a future third fort fails loud in a test, not undefined here.
+  const ask =
+    TOWN_ASK_POTENTIAL[Math.min(activeTowns, TOWN_ASK_POTENTIAL.length - 1)]!;
   return [
-    // The frost ask is AUTHORED (plans/09 §4, Option B 2026-07-07): the
-    // order says what the Patron expects, from the ask table — never the
-    // measured ceiling. Hardcoded [1] until the spine plumbs the active
-    // town count through (plans/11 §10 step 7).
-    { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_ASK_POTENTIAL[1]! },
+    { kind: "frost-coverage", frac: FROST_FRAC, potential: ask },
     { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
   ];
 }
@@ -66,6 +70,10 @@ export class OrderFlow {
    * amendments back here — one owner of the object, many writers of the
    * reference, same as the pre-decomp field. */
   order: OrderState;
+  /** How many towns the NEXT deal is priced for (plans/11 §6). The Room
+   * writes it when the second town activates; the RUNNING order keeps the
+   * rows it was dealt — the ask rises at the next deal, never mid-order. */
+  activeTowns = 1;
   /** The deal generation. Shots spawn tagged with it; a delivery whose tag
    * is stale scores NOTHING (audit AUD-4) — a glob fired against one order
    * can't paint the next one's fresh cake. */
@@ -86,7 +94,7 @@ export class OrderFlow {
   }
 
   private freshOrder(): OrderState {
-    return createOrder(standardRequirements(), ORDER_SECONDS * 60, {
+    return createOrder(standardRequirements(this.activeTowns), ORDER_SECONDS * 60, {
       parShots: ORDER_PAR_SHOTS,
     });
   }

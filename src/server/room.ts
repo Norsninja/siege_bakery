@@ -194,6 +194,10 @@ export class Room {
       // a headless replica fed the same messages grows the same array at
       // the same tick (determinism law — no out-of-band mutation).
       if (this.towns.length < TOWNS.length) this.towns.push(freshTown());
+      // The ask follows at the NEXT deal (plans/11 §6): the running
+      // order keeps the rows it was dealt; scoring rises to the
+      // two-town ask only from the next fresh cake on.
+      this.flow.activeTowns = this.towns.length;
       return;
     }
     if (msg.t === "pickTown") {

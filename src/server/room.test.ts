@@ -487,6 +487,26 @@ describe("Room: the match, headless over protocol", () => {
     expect(cherry!.pos.z).toBeLessThan(-30); // beyond the cake axis
   });
 
+  it("scoring rises to the two-town ask at the NEXT deal, never mid-order (plans/11 §6)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    // Unlock MID-ORDER: the running order keeps the rows it was dealt.
+    room.onMessage(a.id, { t: "unlockTown2" });
+    run(room, 60); // a clock correction carries the (unchanged) order
+    const running = a.last("order") ?? a.last("welcome");
+    const frostRow = (o: { requirements: Array<{ kind: string; potential?: number }> }) =>
+      o.requirements.find((r) => r.kind === "frost-coverage");
+    expect(frostRow(running!.order)?.potential).toBe(0.42);
+    // Run the order out and through the linger to the fresh deal.
+    run(room, (ORDER_SECONDS + 20) * 60);
+    const msgs = a.all("order");
+    const fresh = msgs
+      .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
+      .find((m) => m.order.status === "running");
+    // The fresh cake is priced for two towns — you bought reach AND ask.
+    expect(frostRow(fresh!.order)?.potential).toBe(0.75);
+  });
+
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
     const room = new Room();
     const a = connect(room, "alice");

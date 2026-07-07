@@ -34,6 +34,19 @@ describe("standardRequirements", () => {
     // a design decision — restate the tuning.ts workload math when you do.
     expect(TOWN_ASK_POTENTIAL[1]).toBe(0.42);
   });
+
+  it("the ask is priced by ACTIVE town count — one town's number forever unless you buy (plans/11 §6)", () => {
+    const one = standardRequirements(1);
+    const two = standardRequirements(2);
+    expect(one[0]).toMatchObject({ kind: "frost-coverage", potential: 0.42 });
+    expect(two[0]).toMatchObject({ kind: "frost-coverage", potential: 0.75 });
+    // The default is the one-town game, exactly (callers that don't know
+    // about towns keep dealing today's order).
+    expect(standardRequirements()).toEqual(one);
+    // A town count past the authored table clamps to its top instead of
+    // dealing `potential: undefined` — fails loud here when fort 3 lands.
+    expect(standardRequirements(7)[0]).toMatchObject({ potential: 0.75 });
+  });
 });
 
 describe("OrderFlow", () => {
