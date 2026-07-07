@@ -17,6 +17,14 @@ import { freshTownMachine, type MatchView } from "./state";
 
 export type ShotMsg = Extract<ServerMsg, { t: "shot" }>;
 
+/** Grow view.machines to include `town` — placeholder rigs are honest
+ * until their next 15Hz broadcast. THE ONE grow rule (audit 2026-07-07
+ * C-MED-2): both the machine broadcast and the town ack must uphold
+ * myMachine's invariant that yourTown always indexes machines. */
+function growMachines(view: MatchView, town: number): void {
+  while (view.machines.length <= town) view.machines.push(freshTownMachine());
+}
+
 export interface NetFx {
   /** Simulate the lob locally — deterministic ballistics land identically
    * everywhere (sync-shots-not-surfaces). */
@@ -81,8 +89,7 @@ export function applyServerMsg(
       // Indexed by town. Grow to fit: a town-1 broadcast can precede any
       // two-town welcome (the unlock happened after we joined) — a
       // placeholder rig state is honest until its next broadcast.
-      while (view.machines.length <= msg.town)
-        view.machines.push(freshTownMachine());
+      growMachines(view, msg.town);
       view.machines[msg.town] = {
         machine: msg.state,
         crankTicks: msg.crankTicks,
@@ -93,6 +100,10 @@ export function applyServerMsg(
       // An honored pick. Mine re-targets HUD/controls; assignment is
       // server truth — never assumed at send time (plans/11 §5).
       if (msg.id === view.myId) {
+        // Grow BEFORE re-targeting (audit 2026-07-07 C-MED-2): the ack can
+        // beat the new town's first machine broadcast by up to 4 ticks,
+        // and myMachine must never read a foreign fort's rig meanwhile.
+        growMachines(view, msg.town);
         view.yourTown = msg.town;
         fx.bindTown(msg.town);
         fx.flash(`you now crew town ${msg.town + 1} — run to your machine!`, 5000);

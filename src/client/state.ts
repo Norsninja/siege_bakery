@@ -37,7 +37,10 @@ export function freshTownMachine(): TownMachine {
 
 /** MY town's machine — what the HUD and the interaction rules read. The
  * fallback can only fire in the gap before `welcome` (view defaults are
- * self-consistent), never after: yourTown always indexes machines then. */
+ * self-consistent), never after: every writer that moves yourTown or
+ * lands a machine grows machines[] first (net-handlers growMachines —
+ * the town ack included, audit 2026-07-07 C-MED-2), so yourTown always
+ * indexes machines once welcomed. */
 export function myMachine(view: MatchView): TownMachine {
   return view.machines[view.yourTown] ?? view.machines[0]!;
 }

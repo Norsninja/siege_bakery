@@ -161,6 +161,18 @@ describe("applyServerMsg", () => {
     expect(h.flashes.some((f) => f.includes("town 2"))).toBe(true);
   });
 
+  it("a town ack GROWS machines[] — myMachine never reads a foreign fort in the pre-broadcast window (audit 2026-07-07 C-MED-2)", () => {
+    // The ack can beat the new town's first 15Hz machine broadcast by up
+    // to 4 ticks; in that window myMachine used to fall back to town 0 —
+    // HUD, prompts, and the load gate all reading the WRONG rig.
+    const h = harness();
+    h.view.myId = 7;
+    expect(h.view.machines).toHaveLength(1); // one-town view, pre-unlock
+    applyServerMsg(h.view, { t: "town", id: 7, town: 1 }, h.fx);
+    expect(h.view.machines).toHaveLength(2);
+    expect(myMachine(h.view)).toBe(h.view.machines[1]); // not the fallback
+  });
+
   it("scored: the flash names progress, on-cake-but-useless, or the miss", () => {
     const h = harness();
     h.view.checks = [check(0)];
