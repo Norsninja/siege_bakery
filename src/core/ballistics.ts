@@ -42,14 +42,21 @@ export function launchSpeed(tensionClicks: number): number {
  * tiltDeg is the frame tilt from the elevation screw; total elevation =
  * 55° + tilt. Past 90° the cosine goes negative and the machine gently
  * throws BACKWARDS over its own crew — mistakes execute.
+ *
+ * facingDeg is the TOWN's facing (TOWNS[n].facingDeg, plans/11 §4): which
+ * way this machine's traverse-0 points. Facing and traverse are both
+ * Y-rotations, so they simply add — town 1 (facing 180) fires +Z toward
+ * the shared cake, and its crew's "left is left" (rotational symmetry).
+ * Default 0 = town 0 = every pre-towns caller, unchanged.
  */
 export function launchVelocity(
   traverseDeg: number,
   tensionClicks: number,
   tiltDeg = 0,
+  facingDeg = 0,
 ): Vec3 {
   const speed = launchSpeed(tensionClicks);
-  const yaw = (traverseDeg * Math.PI) / 180;
+  const yaw = ((traverseDeg + facingDeg) * Math.PI) / 180;
   const el = ((LAUNCH_ELEVATION_DEG + tiltDeg) * Math.PI) / 180;
   const horizontal = speed * Math.cos(el);
   return {
@@ -63,6 +70,10 @@ export function launchVelocity(
  * Where the topping leaves the machine: above the arm, nudged toward the
  * throw so the projectile clears the machine's own greybox. base is the
  * machine's floor point (top of the plinth).
+ *
+ * Town-agnostic BY COMPOSITION: a town's machine passes its full yaw —
+ * `traverseDeg + facingDeg` — so the nudge points at the actual throw
+ * (a town-1 origin nudged by raw traverse alone would back INTO the arm).
  */
 export function launchOrigin(base: Vec3, traverseDeg: number): Vec3 {
   const yaw = (traverseDeg * Math.PI) / 180;

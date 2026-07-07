@@ -63,6 +63,31 @@ describe("launch math (pure)", () => {
     expect(v.x).toBeLessThan(0);
     expect(v.z).toBeLessThan(0);
   });
+
+  it("facing 180 (town 1) fires +Z; default facing = legacy exactly", () => {
+    const v0 = launchVelocity(0, 6);
+    expect(launchVelocity(0, 6, 0, 0)).toEqual(v0); // default = legacy
+    const v1 = launchVelocity(0, 6, 0, 180);
+    expect(v1.z).toBeCloseTo(-v0.z, 10); // rotated throw
+    expect(v1.x).toBeCloseTo(0, 10);
+    expect(v1.y).toBeCloseTo(v0.y, 10); // arc unchanged by facing
+  });
+
+  it("facing composes with traverse: town-1 left is the ROTATION of town-0 left", () => {
+    // Rotational (not mirrored) symmetry, plans/11 §3: the same +30
+    // traverse from a 180-facing machine is the 180° rotation of the
+    // town-0 shot — (x,z) → (−x,−z) in velocity space.
+    const v0 = launchVelocity(30, 4);
+    const v1 = launchVelocity(30, 4, 0, 180);
+    expect(v1.x).toBeCloseTo(-v0.x, 10);
+    expect(v1.z).toBeCloseTo(-v0.z, 10);
+    expect(v1.y).toBeCloseTo(v0.y, 10);
+    // Facing ADDS, never subtracts — at 180 the two are congruent mod 360,
+    // so pin the sign with a 90° facing: traverse 0, facing 90 throws −X.
+    const east = launchVelocity(0, 4, 0, 90);
+    expect(east.x).toBeLessThan(0);
+    expect(east.z).toBeCloseTo(0, 10);
+  });
 });
 
 // The REAL arena (core/arena.ts) — no duplicated geometry. The shots fly
