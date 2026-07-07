@@ -303,7 +303,14 @@ edges and the written record's last two commits. Two HIGHs total, both
 small fixes: the silent pre-welcome hang (friend-test critical path) and
 the hypot exactness-law violation (matters the day Safari joins).
 
-## Fix plan (proposed tranches — for the visionary's word)
+## Fix plan (tranches A+B APPROVED and LANDED 2026-07-07 — commits
+AUD-A1..A5 55e91e6/4bf4c43/cd56134/d9a69bb/5a88d7c + AUD-B b58c081;
+239 green. Tranche C deferred post-friend-test by the visionary's word.
+Design answers: D1 dessert report JOINS the friend test as an in-world
+snapshot camera (visionary amendment — plans/11 §11 note); D2 integrity
+re-pin obligation recorded in CLAUDE.md for the future Bite plan; D3
+wind revisit agreed — needs an owning plan, pennant is static scenery
+today.)
 
 **TRANCHE A — before the friend test (all S, one session):**
 A1 C-HIGH-1 pre-welcome closed-status wording (the lying "joining…" hang)
