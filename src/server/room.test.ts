@@ -6,7 +6,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
-import { ORDER_SECONDS, PATRON_LOOK_EVERY } from "../game/tuning";
+import {
+  ORDER_RESET_TICKS,
+  ORDER_SECONDS,
+  PATRON_LOOK_EVERY,
+} from "../game/tuning";
 import { CRANK_TICKS_PER_CLICK, SCREW_TICKS_PER_NOTCH } from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 
@@ -331,6 +335,71 @@ describe("Room: the match, headless over protocol", () => {
     // ...and it actually exercised the machinery, not two empty cakes.
     expect(wA?.frosting.some((c) => c > 0)).toBe(true);
     expect((wA?.stuck.length ?? 0)).toBeGreaterThan(0);
+  });
+
+  it("two Rooms, identical inputs INCLUDING unlock+pick, converge — the towns spine rides the message stream", () => {
+    // The towns extension of the convergence law: unlockTown2 and pickTown
+    // are INPUTS (they ride onMessage), so two replicas fed the same script
+    // must grow the same towns array, honor the same pick, and replay the
+    // same town-1 shot onto the same shared cake. This is the claim the
+    // spine's "input-stream = replayable = convergence-safe" comment makes;
+    // an out-of-band mutation, per-town Map-order dependence in the intent
+    // merge, or a facing seam in the spawn path would split the welcomes.
+    const play = () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      room.onMessage(a.id, { t: "unlockTown2" }); // mid-first-order purchase
+      // The patron burns the first order out — deterministically.
+      let elapsed = 0;
+      const cap = (ORDER_SECONDS + 60) * 60;
+      while (elapsed < cap) {
+        room.tick();
+        elapsed++;
+        const om = a.last("order");
+        if (om && om.order.status !== "running") break;
+      }
+      room.onMessage(a.id, { t: "pickTown", town: 1 }); // linger window: honored
+      run(room, ORDER_RESET_TICKS + 5); // through the linger to the fresh deal
+      // Fire town 1's 6-click frost at the RUNNING two-town order — the
+      // real play situation, no linger-timing dependence.
+      room.onMessage(a.id, { t: "load", topping: "frosting" });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600);
+      return {
+        elapsed,
+        shot: a.last("shot"),
+        town: a.last("town"),
+        w: connect(room, "peek").last("welcome"),
+      };
+    };
+    const A = play();
+    const B = play();
+    // The first order died on the same tick in both rooms...
+    expect(A.elapsed).toBe(B.elapsed);
+    // ...the pick was honored identically...
+    expect(A.town).toEqual(B.town);
+    expect(A.town?.town).toBe(1);
+    // ...the town-1 shot event matches to the byte (town, params, seed)...
+    expect(A.shot).toEqual(B.shot);
+    expect(A.shot?.town).toBe(1);
+    // ...and a late joiner's whole world matches byte-for-byte.
+    expect(A.w?.machines).toEqual(B.w?.machines);
+    expect(A.w?.frosting).toEqual(B.w?.frosting);
+    expect(A.w?.toppings).toEqual(B.w?.toppings);
+    expect(A.w?.stuck).toEqual(B.w?.stuck);
+    expect(A.w?.checks).toEqual(B.w?.checks);
+    // Non-vacuous: both towns are live, the fresh deal is priced for two,
+    // and the town-1 frost really painted the shared cake.
+    expect(A.w?.machines).toHaveLength(2);
+    expect(A.w?.yourTown).toBe(0); // joiners always start home
+    const frost = A.w?.order.requirements.find(
+      (r) => r.kind === "frost-coverage",
+    ) as { potential?: number } | undefined;
+    expect(frost?.potential).toBe(0.75);
+    expect(A.w?.frosting.some((c) => c > 0)).toBe(true);
   });
 
   it("the second town is DORMANT until the unlockTown2 INPUT — idempotent, capped, town 0 untouched (plans/11 §1)", () => {
