@@ -48,7 +48,7 @@ export const TOPPINGS: Record<string, ToppingDef> = {
     crowns: false, // garnish — a wild grain atop the summit is not a crown
     burst: {
       proximityM: 1.25, // the fuse: pop this close to the tier stack
-      grains: 40, // THE density knob — the visionary's eye picks (plans/10)
+      grains: 40, // THE density knob — CONFIRMED by eye, density review 2026-07-06 (plans/10)
       jitterSpeed: 2,
       scatterRadius: 0.35,
       grain: { radius: 0.045, halfHeight: 0.055, restitution: 0.3 },

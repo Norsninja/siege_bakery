@@ -79,11 +79,14 @@ export const COVERAGE_EXCELLENT = 0.9;
  * cannot be shoved. 60 = two good bursts with slack: the SAME two-shot
  * economy the old "2 × sprinkles" asked — the slack now covers aim, not
  * physics leakage, and BURIAL is the loss mode instead (frosting over
- * your sprinkle work un-counts it). RE-PINS WITH THE DENSITY PICK (his
- * eye chooses 20/40/80 grains in-preview; the ask scales with the count —
- * keep ask ≈ 1.5 × grains; with grip at 100% he may want it higher).
- * (The Patron's nag tightens it +1 — a comedy crumb now: one more
- * grain.) */
+ * your sprinkle work un-counts it). DENSITY REVIEW 2026-07-06 — CLOSED:
+ * 40 grains confirmed by the visionary's eye (the 20/40/80 sweep put the
+ * sweet spot at the middle), ask HELD at 60. At 100% grip 60 is ~1.5 clean
+ * bursts (two land ~80), and the ~20-grain slack now sizes a two-burst task
+ * against AIM + BURIAL loss only. The handoff's "may want raising" was
+ * rejected: the eye says the amount reads right in play — no signal it is
+ * too easy, so no speculative tightening. (The Patron's nag tightens it +1
+ * — a comedy crumb now: one more grain.) */
 export const SPRINKLES_NEEDED = 60;
 
 /** Patience burns, seconds of clock per Patron look (patron.ts rules).
