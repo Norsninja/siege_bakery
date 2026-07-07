@@ -47,7 +47,7 @@ import {
 } from "../game/judgment";
 import { evaluateOrder } from "../game/order";
 import { OrderFlow, standardRequirements } from "../game/order-flow";
-import { mergeIntents, type ClientMsg, type ServerMsg } from "../game/protocol";
+import type { ClientMsg, ServerMsg } from "../game/protocol";
 import { Roster } from "./roster";
 
 // Re-export: the standing order's shape moved to game/order-flow.ts with
@@ -196,6 +196,16 @@ export class Room {
       if (this.towns.length < TOWNS.length) this.towns.push(freshTown());
       return;
     }
+    if (msg.t === "pickTown") {
+      // The split mechanism (plans/11 §5): changeable ONLY while the order
+      // is not running — a running order locks the crew (you committed).
+      // The gate is MATCH truth so it lives here; the field validation
+      // (integer, active town) is the Roster's. Deterministic, no RNG:
+      // the system never assigns, the player always chooses.
+      if (this.flow.order.status === "running") return;
+      this.roster.setTown(id, msg.town, this.towns.length);
+      return;
+    }
     this.roster.handleMessage(id, msg);
   }
 
@@ -214,14 +224,9 @@ export class Room {
   private tickMachinePhase(): void {
     for (let i = 0; i < this.towns.length; i++) {
       const town = this.towns[i]!;
-      // Crew intent is town 0's merged roster until the owner-implicit
-      // assignment step (plans/11 §10 step 5) filters by member.town;
-      // an activated town 1 idles until then — it cannot fire, so the
-      // still-townless shot wire cannot carry a wrong-origin replay.
-      const intent =
-        i === 0
-          ? this.roster.machineIntent(town.machine.loaded === null)
-          : mergeIntents([], 0, []);
+      // Owner-implicit: this machine is driven by exactly the members
+      // ASSIGNED to town i (plans/11 §4). A crewless town idles.
+      const intent = this.roster.machineIntent(i, town.machine.loaded === null);
       const r = tickMachine(town.machine, town.crankTicks, intent, town.screwTicks);
       town.machine = r.state;
       town.crankTicks = r.crankTicks;

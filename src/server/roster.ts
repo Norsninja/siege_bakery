@@ -46,6 +46,12 @@ interface Member {
   held: HeldOp;
   leverPulls: number;
   loads: string[];
+  /** Which town this member crews (plans/11 §4-5): ASSIGNED state, not
+   * proximity — set only by explicit pickTown (Room-gated to order
+   * boundaries), default 0, never moved by the system. Input routing is
+   * OWNER-IMPLICIT: op/lever/load drive the machine of THIS town; the
+   * wire never carries a town on inputs and the server never trusts one. */
+  town: number;
 }
 
 export class Roster {
@@ -73,8 +79,25 @@ export class Roster {
       held: { ...IDLE_OP },
       leverPulls: 0,
       loads: [],
+      town: 0, // everyone starts home; moving is always a choice (§1)
     });
     return { id, name: this.members.get(id)!.name };
+  }
+
+  /** The pickTown mechanism's field half (plans/11 §5). The Room owns the
+   * ORDER gate (locked while running — match truth lives there); this owns
+   * the FIELD truth: an integer, an ACTIVE town (a dormant fort cannot be
+   * crewed), else ignored whole like any malformed wire input. */
+  setTown(id: number, town: number, activeTowns: number): void {
+    const m = this.members.get(id);
+    if (!m) return;
+    if (!Number.isInteger(town) || town < 0 || town >= activeTowns) return;
+    m.town = town;
+  }
+
+  /** A member's current town, for shot attribution and yourTown. */
+  townOf(id: number): number {
+    return this.members.get(id)?.town ?? 0;
   }
 
   /** Remove a client; returns whether it was present. */
@@ -140,17 +163,23 @@ export class Roster {
     }
   }
 
-  /** Merge every hand on the machine into one intent; consume the edges.
+  /** Merge every hand on ONE TOWN's machine into one intent; consume the
+   * edges. OWNER-IMPLICIT routing (plans/11 §4): only members ASSIGNED to
+   * `town` drive it — which structurally fixes the old merge-everyone
+   * behavior (it survives as the town-0 case with everyone home). Lever
+   * pulls and load queues of other towns' members are left untouched for
+   * their own town's pass this tick.
    * Loads are edges, but a full bucket REJECTS — it must not DESTROY
    * (checkpoint audit M10): two bakers loading in the same window used to
    * silently evaporate the loser's topping. Queued loads stay queued
    * (≤2/member, handleMessage) until the bucket actually accepts one, so
    * the loser's topping enters the moment the machine fires. One candidate
    * per tick; first-joined member breaks ties (Map order — deterministic). */
-  machineIntent(bucketFree: boolean): MachineIntent {
+  machineIntent(town: number, bucketFree: boolean): MachineIntent {
     const held: HeldOp[] = [];
     let leverPulls = 0;
     for (const m of this.members.values()) {
+      if (m.town !== town) continue;
       held.push(m.held);
       leverPulls += m.leverPulls;
       m.leverPulls = 0;
@@ -158,6 +187,7 @@ export class Roster {
     let loader: Member | null = null;
     let load: string | null = null;
     for (const m of this.members.values()) {
+      if (m.town !== town) continue;
       if (m.loads.length > 0) {
         loader = m;
         load = m.loads[0]!;

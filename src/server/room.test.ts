@@ -361,6 +361,87 @@ describe("Room: the match, headless over protocol", () => {
     expect(towns()[1]!.machine.tensionClicks).toBe(0);
   });
 
+  it("pickTown: LOCKED while running, open at order end, dormant forts unpickable, junk ignored (plans/11 §5)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const townOf = (): number =>
+      (room as unknown as { roster: { townOf(id: number): number } }).roster.townOf(a.id);
+    room.onMessage(a.id, { t: "unlockTown2" });
+    // A running order locks the crew — you committed.
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    expect(townOf()).toBe(0);
+    // Run the clock out (the Giant burns it early; generous ceiling).
+    let elapsed = 0;
+    const cap = (ORDER_SECONDS + 60) * 60;
+    while (elapsed < cap) {
+      room.tick();
+      elapsed++;
+      const om = a.last("order");
+      if (om && om.order.status !== "running") break;
+    }
+    expect(a.last("order")?.order.status).not.toBe("running");
+    // The window is open. Junk is ignored whole, like any wire input —
+    // and that includes a REAL town index the fort count doesn't reach.
+    room.onMessage(a.id, { t: "pickTown", town: 5 });
+    room.onMessage(a.id, { t: "pickTown", town: -1 });
+    room.onMessage(a.id, { t: "pickTown", town: 0.5 });
+    expect(townOf()).toBe(0);
+    // The honest pick is honored; picking home again is honored too.
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    expect(townOf()).toBe(1);
+    room.onMessage(a.id, { t: "pickTown", town: 0 });
+    expect(townOf()).toBe(0);
+  });
+
+  it("a DORMANT town cannot be crewed: pickTown 1 before unlock is refused", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const townOf = (): number =>
+      (room as unknown as { roster: { townOf(id: number): number } }).roster.townOf(a.id);
+    // Reach the open window WITHOUT unlocking.
+    let elapsed = 0;
+    const cap = (ORDER_SECONDS + 60) * 60;
+    while (elapsed < cap) {
+      room.tick();
+      elapsed++;
+      const om = a.last("order");
+      if (om && om.order.status !== "running") break;
+    }
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    expect(townOf()).toBe(0); // the fort exists as scenery; the CREW slot doesn't
+  });
+
+  it("owner-implicit routing: two crews, two winches, one tick (plans/11 §4)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const b = connect(room, "bob");
+    type TownPeek = { machine: { tensionClicks: number; traverseDeg: number } };
+    const towns = (): TownPeek[] =>
+      (room as unknown as { towns: TownPeek[] }).towns;
+    room.onMessage(a.id, { t: "unlockTown2" });
+    // Alice moves to town 1 through the order-end window.
+    let elapsed = 0;
+    const cap = (ORDER_SECONDS + 60) * 60;
+    while (elapsed < cap) {
+      room.tick();
+      elapsed++;
+      const om = a.last("order");
+      if (om && om.order.status !== "running") break;
+    }
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    // Both crank at once — each winds ONLY their own winch; and bob turns
+    // his traverse while alice holds hers straight.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(b.id, { t: "op", turn: 1, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 2);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: false });
+    expect(towns()[0]!.machine.tensionClicks).toBe(2); // bob's, town 0
+    expect(towns()[1]!.machine.tensionClicks).toBe(2); // alice's, town 1
+    expect(towns()[0]!.machine.traverseDeg).toBeGreaterThan(0); // bob turned
+    expect(towns()[1]!.machine.traverseDeg).toBe(0); // alice didn't
+  });
+
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
     const room = new Room();
     const a = connect(room, "alice");

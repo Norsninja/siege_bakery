@@ -72,7 +72,14 @@ export type ClientMsg =
    * The real purchase (purse + eligibility gate) replaces this handler
    * in fork 2; until then the trust model is plans/02 co-op-among-
    * friends, same as client-authoritative poses. */
-  | { t: "unlockTown2" };
+  | { t: "unlockTown2" }
+  /** The split MECHANISM (plans/11 §5, DECISION 2): pick which town you
+   * crew for the NEXT order. Honored only while the order is NOT running
+   * (a running order locks you in — you committed); the default is
+   * always "stay where you are" — the system never moves a player. The
+   * milestone offer/preview/all-confirm CEREMONY is fork 2; this is the
+   * plumbing it will drive. */
+  | { t: "pickTown"; town: number };
 
 // --- server → client ---
 export type ServerMsg =
