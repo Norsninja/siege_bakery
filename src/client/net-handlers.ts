@@ -71,6 +71,7 @@ export function applyServerMsg(
       fx.bindTown(msg.yourTown);
       view.order = msg.order;
       view.checks = msg.checks;
+      view.run = msg.run;
       // Joined mid-banner: adopt the verdict, or the banner words gate-1
       // hunger over a WON order (audit 2026-07-03).
       view.verdict = msg.judgment ?? null;
@@ -154,5 +155,30 @@ export function applyServerMsg(
       view.lastPatron = { text: msg.text, seq: msg.seq };
       fx.flash(`THE GIANT — ${msg.text}`, 6000);
       break;
+    case "run": {
+      // The run container moved (plans/13). Voice the edges the crew
+      // FEELS; the HUD/banner render the standing state every frame.
+      const prev = view.run;
+      view.run = {
+        phase: msg.phase,
+        rung: msg.rung,
+        ...(msg.countdownTicks !== undefined
+          ? { countdownTicks: msg.countdownTicks }
+          : {}),
+        ...(msg.readyIn !== undefined ? { readyIn: msg.readyIn } : {}),
+        ...(msg.readyOf !== undefined ? { readyOf: msg.readyOf } : {}),
+      };
+      if (msg.phase === "running" && prev.phase !== "running")
+        fx.flash(`THE RUN BEGINS — RUNG 1! the Giant is seated`, 5000);
+      else if (
+        msg.phase === "running" &&
+        prev.phase === "running" &&
+        msg.rung !== prev.rung
+      )
+        fx.flash(`RUNG ${msg.rung} — the Giant orders again!`, 5000);
+      else if (msg.phase === "lobby" && prev.phase === "runover")
+        fx.flash("back to the bakery — gather in the circle to run again", 6000);
+      break;
+    }
   }
 }

@@ -73,6 +73,14 @@ export const ORDER_RESET_TICKS = 1080; // 18s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 
+/** THE RUN (the campaign container, plans/13 slice 1) — pacing knobs.
+ * The ready countdown: all bakers in the circle holds this long before
+ * rung 1 deals; anyone stepping out cancels it (the honest gate). */
+export const READY_COUNTDOWN_TICKS = Math.round(3 / FIXED_DT); // 3s
+/** How long the run-over report holds the screen (rungs cleared, the
+ * filthy floor in frame) before the bakery returns to the lobby. */
+export const RUNOVER_TICKS = Math.round(12 / FIXED_DT); // 12s
+
 /** MEASURED: what fraction of the census each firing line can EVER paint,
  * by town count (pinned a hair under — header note). Index by towns; [0]
  * is a guard (no towns, no reach). RE-MEASURED 2026-07-08 under the

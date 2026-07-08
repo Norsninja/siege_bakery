@@ -161,6 +161,23 @@ export const TOWNS: readonly Town[] = [
   },
 ];
 
+/** THE READY CIRCLE (the campaign lobby, plans/13 slice 1): stand-here
+ * furniture in town 0 — the run starts when every connected baker stands
+ * inside and holds through the countdown. Off the spawn→pantry and
+ * spawn→machine lines (spawn z=10, pantry z=12, the run centerline x=0);
+ * sized for four 0.35-radius bakers with breathing room. Greybox
+ * placement — the feel pass moves it (plans/13 §9). */
+export const READY_CIRCLE = { x: -3, z: CROSS_HALF - 4, r: 1.6 };
+
+/** Is a ground position inside the ready circle? (Poses are the truth the
+ * server reads — client-authoritative, riding the message stream, inside
+ * the determinism fence like every input.) */
+export function inReadyCircle(pos: { x: number; z: number }): boolean {
+  const dx = pos.x - READY_CIRCLE.x;
+  const dz = pos.z - READY_CIRCLE.z;
+  return Math.sqrt(dx * dx + dz * dz) <= READY_CIRCLE.r;
+}
+
 // The single-town names, kept as TOWNS[0] aliases — research scripts and
 // the pre-towns codebase import these; nothing churns (plans/11 §3).
 export const MACHINE_BASE: Vec3 = TOWNS[0]!.base;

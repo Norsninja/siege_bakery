@@ -29,6 +29,7 @@ import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
 import {
   bannerText,
   hudLines,
+  runOverText,
   snapshotCaption,
   type InteractableKind,
 } from "./hud";
@@ -225,6 +226,8 @@ async function main(): Promise<void> {
   let tickCounter = 0;
   /** Linger countdown, in ticks — armed when the banner shows. */
   let lingerTicks = 0;
+  /** The run phase last tick — the run-start carry-home edge (plans/13). */
+  let lastRunPhase = view.run.phase;
   /** The last pickTown spoken this linger — edge guard, re-armed when the
    * rule reads null (left the fort, ack landed, or the deal closed it). */
   let pickSent: number | null = null;
@@ -311,18 +314,19 @@ async function main(): Promise<void> {
       // Gate fences first (they shape THIS tick's movement): your fort's
       // gate shuts while the order runs and you're home; opens with the
       // linger window — switching towns is a run through the doorway.
-      gates.update(
-        view.order.status === "running",
-        view.yourTown,
-        baker.position(),
-      );
+      // Phase-aware since the run container (plans/13): the lobby's
+      // dormant order is "running" on paper but nothing is being played
+      // — the gates stand open outside a live rung.
+      const orderLive =
+        view.run.phase === "running" && view.order.status === "running";
+      gates.update(orderLive, view.yourTown, baker.position());
       // POSITION IS THE PICK (gates.ts townToPick, visionary 2026-07-07):
       // run clearly into a fort during the linger and the client speaks
       // the pick for you — the honored ack moves yourTown (server truth,
       // plans/11 §5), re-binds your prompts, and the carry-home then
       // respects the choice. Edge-guarded: one send per fort entered.
       const pick = townToPick(
-        view.order.status === "running",
+        orderLive,
         view.yourTown,
         view.machines.length,
         baker.position(),
@@ -357,7 +361,36 @@ async function main(): Promise<void> {
       // Baker.step registered its movement); markers + splat readout only.
       shotsView.step(flash);
 
+      // THE RUN'S EDGES (plans/13): rung 1 deals the moment the countdown
+      // holds — a baker readied in town 0's circle while ASSIGNED to town
+      // 1 is carried home, same law as the mid-run deal edge below.
+      if (view.run.phase === "running" && lastRunPhase !== "running") {
+        if (depthIntoTown(view.yourTown, baker.position()) <= 0) {
+          const home = TOWNS[view.yourTown] ?? TOWNS[0]!;
+          baker.teleport(home.spawn);
+          input.yaw = (home.facingDeg * Math.PI) / 180;
+          flash("the run begins — you were carried home to your town!", 5000);
+        }
+      }
+      lastRunPhase = view.run.phase;
+
       if (banner) {
+        if (view.run.phase === "runover") {
+          // THE RUN REPORT (plans/13): replaces the order banner; the
+          // loss's photo stays hung — the filthy floor is the trophy.
+          bannerShown = true;
+          banner.style.display = "flex";
+          banner.textContent = runOverText(view.run.rung);
+        } else if (view.run.phase !== "running") {
+          // The lobby (or the countdown): everything comes down. No deal
+          // edge fired here — the run start deals fresh and the latch
+          // below picks that up in the running phase.
+          if (bannerShown) {
+            bannerShown = false;
+            banner.style.display = "none";
+            if (snapEl) snapEl.style.display = "none";
+          }
+        } else {
         const b = bannerLatch(view.order.status, bannerShown);
         if (b === "show") {
           bannerShown = true;
@@ -397,10 +430,14 @@ async function main(): Promise<void> {
           banner.textContent = bannerText(view.order, view.checks, view.verdict, {
             seconds: Math.ceil(lingerTicks / 60),
             away: depthIntoTown(view.yourTown, baker.position()) <= 0,
+            // A lost order ends the run (plans/13): no deal follows this
+            // linger — the banner must not promise one.
+            runEnds: view.order.status === "lost",
           });
           // Caption rides the same cadence: the verdict can land a beat
           // after the show edge (its broadcast races the status flip).
           if (snapCaption) snapCaption.textContent = snapshotCaption(view.verdict);
+        }
         }
       }
       accumulator -= FIXED_DT;
@@ -444,11 +481,15 @@ async function main(): Promise<void> {
     gs.gateMeshes.forEach((m, i) => {
       m.visible = gates.isClosed(i);
     });
+    // The ready circle shows whenever the run is not live (plans/13) —
+    // the standing invitation to start (or restart) it.
+    gs.setReadyCircle(view.run.phase !== "running");
 
     if (hud) {
       hud.textContent = hudLines({
         order: view.order,
         checks: view.checks,
+        run: view.run,
         machine: myMachine(view).machine,
         crankTicks: myMachine(view).crankTicks,
         carrying: view.carrying,
@@ -501,6 +542,7 @@ async function main(): Promise<void> {
       getManned: () => manned,
       getNearPost: () => nearPostShown,
       getOrder: () => ({ ...view.order }),
+      getRun: () => ({ ...view.run }),
       getChecks: () => view.checks.map((c) => ({ ...c })),
       getJudgment: () => (view.verdict ? { ...view.verdict } : null),
       getLastPatron: () => (view.lastPatron ? { ...view.lastPatron } : null),

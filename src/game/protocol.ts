@@ -10,6 +10,25 @@
 import type { MachineIntent, CatapultState } from "./catapult";
 import type { Judgment, RequirementCheck } from "./judgment";
 import type { OrderState } from "./order";
+import type { RunPhase } from "./run-flow";
+
+/** The campaign run container as the wire carries it (plans/13 slice 1):
+ * broadcast on every phase transition and lobby readiness change; the
+ * welcome carries the same shape. Clients render the lobby invitation,
+ * the countdown, the rung, and the run-over report from this — the run
+ * is server truth, never inferred from order status. */
+export interface RunWire {
+  phase: RunPhase;
+  /** Rung being played (running) or died on (runover — the crew CLEARED
+   * rung − 1); 0 in the lobby, where the next run's rung 1 awaits. */
+  rung: number;
+  /** countdown only: ticks until rung 1 deals (clients may predict a
+   * local count between broadcasts, predictClock-style). */
+  countdownTicks?: number;
+  /** lobby only: the ready census — bakers in the circle / connected. */
+  readyIn?: number;
+  readyOf?: number;
+}
 
 export interface Pose {
   x: number;
@@ -124,6 +143,10 @@ export type ServerMsg =
        * renders as the sad gate-1 loss (checkpoint audit 2026-07-03).
        * The verdict served is the FROZEN one (audit 2026-07-07 S-MED-1). */
       judgment?: Judgment;
+      /** The run container as it stands (plans/13): a lobby joiner gets
+       * the circle invitation, a mid-run joiner the rung, a mid-report
+       * joiner the run-over screen. */
+      run: RunWire;
     }
   | { t: "join"; id: number; name: string }
   | { t: "leave"; id: number }
@@ -184,7 +207,10 @@ export type ServerMsg =
     }
   /** The Patron spoke. Any rows/clock he changed follow in an `order`
    * message; this is the voice. `seq` marks distinct utterances. */
-  | { t: "patron"; text: string; seq: number };
+  | { t: "patron"; text: string; seq: number }
+  /** The run container moved (plans/13): a phase transition, a rung
+   * climb, a lobby readiness change, or the countdown's 1Hz word. */
+  | ({ t: "run" } & RunWire);
 
 /** One player's standing hold on the machine. */
 export interface HeldOp {

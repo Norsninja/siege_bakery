@@ -154,6 +154,23 @@ export class OrderFlow {
     return { utterance: act.utterance };
   }
 
+  /** Force a fresh deal NOW — the run container's start (plans/13):
+   * rung 1 deals when the ready countdown holds, outside the linger
+   * path. Exactly the linger redeal's resets: the deal generation
+   * advances (in-flight lobby shots go stale), the patron arrives
+   * fresh, the counters zero. The Room owns the physical resets and
+   * the broadcast, same as ever. */
+  dealFresh(): void {
+    this.endedTicks = 0;
+    this.dealGen++; // in-flight shots now carry a stale tag
+    this.shots = 0;
+    this.patron = createGiant();
+    this.orderTicks = 0;
+    this.looks = 0;
+    this.prevMess = 0;
+    this.order = this.freshOrder();
+  }
+
   /** Advance the lifecycle one tick: the clock, the transition, the
    * linger, the re-deal. Events come back in the order they happened —
    * on the transition tick the linger ALSO counts (pre-decomp behavior,
@@ -167,14 +184,7 @@ export class OrderFlow {
     if (this.order.status !== "running") {
       this.endedTicks++;
       if (this.endedTicks >= ORDER_RESET_TICKS) {
-        this.endedTicks = 0;
-        this.dealGen++; // in-flight shots now carry a stale tag
-        this.shots = 0;
-        this.patron = createGiant();
-        this.orderTicks = 0;
-        this.looks = 0;
-        this.prevMess = 0;
-        this.order = this.freshOrder();
+        this.dealFresh();
         events.push("redeal");
       }
     }

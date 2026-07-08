@@ -22,6 +22,7 @@ import {
   GROUND_CENTER_Z,
   PANTRY_HALF,
   PLINTH_HALF,
+  READY_CIRCLE,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
 import {
@@ -288,6 +289,9 @@ export interface GameScene {
   raycastTargets: THREE.Mesh[];
   kindOf: Map<THREE.Object3D, InteractableKind>;
   setHighlight(kind: InteractableKind | null): void;
+  /** The lobby's ready circle (plans/13): shown whenever the run is NOT
+   * live — the standing invitation to start (or restart) the run. */
+  setReadyCircle(visible: boolean): void;
   /** Target town `t`'s rig + pantry (welcome, or an honored pickTown). */
   bindTown(t: number): void;
 }
@@ -411,6 +415,23 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   const heldMesh = sphere(0.12, 0xffffff, 0.28, -0.22, -0.5, camera);
   heldMesh.visible = false;
 
+  // THE READY CIRCLE (plans/13 slice 1): the run's front door — gold
+  // glass on town 0's ground, the same furniture language as the crew
+  // post circles (translucent, depthWrite off). All bakers inside =
+  // the countdown; visible whenever the run is not live.
+  const readyCircle = new THREE.Mesh(
+    new THREE.CircleGeometry(READY_CIRCLE.r, 40),
+    new THREE.MeshBasicMaterial({
+      color: 0xd9a92e,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    }),
+  );
+  readyCircle.rotation.x = -Math.PI / 2;
+  readyCircle.position.set(READY_CIRCLE.x, 0.02, READY_CIRCLE.z);
+  scene.add(readyCircle);
+
   const gs: GameScene = {
     renderer,
     scene,
@@ -421,6 +442,9 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     interactables: townInteractables[0]!,
     raycastTargets: [],
     kindOf: new Map(),
+    setReadyCircle(visible: boolean): void {
+      readyCircle.visible = visible;
+    },
     setHighlight(kind: InteractableKind | null): void {
       for (const meshes of Object.values(gs.interactables))
         for (const m of meshes)

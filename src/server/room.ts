@@ -27,7 +27,12 @@
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
-import { buildArenaColliders, isOnCake, TOWNS } from "../core/arena";
+import {
+  buildArenaColliders,
+  inReadyCircle,
+  isOnCake,
+  TOWNS,
+} from "../core/arena";
 import { FrostingField, splatCovers, STICKY_NEAR_M } from "../core/frosting";
 import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
@@ -48,7 +53,8 @@ import {
 } from "../game/judgment";
 import { evaluateOrder } from "../game/order";
 import { OrderFlow, standardRequirements } from "../game/order-flow";
-import type { ClientMsg, ServerMsg } from "../game/protocol";
+import { RunFlow } from "../game/run-flow";
+import type { ClientMsg, RunWire, ServerMsg } from "../game/protocol";
 import { Roster } from "./roster";
 
 // Re-export: the standing order's shape moved to game/order-flow.ts with
@@ -90,6 +96,17 @@ export class Room {
   private towns: TownRuntime[] = [freshTown()];
   /** The order lifecycle — clock, patron, linger, deal tags (game/). */
   private readonly flow = new OrderFlow();
+  /** THE RUN CONTAINER (plans/13 slice 1): lobby → countdown → running
+   * rungs → runover → lobby. Outside "running" the match is a SANDBOX:
+   * machines crank and fire (warmup comedy), landings litter, but the
+   * order neither ticks nor scores — the flow's dealt order lies DORMANT
+   * (never broadcast as live) until startRun deals fresh. */
+  private readonly run = new RunFlow();
+  /** How the order that just ENDED concluded — captured at the "ended"
+   * event (the flow's fresh deal replaces the order before "redeal"). */
+  private endedWon = false;
+  /** Last lobby readiness broadcast (`in/of`) — broadcast on change only. */
+  private lastReadyKey = "";
   /** Everything at rest THIS order — the census the checklist counts from.
    * Reset with the order: physical toppings stay in the world (the bakery
    * gets messier), but a fresh order counts fresh deliveries only.
@@ -183,6 +200,7 @@ export class Room {
       // the live ledger + shot count, so linger play could hand the
       // joiner a verdict the room's banner disagrees with.
       ...(this.lingerVerdict ? { judgment: this.lingerVerdict } : {}),
+      run: this.runWire(),
     });
     this.roster.broadcast({ t: "join", id, name: settledName }, id);
     return id;
@@ -214,8 +232,12 @@ export class Room {
       // is not running — a running order locks the crew (you committed).
       // The gate is MATCH truth so it lives here; the field validation
       // (integer, active town) is the Roster's. Deterministic, no RNG:
-      // the system never assigns, the player always chooses.
-      if (this.flow.order.status === "running") return;
+      // the system never assigns, the player always chooses. Phase-aware
+      // since the run container (plans/13): the lobby's dormant order is
+      // "running" on paper but nothing is being played — picks are free
+      // there; only a LIVE rung locks the crew.
+      if (this.run.phase === "running" && this.flow.order.status === "running")
+        return;
       if (this.roster.setTown(id, msg.town, this.towns.length))
         this.roster.broadcast({ t: "town", id, town: msg.town });
       return;
@@ -345,6 +367,12 @@ export class Room {
       note(st.topping, true);
     }
     if (groups.size === 0) return;
+    // Outside a live rung the bakery is a SANDBOX (plans/13): landings
+    // litter honestly (the bodies are real, the mess persists into the
+    // run) but nothing scores and no order-flavored word goes out — the
+    // dormant order must not advance before the run starts. startRun's
+    // fresh deal wipes the cake and the ledger anyway.
+    if (this.run.phase !== "running") return;
     const r = evaluateOrder(
       this.flow.order,
       this.ledger(), // earlier deliveries may have been shoved since
@@ -363,6 +391,11 @@ export class Room {
       });
     if (r.judgment) {
       this.lingerVerdict = r.judgment; // the WIN path freezes its verdict
+      // The met-order Judgment is how WINS conclude (a won order never
+      // transitions through tickClock, so the "ended" event never fires
+      // for it) — capture the run container's answer here (plans/13).
+      // A REFUSED order (gate 2) concluded lost, same as clock death.
+      this.endedWon = r.judgment.accepted;
       this.roster.broadcast({
         t: "order",
         order: this.flow.order,
@@ -372,11 +405,38 @@ export class Room {
     }
   }
 
-  /** The order lifecycle: patron looks, the clock, linger, re-deal. The
-   * flow ticks the counters and says what happened; the Room owns the
-   * physical resets and the wire. */
+  /** The lifecycle, phase-driven since the run container (plans/13):
+   * lobby/countdown tick the ready gate, runover ticks the report, and
+   * only a live run ticks the ORDER lifecycle (patron looks, the clock,
+   * linger, re-deal). The flows tick counters and say what happened; the
+   * Room owns the physical resets and the wire. */
   private tickLifecyclePhase(): void {
-    // The Patron looks at the cake every 12s of order time.
+    if (this.run.phase === "lobby" || this.run.phase === "countdown") {
+      const ev = this.run.tickReady(this.allReady());
+      if (ev === "start") this.startRun();
+      else if (ev === "countdown" || ev === "cancel") this.broadcastRun();
+      else if (this.run.phase === "countdown") {
+        // The countdown's 1Hz word — clients predict between beats.
+        if (this.run.countdownLeft % 60 === 0) this.broadcastRun();
+      } else {
+        // Lobby: speak the ready census when it changes (n/m in).
+        const key = `${this.readyCount()}/${this.roster.count()}`;
+        if (key !== this.lastReadyKey) {
+          this.lastReadyKey = key;
+          this.broadcastRun();
+        }
+      }
+      return;
+    }
+    if (this.run.phase === "runover") {
+      if (this.run.tickRunover() === "lobby") {
+        this.lastReadyKey = ""; // re-speak the census on lobby entry
+        this.broadcastRun();
+      }
+      return;
+    }
+
+    // A live rung. The Patron looks at the cake every 12s of order time.
     if (this.flow.shouldLook()) {
       const { utterance } = this.flow.patronLook(
         this.ledger(), // he judges the cake as it LIES
@@ -393,6 +453,10 @@ export class Room {
     for (const event of this.flow.tickClock()) {
       if (event === "ended") {
         // The clock died first: gate 1 fails — the patron goes hungry.
+        // (Wins never pass here — a met order concludes in the scoring
+        // phase, which captured endedWon there; this transition is the
+        // clock-death loss.)
+        this.endedWon = false;
         this.lingerVerdict = this.judgeNow(); // frozen at this tick
         this.roster.broadcast({
           t: "order",
@@ -400,12 +464,13 @@ export class Room {
           checks: this.currentChecks(),
           judgment: this.lingerVerdict,
         });
-      } else {
-        // "redeal": the flow dealt fresh — THE FRESH-CAKE LAW (2026-07-05):
-        // the finished dessert is gone and a naked cake wheels out. Paint,
-        // stuck sprinkle records (they live in `settled`, plans/10 §8),
-        // resting cherries — everything ON it leaves with it. Floor
-        // litter is the crew's mess, not the dessert's; it stays.
+      } else if (this.run.orderConcluded(this.endedWon) === "nextRung") {
+        // "redeal" on a WON order: the ladder climbs — THE FRESH-CAKE LAW
+        // (2026-07-05): the finished dessert is gone and a naked cake
+        // wheels out. Paint, stuck sprinkle records (they live in
+        // `settled`, plans/10 §8), resting cherries — everything ON it
+        // leaves with it. Floor litter is the crew's mess, not the
+        // dessert's; it stays, all run long (plans/13).
         this.settled = [];
         this.frosting.reset();
         this.shots.clearCakeSolids(this.world);
@@ -416,8 +481,66 @@ export class Room {
           checks: this.currentChecks(),
           fresh: true,
         });
+        this.broadcastRun();
+      } else {
+        // "redeal" on a LOST order: THE RUN IS OVER (plans/13 — one
+        // failed order ends it). No fresh deal goes out: the sad cake
+        // stays on display under the run report; the flow's internally
+        // dealt order lies dormant until the next run's startRun. The
+        // frozen verdict stays for mid-report joiners.
+        this.broadcastRun();
       }
     }
+  }
+
+  /** All connected bakers stand in the ready circle (and there IS at
+   * least one) — the lobby gate. A member who never reported a pose
+   * cannot be standing anywhere. */
+  private allReady(): boolean {
+    const poses = this.roster.allPoses();
+    if (poses.length === 0) return false;
+    return poses.every((p) => p !== null && inReadyCircle(p));
+  }
+
+  private readyCount(): number {
+    return this.roster.allPoses().filter((p) => p !== null && inReadyCircle(p))
+      .length;
+  }
+
+  /** The countdown held: deal rung 1 — the run begins. The fresh deal is
+   * the same physical reset as the linger redeal (fresh-cake law), so
+   * lobby warmup mess on the cake is wiped and floor litter honestly
+   * carries into the run. */
+  private startRun(): void {
+    this.flow.dealFresh();
+    this.settled = [];
+    this.frosting.reset();
+    this.shots.clearCakeSolids(this.world);
+    this.lingerVerdict = null;
+    this.roster.broadcast({
+      t: "order",
+      order: this.flow.order,
+      checks: this.currentChecks(),
+      fresh: true,
+    });
+    this.broadcastRun();
+  }
+
+  private runWire(): RunWire {
+    return {
+      phase: this.run.phase,
+      rung: this.run.rung,
+      ...(this.run.phase === "countdown"
+        ? { countdownTicks: this.run.countdownLeft }
+        : {}),
+      ...(this.run.phase === "lobby"
+        ? { readyIn: this.readyCount(), readyOf: this.roster.count() }
+        : {}),
+    };
+  }
+
+  private broadcastRun(): void {
+    this.roster.broadcast({ t: "run", ...this.runWire() });
   }
 
   /** The steady wire cadences: poses 20Hz, machine 15Hz, clock 1Hz. */
@@ -432,7 +555,10 @@ export class Room {
       for (let i = 0; i < this.towns.length; i++) this.broadcastMachine(i);
     // 1Hz clock correction — only while the clock is actually moving, so the
     // message that ENDS an order (carrying the verdict) stays the last word.
+    // Phase-gated (plans/13): the lobby's dormant order is "running" on
+    // paper but its clock is frozen — no correction to speak.
     if (
+      this.run.phase === "running" &&
       this.flow.order.status === "running" &&
       this.tickCount % ORDER_CLOCK_EVERY === 0
     )

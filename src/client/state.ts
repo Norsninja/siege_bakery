@@ -9,7 +9,7 @@
 import { createCatapult } from "../game/catapult";
 import type { Judgment, RequirementCheck } from "../game/judgment";
 import { createOrder, type OrderState } from "../game/order";
-import type { TownMachine } from "../game/protocol";
+import type { RunWire, TownMachine } from "../game/protocol";
 import type { NetStatus } from "./hud";
 
 export interface MatchView {
@@ -21,6 +21,9 @@ export interface MatchView {
   yourTown: number;
   order: OrderState;
   checks: RequirementCheck[];
+  /** The run container (plans/13) — server truth from welcome + `run`
+   * messages; the HUD's top block and the banner render by its phase. */
+  run: RunWire;
   /** Rides the order message that ENDS the order; null while running. */
   verdict: Judgment | null;
   lastPatron: { text: string; seq: number } | null;
@@ -65,6 +68,7 @@ export function createMatchView(): MatchView {
     yourTown: 0,
     order: createOrder([], 90 * 60), // rows arrive with `welcome`
     checks: [],
+    run: { phase: "lobby", rung: 0 }, // truth arrives with `welcome`
     verdict: null,
     lastPatron: null,
     myId: null,

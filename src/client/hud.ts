@@ -23,6 +23,7 @@ import {
   type RequirementCheck,
 } from "../game/judgment";
 import type { OrderState } from "../game/order";
+import type { RunWire } from "../game/protocol";
 import type { Post } from "./posts";
 
 /** Everything the crosshair can engage. (Lives here for now; the decomp's
@@ -136,6 +137,10 @@ export interface NextOrderNote {
   seconds: number;
   /** True when the local baker is NOT inside his assigned town. */
   away: boolean;
+  /** True when this linger ends the RUN (plans/13: the order was lost) —
+   * no fresh deal follows, so "a new order in Ns" and the carry-home
+   * warning would both lie; the banner says what actually comes. */
+  runEnds?: boolean;
 }
 
 /** The end-of-order banner. The checklist names the culprit — a lost order
@@ -167,10 +172,13 @@ export function bannerText(
   }
   // The countdown + the carry-home warning (the gates close with the deal;
   // a baker out of his town is placed home — say so BEFORE it happens).
+  // A run-ending loss says what actually comes: the report, not a deal.
   const coming = next
-    ? next.away
-      ? `a new order in ${next.seconds}s — YOU ARE NOT IN YOUR TOWN!\nwhen it lands you'll be carried home. HURRY!`
-      : `a new order in ${next.seconds}s — the gates close with it…`
+    ? next.runEnds
+      ? `the run ends in ${next.seconds}s…`
+      : next.away
+        ? `a new order in ${next.seconds}s — YOU ARE NOT IN YOUR TOWN!\nwhen it lands you'll be carried home. HURRY!`
+        : `a new order in ${next.seconds}s — the gates close with it…`
     : "a new order is coming…";
   return `${text}\n\n${coming}`;
 }
@@ -188,9 +196,27 @@ export function snapshotCaption(verdict: Judgment | null): string {
   return `${head}\n${"★".repeat(verdict.stars)} delighted — ${verdict.score}/100`;
 }
 
+/** The run report's one fact (plans/13): how far the crew climbed.
+ * `rung` is the rung the run DIED on; cleared = rung − 1. */
+export function runOverLine(rung: number): string {
+  const cleared = Math.max(0, rung - 1);
+  return cleared === 0
+    ? "the Giant left hungry at the first dessert"
+    : `the crew cleared ${cleared} rung${cleared === 1 ? "" : "s"}`;
+}
+
+/** The run-over banner (plans/13): the report holds the screen, the
+ * filthy floor is the trophy, and the lobby circle is the next move. */
+export function runOverText(rung: number): string {
+  return `THE RUN IS OVER\n${runOverLine(rung)}\n— gather in the gold circle to run again`;
+}
+
 export interface HudView {
   order: OrderState;
   checks: readonly RequirementCheck[];
+  /** The run container (plans/13) — the top block renders by its phase:
+   * the lobby invitation, the countdown, the rung header, the report. */
+  run: RunWire;
   machine: CatapultState;
   crankTicks: number;
   carrying: string | null;
@@ -223,12 +249,30 @@ export function hudLines(v: HudView): string[] {
         : v.netStatus === "connecting"
           ? "joining the bakery…"
           : "CONNECTION LOST — refresh to rejoin";
+  // The top block by run phase (plans/13): only a live rung shows the
+  // order; the lobby invites, the countdown counts, the report reports.
+  const top =
+    v.run.phase === "lobby"
+      ? [
+          `THE BAKERY WAITS — rung 1 awaits the crew   [${who}]`,
+          `▸ stand in the gold circle to start the run (${v.run.readyIn ?? 0}/${v.run.readyOf ?? 0} in)`,
+        ]
+      : v.run.phase === "countdown"
+        ? [
+            `ALL IN — the run begins in ${Math.max(1, Math.ceil((v.run.countdownTicks ?? 0) * FIXED_DT))}…   [${who}]`,
+            "▸ hold the circle! stepping out cancels",
+          ]
+        : v.run.phase === "runover"
+          ? [`RUN OVER — ${runOverLine(v.run.rung)}   [${who}]`]
+          : [
+              `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
+              ...v.checks.map(
+                (c) =>
+                  `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${describeProgress(c)}`,
+              ),
+            ];
   const lines = [
-    `THE ORDER · ${clock}   [${who}]`,
-    ...v.checks.map(
-      (c) =>
-        `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${describeProgress(c)}`,
-    ),
+    ...top,
     v.locked
       ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
       : "Click to grab the mouse · WASD move · Shift sprint · E interact",

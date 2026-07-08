@@ -211,6 +211,13 @@ export class Roster {
     return mergeIntents(held, leverPulls, accepted ? [load!] : []);
   }
 
+  /** EVERY member's pose, null where none was ever reported — the ready-
+   * circle census (plans/13): a baker who hasn't spoken a position yet
+   * cannot be standing in the circle. */
+  allPoses(): (Pose | null)[] {
+    return [...this.members.values()].map((m) => m.pose);
+  }
+
   /** Everyone else's pose, for the relay and the welcome snapshot. */
   poseList(exceptId: number): PlayerPose[] {
     const list: PlayerPose[] = [];

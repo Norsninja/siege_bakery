@@ -169,12 +169,26 @@ describe("bannerText — three endings, culprit always named", () => {
     expect(text).toContain("carried home");
     expect(text).toContain("HURRY!");
   });
+
+  it("a run-ending loss promises NO new order — the run ends (plans/13)", () => {
+    const order = { ...createOrder([], 100), status: "lost" as const };
+    const text = bannerText(order, rows, null, {
+      seconds: 6,
+      away: true, // no carry-home follows a loss; the warning would lie
+      runEnds: true,
+    });
+    expect(text).toContain("the run ends in 6s");
+    expect(text).not.toContain("a new order");
+    expect(text).not.toContain("carried home");
+  });
 });
 
 describe("hudLines", () => {
   const view = (over: Partial<HudView> = {}): HudView => ({
     order: createOrder([], 71 * 60),
     checks: [check(false, 1)],
+    // A live rung by default — the pre-campaign HUD, one header deeper.
+    run: { phase: "running", rung: 1 },
     machine: machine(),
     crankTicks: 0,
     carrying: null,
@@ -189,10 +203,37 @@ describe("hudLines", () => {
     ...over,
   });
 
-  it("headline clock + solo tag; checklist rows carry progress", () => {
+  it("headline rung + clock + solo tag; checklist rows carry progress", () => {
     const lines = hudLines(view());
-    expect(lines[0]).toBe("THE ORDER · 1:11   [solo bakery]");
+    expect(lines[0]).toBe("RUNG 1 · THE ORDER · 1:11   [solo bakery]");
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
+  });
+
+  it("the lobby invites to the circle with the ready census; no order shows (plans/13)", () => {
+    const lines = hudLines(
+      view({ run: { phase: "lobby", rung: 0, readyIn: 1, readyOf: 3 } }),
+    );
+    expect(lines[0]).toContain("THE BAKERY WAITS");
+    expect(lines[1]).toContain("stand in the gold circle");
+    expect(lines[1]).toContain("(1/3 in)");
+    expect(lines.join("\n")).not.toContain("THE ORDER");
+  });
+
+  it("the countdown counts seconds and warns that stepping out cancels", () => {
+    const lines = hudLines(
+      view({ run: { phase: "countdown", rung: 0, countdownTicks: 130 } }),
+    );
+    expect(lines[0]).toContain("the run begins in 3…");
+    expect(lines[1]).toContain("stepping out cancels");
+  });
+
+  it("run over: the report names the rungs cleared (died on rung → cleared − 1)", () => {
+    const lines = hudLines(view({ run: { phase: "runover", rung: 3 } }));
+    expect(lines[0]).toContain("RUN OVER");
+    expect(lines[0]).toContain("cleared 2 rungs");
+    // Dying on rung 1 cleared nothing — the Giant left hungry.
+    const first = hudLines(view({ run: { phase: "runover", rung: 1 } }));
+    expect(first[0]).toContain("left hungry at the first dessert");
   });
 
   it("machine line: traverse, arc glyph, tension, bucket, hands", () => {

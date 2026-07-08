@@ -6,10 +6,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
+import { READY_CIRCLE } from "../core/arena";
 import {
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
+  READY_COUNTDOWN_TICKS,
+  RUNOVER_TICKS,
 } from "../game/tuning";
 import {
   CRANK_TICKS_PER_CLICK,
@@ -39,6 +42,23 @@ function connect(room: Room, name: string): FakeClient {
 
 function run(room: Room, ticks: number): void {
   for (let i = 0; i < ticks; i++) room.tick();
+}
+
+/** THE RUN CONTAINER preamble (plans/13 slice 1): a Room boots into the
+ * LOBBY — the order neither ticks nor scores until every joined baker
+ * stands in the ready circle through the countdown. Order-lifecycle
+ * tests ready up first; machine-only tests need not (the lobby is a
+ * sandbox: machines crank and fire fine). NOTE the poses STAY in the
+ * circle afterward — so when a run ends, the still-gathered crew starts
+ * the next one automatically after RUNOVER_TICKS + the countdown; the
+ * post-loss tests lean on exactly that (it is the intended party flow). */
+function readyUp(room: Room, ...clients: FakeClient[]): void {
+  for (const c of clients)
+    room.onMessage(c.id, {
+      t: "pose",
+      pose: { x: READY_CIRCLE.x, y: 1.2, z: READY_CIRCLE.z, yaw: 0 },
+    });
+  run(room, READY_COUNTDOWN_TICKS + 2);
 }
 
 describe("Room: the match, headless over protocol", () => {
@@ -175,6 +195,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
+    readyUp(room, a, b);
     room.onMessage(a.id, { t: "load", topping: "cherry" });
     room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
@@ -209,6 +230,7 @@ describe("Room: the match, headless over protocol", () => {
   it("a sprinkle bag counts once the ground under it is frosted (plans/07)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -263,6 +285,7 @@ describe("Room: the match, headless over protocol", () => {
     // paint over them, displacement traceable to the shot that did it.
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -339,6 +362,7 @@ describe("Room: the match, headless over protocol", () => {
     const play = (): Extract<ServerMsg, { t: "welcome" }> | undefined => {
       const room = new Room();
       const a = connect(room, "alice");
+      readyUp(room, a); // replayed input like everything else (plans/13)
       const fire = (topping: string): void => {
         room.onMessage(a.id, { t: "load", topping });
         room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -374,6 +398,7 @@ describe("Room: the match, headless over protocol", () => {
     const play = () => {
       const room = new Room();
       const a = connect(room, "alice");
+      readyUp(room, a); // the ready-up is itself replayed input (poses)
       room.onMessage(a.id, { t: "unlockTown2" }); // mid-first-order purchase
       // The patron burns the first order out — deterministically.
       let elapsed = 0;
@@ -385,7 +410,11 @@ describe("Room: the match, headless over protocol", () => {
         if (om && om.order.status !== "running") break;
       }
       room.onMessage(a.id, { t: "pickTown", town: 1 }); // linger window: honored
-      run(room, ORDER_RESET_TICKS + 5); // through the linger to the fresh deal
+      // Through the linger, the RUN-OVER report, and the auto-restart
+      // (the pose never left the circle — plans/13): the lost first order
+      // ends the run; the still-gathered crew's NEXT run deals fresh,
+      // priced for the two towns the purchase activated.
+      run(room, ORDER_RESET_TICKS + RUNOVER_TICKS + READY_COUNTDOWN_TICKS + 10);
       // Fire town 1's 6-click frost at the RUNNING two-town order — the
       // real play situation, no linger-timing dependence.
       room.onMessage(a.id, { t: "load", topping: "frosting" });
@@ -462,6 +491,7 @@ describe("Room: the match, headless over protocol", () => {
   it("pickTown: LOCKED while running, open at order end, dormant forts unpickable, junk ignored (plans/11 §5)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const townOf = (): number =>
       (room as unknown as { roster: { townOf(id: number): number } }).roster.townOf(a.id);
     room.onMessage(a.id, { t: "unlockTown2" });
@@ -494,6 +524,7 @@ describe("Room: the match, headless over protocol", () => {
   it("a DORMANT town cannot be crewed: pickTown 1 before unlock is refused", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const townOf = (): number =>
       (room as unknown as { roster: { townOf(id: number): number } }).roster.townOf(a.id);
     // Reach the open window WITHOUT unlocking.
@@ -513,6 +544,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
+    readyUp(room, a, b);
     type TownPeek = { machine: { tensionClicks: number; traverseDeg: number } };
     const towns = (): TownPeek[] =>
       (room as unknown as { towns: TownPeek[] }).towns;
@@ -543,6 +575,7 @@ describe("Room: the match, headless over protocol", () => {
   it("the wire knows WHERE FROM: a town-1 shot carries its town and lands on the SHARED cake (step 6)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     room.onMessage(a.id, { t: "unlockTown2" });
     // Reach the pick window (the Giant burns the clock early).
     let elapsed = 0;
@@ -586,6 +619,7 @@ describe("Room: the match, headless over protocol", () => {
   it("scoring rises to the two-town ask at the NEXT deal, never mid-order (plans/11 §6)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     // Unlock MID-ORDER: the running order keeps the rows it was dealt.
     room.onMessage(a.id, { t: "unlockTown2" });
     run(room, 60); // a clock correction carries the (unchanged) order
@@ -632,6 +666,7 @@ describe("Room: the match, headless over protocol", () => {
   it("a frosting glob scores at IMPACT and paints the welcome snapshot (plans/07)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     room.onMessage(a.id, { t: "load", topping: "frosting" });
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
@@ -655,6 +690,7 @@ describe("Room: the match, headless over protocol", () => {
     // shelf-fudge load that no test fired before (audit 2026-07-06).
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     room.onMessage(a.id, { t: "load", topping: "fudge" });
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
@@ -671,6 +707,7 @@ describe("Room: the match, headless over protocol", () => {
   it("the re-deal wheels out a FRESH CAKE: paint and on-cake solids go, floor litter stays", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -687,11 +724,23 @@ describe("Room: the match, headless over protocol", () => {
     run(room, 6);
     room.onMessage(a.id, { t: "lever" }); // zero tension: flops by the plinth
     run(room, 600);
-    const peek = connect(room, "peek").last("welcome");
-    expect(peek?.frosting.some((c) => c > 0)).toBe(true);
-    expect(peek?.toppings.map((t) => t.topping).sort()).toEqual(["cherry", "lime"]);
-    run(room, (ORDER_SECONDS + 20) * 60); // lose (burn ends it early) AND re-deal
-    const fresh = a.all("order").find((m) => m.fresh);
+    const peek = connect(room, "peek");
+    const pw = peek.last("welcome");
+    expect(pw?.frosting.some((c) => c > 0)).toBe(true);
+    expect(pw?.toppings.map((t) => t.topping).sort()).toEqual(["cherry", "lime"]);
+    // Peek must stand in the circle too — the auto-restart gate needs
+    // EVERYONE (plans/13); an unposed lurker would hold the lobby forever.
+    room.onMessage(peek.id, {
+      t: "pose",
+      pose: { x: READY_CIRCLE.x, y: 1.2, z: READY_CIRCLE.z, yaw: 0 },
+    });
+    // Lose (the burn ends it early), then through the linger, the RUN-OVER
+    // report, and the auto-restart's fresh deal (the poses never left the
+    // circle — plans/13, see readyUp's note).
+    run(room, (ORDER_SECONDS + 20) * 60);
+    const msgs = a.all("order");
+    const endIdx = msgs.findIndex((m) => m.order.status !== "running");
+    const fresh = msgs.slice(endIdx + 1).find((m) => m.fresh);
     expect(fresh).toBeDefined();
     expect(fresh?.order.status).toBe("running");
     // The fresh-cake law: the dessert left with everything ON it; the
@@ -704,6 +753,7 @@ describe("Room: the match, headless over protocol", () => {
   it("the clock is authoritative — and the Patron BURNS it: the order dies EARLY", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const nominal = ORDER_SECONDS * 60;
     // Untouched machine: no player, no mess — the Giant just grumbles, and
     // each grumble burns PATIENCE_BURN_GRUMBLE_S off the clock. Tick one at
@@ -735,16 +785,32 @@ describe("Room: the match, headless over protocol", () => {
     expect(a.all("patron").length).toBeGreaterThan(2);
   });
 
-  it("a finished order lingers, then the patron orders again with a clean slate", () => {
+  it("a LOST order ends the RUN: report, lobby, and the still-gathered crew starts anew with a clean slate (plans/13)", () => {
+    // The campaign re-pin (2026-07-08) of "a finished order lingers, then
+    // the patron orders again": a loss no longer redeals — the run ends.
+    // The next order comes from the NEXT RUN, which the crew (whose poses
+    // never left the circle) starts automatically after the report.
     const room = new Room();
     const a = connect(room, "alice");
-    run(room, (ORDER_SECONDS + 20) * 60); // long enough to lose AND re-deal
+    readyUp(room, a);
+    run(room, (ORDER_SECONDS + 20) * 60); // lose → linger → report → new run
     const msgs = a.all("order");
     const endIdx = msgs.findIndex((m) => m.order.status !== "running");
     expect(endIdx).toBeGreaterThanOrEqual(0);
+    // The container walked its whole loop, in order: the run died on rung
+    // 1, the report held, the lobby gathered, the next run began.
+    const phases = a.all("run").map((m) => m.phase);
+    const over = phases.indexOf("runover");
+    expect(over).toBeGreaterThanOrEqual(0);
+    expect(a.all("run").find((m) => m.phase === "runover")?.rung).toBe(1);
+    expect(phases.slice(over)).toContain("lobby");
+    expect(phases.slice(phases.indexOf("lobby", over))).toContain("running");
+    // NO fresh deal rode the loss itself — the sad cake stayed on display
+    // through the report; the deal is the NEXT run's.
     const fresh = msgs.slice(endIdx + 1).find((m) => m.order.status === "running");
     expect(fresh).toBeDefined();
-    // The ledger reset with the order: a fresh deal counts fresh deliveries.
+    expect(fresh?.fresh).toBe(true);
+    // The ledger reset with the run: the new deal counts fresh deliveries.
     expect(fresh?.checks.every((c) => c.current === 0)).toBe(true);
   });
 
@@ -752,6 +818,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
+    readyUp(room, a, b);
     run(room, PATRON_LOOK_EVERY - 2);
     expect(a.all("patron")).toHaveLength(0); // he hasn't looked yet
     run(room, 4);
@@ -784,6 +851,7 @@ describe("Room: the match, headless over protocol", () => {
     // the only Room-level ending pinned before this was loss-by-clock.
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     const op = (turn: -1 | 0 | 1, screw: -1 | 0 | 1, crank: -1 | 0 | 1): void =>
       room.onMessage(a.id, { t: "op", turn, screw, crank });
     const crankTo = (clicks: number): void => {
@@ -908,16 +976,27 @@ describe("Room: the match, headless over protocol", () => {
     // is a PASS — one star. The upper tiers are the ceiling's asymptote.
     expect(end?.judgment?.stars).toBe(1);
     expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
-    // The linger passes; the fresh deal starts honestly unmet.
+    // The linger passes; the fresh deal starts honestly unmet — and the
+    // WON order climbs the ladder: the same run, rung 2 (plans/13).
+    // (Find the fresh AFTER the win — the ready-up's own deal is fresh
+    // too, at the top of the inbox.)
     run(room, ORDER_RESET_TICKS + 100);
-    const fresh = a.all("order").find((m) => m.fresh);
+    const wonAt = a.inbox.indexOf(end!);
+    const fresh = a.inbox
+      .slice(wonAt)
+      .find((m) => m.t === "order" && m.fresh) as
+      | Extract<ServerMsg, { t: "order" }>
+      | undefined;
     expect(fresh?.order.status).toBe("running");
     expect(fresh?.checks.every((c) => c.current === 0 && !c.met)).toBe(true);
+    const climbed = a.all("run").find((m) => m.rung === 2);
+    expect(climbed?.phase).toBe("running"); // no lobby between rungs
   });
 
   it("a joiner mid-banner is welcomed with the verdict (audit 2026-07-03)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     let guard = 0;
     while (
       (a.last("order")?.order.status ?? "running") === "running" &&
@@ -930,11 +1009,22 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.order.status).toBe("lost");
     expect(w?.judgment?.met).toBe(false); // the verdict rides the welcome
     expect(w?.judgment?.stars).toBe(0);
-    // Once the fresh order deals, welcomes stop carrying a verdict.
+    expect(w?.run.phase).toBe("running"); // the linger is still the rung's
+    // A joiner mid-REPORT gets the runover phase AND the frozen verdict
+    // (the sad cake is still on display under the run report).
     run(room, ORDER_RESET_TICKS);
+    const dana = connect(room, "dana");
+    expect(dana.last("welcome")?.run.phase).toBe("runover");
+    expect(dana.last("welcome")?.judgment).toBeDefined();
+    // Once the NEXT run's fresh order deals, welcomes stop carrying a
+    // verdict. The gate needs EVERYONE — carol and dana joined without
+    // poses, so the whole crew stands in the circle together.
+    run(room, RUNOVER_TICKS);
+    readyUp(room, a, carol, dana);
     const dave = connect(room, "dave");
     expect(dave.last("welcome")?.order.status).toBe("running");
     expect(dave.last("welcome")?.judgment).toBeUndefined();
+    expect(dave.last("welcome")?.run.phase).toBe("running");
   });
 
   it("a mid-banner welcome serves the FROZEN verdict, not a re-judgment (audit 2026-07-07 S-MED-1)", () => {
@@ -943,6 +1033,7 @@ describe("Room: the match, headless over protocol", () => {
     // the moment the order ended — not re-judge the post-verdict world.
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     // Wind full tension while the order runs (tension persists), then let
     // the patience-burned clock kill it — the stale-glob test's recipe.
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -978,6 +1069,7 @@ describe("Room: the match, headless over protocol", () => {
     // happen, so the rule is live, not latent.
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     room.onMessage(a.id, { t: "unlockTown2" });
     // Hands full at town 0: crank HELD (never released) + a crate queued.
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -1006,9 +1098,10 @@ describe("Room: the match, headless over protocol", () => {
     expect(w?.machines[0]?.machine.tensionClicks).toBe(TENSION_MAX_CLICKS);
   });
 
-  it("a glob fired during the linger cannot paint the NEXT order (audit 2026-07-03)", () => {
+  it("a glob fired before the next deal cannot paint the NEXT order (audit 2026-07-03; campaign re-timed 2026-07-08)", () => {
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
     // Wind full tension while the order still runs — tension persists.
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
@@ -1021,16 +1114,20 @@ describe("Room: the match, headless over protocol", () => {
     )
       room.tick();
     expect(a.last("order")?.order.status).toBe("lost");
-    // Deep in the linger, fire a frosting glob timed to be IN FLIGHT when
-    // the room deals fresh (~80 ticks before the redeal; 6-click impact is
-    // ~170 ticks out). Relative to the linger's END so the boundary-
-    // crossing geometry survives any ORDER_RESET_TICKS retune.
-    run(room, ORDER_RESET_TICKS - 80);
+    // A loss ends the run, so THE NEXT DEAL is the next run's (linger +
+    // report + the auto-restart countdown — the pose never left the
+    // circle). Fire a frosting glob timed to be IN FLIGHT when that deal
+    // lands (~80 ticks before it; 6-click impact is ~170 ticks out).
+    // Relative to the boundary sum so the geometry survives any retune.
+    run(room, ORDER_RESET_TICKS + RUNOVER_TICKS + READY_COUNTDOWN_TICKS - 80);
     room.onMessage(a.id, { t: "load", topping: "frosting" });
     run(room, 1);
     room.onMessage(a.id, { t: "lever" });
-    run(room, 500); // re-deal (~79 ticks) then the stale glob lands
-    const fresh = a.all("order").find((m) => m.fresh);
+    run(room, 500); // the deal (~79 ticks) then the stale glob lands
+    // The fresh AFTER the loss — the ready-up's own deal is fresh too.
+    const oMsgs = a.all("order");
+    const lostIdx = oMsgs.findIndex((m) => m.order.status !== "running");
+    const fresh = oMsgs.slice(lostIdx + 1).find((m) => m.fresh);
     expect(fresh).toBeDefined();
     // The stale glob scored nothing: no delivery after the fresh deal...
     const freshAt = a.inbox.indexOf(fresh!);
@@ -1038,6 +1135,74 @@ describe("Room: the match, headless over protocol", () => {
     // ...and the authoritative field is still the fresh cake's, clean.
     const peek = connect(room, "peek");
     expect(peek.last("welcome")?.frosting.every((c) => c === 0)).toBe(true);
+  });
+
+  // THE RUN CONTAINER's own laws (plans/13 slice 1) — the ready gate and
+  // the lobby sandbox. The ladder/run-over paths are pinned above, woven
+  // into the lifecycle tests they re-shaped.
+  describe("the run container: lobby, ready circle, sandbox (plans/13)", () => {
+    const inCircle = { x: READY_CIRCLE.x, y: 1.2, z: READY_CIRCLE.z, yaw: 0 };
+
+    it("a Room boots into the LOBBY: the clock is frozen and nothing scores — but the machines are a SANDBOX", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      const w = a.last("welcome");
+      expect(w?.run.phase).toBe("lobby");
+      expect(w?.run.rung).toBe(0);
+      expect(w?.run.readyOf).toBe(1);
+      // Warmup: load, crank, FIRE — the shot flies (comedy is legal)...
+      room.onMessage(a.id, { t: "load", topping: "cherry" });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+      run(room, CRANK_TICKS_PER_CLICK * 6);
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+      room.onMessage(a.id, { t: "lever" });
+      run(room, 600);
+      expect(a.last("shot")).toBeDefined();
+      // ...but NOTHING scores, the Patron never looks, the clock is frozen.
+      expect(a.all("scored")).toEqual([]);
+      expect(a.all("patron")).toEqual([]);
+      const peek = connect(room, "peek").last("welcome");
+      expect(peek?.order.ticksLeft).toBe(ORDER_SECONDS * 60);
+    });
+
+    it("the ready gate: the census speaks, the countdown arms, stepping out cancels, holding through starts rung 1", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      const b = connect(room, "bob");
+      // One in the circle: census only, no countdown.
+      room.onMessage(a.id, { t: "pose", pose: inCircle });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("lobby");
+      expect(a.last("run")?.readyIn).toBe(1);
+      expect(a.last("run")?.readyOf).toBe(2);
+      // Both in: the countdown arms and says how long.
+      room.onMessage(b.id, { t: "pose", pose: inCircle });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("countdown");
+      expect(a.last("run")?.countdownTicks).toBeGreaterThan(0);
+      // Alice steps out mid-count: CANCELED — the honest gate.
+      room.onMessage(a.id, { t: "pose", pose: { ...inCircle, x: 0, z: 10 } });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("lobby");
+      // Both hold it to zero: rung 1 deals fresh, the run is live.
+      room.onMessage(a.id, { t: "pose", pose: inCircle });
+      run(room, READY_COUNTDOWN_TICKS + 3);
+      expect(a.last("run")?.phase).toBe("running");
+      expect(a.last("run")?.rung).toBe(1);
+      const fresh = a.all("order").find((m) => m.fresh);
+      expect(fresh?.order.status).toBe("running");
+    });
+
+    it("a joiner mid-countdown cancels it — the gate needs EVERYONE", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      room.onMessage(a.id, { t: "pose", pose: inCircle });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("countdown");
+      connect(room, "late"); // no pose yet — cannot be standing anywhere
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("lobby");
+    });
   });
 
   // The wire is typed but the internet is not (checkpoint audit 2026-07-03):

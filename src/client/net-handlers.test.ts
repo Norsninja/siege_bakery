@@ -96,10 +96,12 @@ describe("applyServerMsg", () => {
         toppings: [{ topping: "cherry", x: 0, y: 3.8, z: -30 }],
         frosting: [0, 1, 2],
         stuck: [],
+        run: { phase: "running", rung: 2 },
       },
       h.fx,
     );
     expect(h.view.myId).toBe(7);
+    expect(h.view.run).toEqual({ phase: "running", rung: 2 });
     expect(myMachine(h.view).machine.tensionClicks).toBe(3);
     expect(myMachine(h.view).crankTicks).toBe(5);
     expect(myMachine(h.view).screwTicks).toBe(12);
@@ -211,5 +213,28 @@ describe("applyServerMsg", () => {
     applyServerMsg(h.view, { t: "leave", id: 2 }, h.fx);
     expect(h.ghosts).toEqual(["-2"]);
     expect(h.flashes[0]).toBe("a baker left");
+  });
+
+  it("run: the container's word lands in the view; the felt edges flash (plans/13)", () => {
+    const h = harness();
+    // Lobby census update: state only, no voice.
+    applyServerMsg(
+      h.view,
+      { t: "run", phase: "lobby", rung: 0, readyIn: 1, readyOf: 2 },
+      h.fx,
+    );
+    expect(h.view.run).toEqual({ phase: "lobby", rung: 0, readyIn: 1, readyOf: 2 });
+    expect(h.flashes).toEqual([]);
+    // The run starts: RUNG 1 is spoken once.
+    applyServerMsg(h.view, { t: "run", phase: "countdown", rung: 0, countdownTicks: 180 }, h.fx);
+    applyServerMsg(h.view, { t: "run", phase: "running", rung: 1 }, h.fx);
+    expect(h.flashes.pop()).toContain("THE RUN BEGINS — RUNG 1");
+    // The ladder climbs at the separator's end.
+    applyServerMsg(h.view, { t: "run", phase: "running", rung: 2 }, h.fx);
+    expect(h.flashes.pop()).toContain("RUNG 2");
+    // Run over → lobby speaks the gather-again line.
+    applyServerMsg(h.view, { t: "run", phase: "runover", rung: 2 }, h.fx);
+    applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
+    expect(h.flashes.pop()).toContain("gather in the circle");
   });
 });
