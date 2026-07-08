@@ -139,22 +139,29 @@ export class MachineRig {
     this.group.rotation.y = this.facingRad;
     scene.add(this.group);
 
-    // CREW FLAGSTONES (plans/14): a stand-here marker per post spot,
-    // drawn from posts.ts's own table so zones and stones cannot drift.
-    // A SIBLING group, facing-only — this.group swings with TRAVERSE,
-    // and the crew's footing must not swing with the wheel.
+    // CREW POST CIRCLES (plans/14, feel test round 2): flat translucent
+    // GREEN circles ON the ground — stand-here game furniture, visually
+    // nothing like the machine's wood and iron (the opaque stones read
+    // as machine parts and invited nobody). Drawn from posts.ts's own
+    // table so zones and circles cannot drift. A SIBLING group,
+    // facing-only — this.group swings with TRAVERSE, and the crew's
+    // footing must not swing with the wheel.
     const stones = new THREE.Group();
     stones.position.set(base.x, base.y, base.z);
     stones.rotation.y = this.facingRad;
     scene.add(stones);
     for (const spot of POST_SPOTS) {
       const stone = new THREE.Mesh(
-        new THREE.CylinderGeometry(spot.r, spot.r, 0.04, 24),
-        new THREE.MeshStandardMaterial({
-          color: spot.post === "gunner" ? 0xb5a06b : 0x8f8f9a,
+        new THREE.CircleGeometry(spot.r, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0x3ecf5a,
+          transparent: true,
+          opacity: 0.35,
+          depthWrite: false, // translucency must not hole the ground
         }),
       );
-      stone.position.set(spot.x, 0.02, spot.z);
+      stone.rotation.x = -Math.PI / 2;
+      stone.position.set(spot.x, 0.02, spot.z); // just above the slab: no z-fight
       stones.add(stone);
     }
 

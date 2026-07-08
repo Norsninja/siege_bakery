@@ -4,11 +4,11 @@
  * crews were gunner, loader, and winch-men; our machine has exactly those
  * seams:
  *
- *   GUNNER'S POST — behind the frame, sighting down the throw. TWO flank
- *     spots (feel test 2026-07-08: manning dead-center put the throwing
- *     arm in your face) with a dead band behind the arm — the invitation
- *     only lights where the view is clear. A/D wheel, W/S screw, F lever.
- *     The aiming instrument (arc ladder) lives on its HUD panel.
+ *   GUNNER'S POST — the LEFT rear flank, sighting down the throw (feel
+ *     test 2026-07-08: dead-center puts the throwing arm in your face,
+ *     the right rear stares into the draw spool — one clear-view spot,
+ *     wheel side). A/D wheel, W/S screw, F lever. The aiming instrument
+ *     (arc ladder) lives on its HUD panel.
  *   WINCH POST — the machine's right flank, at the drum. W or Space
  *     winds, S unwinds (the post grammar: W/S is always more/less; no
  *     Ctrl — the browser owns Ctrl+W — and no chords, ever).
@@ -47,8 +47,11 @@ export const POST_SPOTS: readonly {
   z: number;
   r: number;
 }[] = [
+  // LEFT flank only (feel test round 2, 2026-07-08): the right rear
+  // stares into the draw spool — the machine's own body blocks that
+  // sightline, so the spot came out. The wheel lives on the left
+  // anyway; the gunner works from the wheel side.
   { post: "gunner", x: -1.0, z: 1.6, r: 0.6 },
-  { post: "gunner", x: 1.0, z: 1.6, r: 0.6 },
   { post: "winch", x: 1.5, z: -0.55, r: 1.2 },
 ];
 
