@@ -53,9 +53,11 @@ export type NetStatus = "loopback" | "connecting" | "open" | "closed";
 /** The arc position as a filled ladder — the fill shows the whole scale
  * at once (the notch-1/3 misread fix, kept through the vernier). 19
  * positions since the 2.5° table (research/13): grouped in FOURS — one
- * group is 10° — so a glance counts groups, not boxes. The numeric
- * degrees always ride beside the glyph; this is the needle, not the
- * readout. */
+ * group is 10° — so a glance counts groups, not boxes. VISIONARY CALL
+ * 2026-07-08: the full ladder lives ONLY in the screw prompt (you see it
+ * while you dial); the always-on machine line carries the compact
+ * numeric form — a 23-char ladder between three stats muddied which
+ * stat owned it. */
 export const arcGlyph = (tiltNotch: number): string => {
   let out = "";
   for (let i = 0; i <= TILT_MAX_NOTCH; i++) {
@@ -203,7 +205,7 @@ export function hudLines(v: HudView): string[] {
     v.locked
       ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
       : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-    `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(v.machine.tiltNotch)} · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
+    `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
   ];
   if (v.target) lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying)}`);
   if (v.flash) lines.push(v.flash);

@@ -194,8 +194,10 @@ describe("hudLines", () => {
         carrying: "lime",
       }),
     );
+    // Compact arc on the always-on line (visionary call 2026-07-08): the
+    // full ladder is the screw prompt's alone.
     expect(lines[lines.length - 1]).toBe(
-      "machine — traverse -12° · arc +2.5° ▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯ · tension 6/10 · bucket: cherry · hands: lime",
+      "machine — traverse -12° · arc +2.5° (1/18) · tension 6/10 · bucket: cherry · hands: lime",
     );
   });
 

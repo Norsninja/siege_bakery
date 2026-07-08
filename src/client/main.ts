@@ -27,7 +27,6 @@ import type { ServerMsg, HeldOp } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
 import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
 import {
-  arcGlyph,
   bannerText,
   hudLines,
   snapshotCaption,
@@ -381,8 +380,10 @@ async function main(): Promise<void> {
         i === view.yourTown
           ? (notch) => {
               const dir = notch > rig.shownTiltNotch ? "raised" : "lowered";
+              // No ladder here (visionary call 2026-07-08): while dialing,
+              // the screw prompt already shows the full glyph.
               flash(
-                `CLUNK — arc ${dir} to +${notch * TILT_DEG_PER_NOTCH}° ${arcGlyph(notch)}`,
+                `CLUNK — arc ${dir} to +${notch * TILT_DEG_PER_NOTCH}°`,
                 2500,
               );
             }
