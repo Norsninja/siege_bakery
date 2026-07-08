@@ -5,8 +5,8 @@
  * becomes a PAINT EVENT here, and coverage/neatness are point-counting over
  * this field — the 2D cell census, re-bodied.
  *
- * Determinism: the sample grid is a pure function of the cake geometry
- * (core/arena), and paint events are pure functions of impact position +
+ * Determinism: the sample grid is a pure function of the dessert geometry
+ * (core/dessert's spec rows), and paint events are pure functions of impact position +
  * speed — both deterministic given the shot parameters. Within one engine,
  * every field computed from the same `shot` events is byte-identical; only
  * the welcome snapshot ever carries the field itself. CROSS-ENGINE honesty
@@ -31,8 +31,9 @@
  *
  * core/ law: deterministic, no DOM, no three.js.
  */
-import { CAKE_TIERS, CAKE_Z } from "./arena";
+import { CAKE_Z } from "./arena";
 import { SPLAT_SPEED, type Vec3 } from "./ballistics";
+import type { DessertSpec } from "./dessert";
 
 /** Target spacing between sample points (m) — ring gap and arc step. */
 export const SAMPLE_SPACING = 0.45;
@@ -116,8 +117,11 @@ export function splatCoats(speed: number, spec: SplatSpec = DEFAULT_SPLAT): numb
 
 /** The sample indices one paint event reaches — shared by the field's
  * paint() and the client's per-splat coloring (fudge renders dark; the
- * view must see EXACTLY what the census sees, the greybox virtue). */
+ * view must see EXACTLY what the census sees, the greybox virtue).
+ * `samples` is the deal's census (DessertGeometry.samples) — passed
+ * explicitly, like every geometry read since the spec refactor. */
 export function splatSamples(
+  samples: readonly FrostSample[],
   impact: Vec3,
   speed: number,
   spec: SplatSpec = DEFAULT_SPLAT,
@@ -125,8 +129,8 @@ export function splatSamples(
   const r = splatRadius(speed, spec);
   const r2 = r * r;
   const hit: number[] = [];
-  for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-    const s = CAKE_SAMPLES[i]!.pos;
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i]!.pos;
     const dy = s.y - impact.y;
     if (dy > spec.bandUp || dy < -spec.bandDown) continue;
     // Squared distance, not Math.hypot: sqrt/mul/add are exactly rounded
@@ -172,13 +176,17 @@ const UP: Vec3 = { x: 0, y: 1, z: 0 };
 
 /** The census grid: polar rings per tier over the exposed top (~SAMPLE_
  * SPACING apart) plus equal-density rings down each wall face, all
- * phase-shifted per ring so points never align. Built once at module
- * load — a pure function of CAKE_TIERS. */
-function buildSamples(): FrostSample[] {
+ * phase-shifted per ring so points never align. A pure function of the
+ * SPEC's tiers (plans/13 §3 — was module-level, a pure function of
+ * CAKE_TIERS; the loop is verbatim, the zero-drift proof leans on it).
+ * Built once per deal by dessertGeometry(); sample COUNT is per-spec
+ * wire format (cake-3's 661 stays pinned as cake-3's number). */
+export function buildCensus(spec: DessertSpec): FrostSample[] {
+  const tiers = spec.tiers;
   const pts: FrostSample[] = [];
-  for (let i = 0; i < CAKE_TIERS.length; i++) {
-    const t = CAKE_TIERS[i]!;
-    const inner = CAKE_TIERS[i + 1]?.radius ?? 0;
+  for (let i = 0; i < tiers.length; i++) {
+    const t = tiers[i]!;
+    const inner = tiers[i + 1]?.radius ?? 0;
     if (inner === 0)
       pts.push({ pos: { x: 0, y: t.top, z: CAKE_Z }, normal: UP }); // summit center
     for (
@@ -217,16 +225,22 @@ function buildSamples(): FrostSample[] {
   return pts;
 }
 
-export const CAKE_SAMPLES: readonly FrostSample[] = buildSamples();
-
 export class FrostingField {
-  private coats: number[] = new Array<number>(CAKE_SAMPLES.length).fill(0);
+  private coats: number[];
+
+  /** A field is per-deal state over a per-deal census: constructed with
+   * the deal's samples (DessertGeometry.samples) and REPLACED at the deal
+   * boundary — never rebound. Owners' stickyPaint closures read through
+   * `this.frosting`, so replacement follows automatically. */
+  constructor(readonly samples: readonly FrostSample[]) {
+    this.coats = new Array<number>(samples.length).fill(0);
+  }
 
   /** Apply one paint event (a paint topping's first impact), under the
    * topping's splat law (default: the frosting classic). Returns how many
    * sample points it painted — 0 means floor frosting (mess). */
   paint(impact: Vec3, speed: number, spec: SplatSpec = DEFAULT_SPLAT): number {
-    const hit = splatSamples(impact, speed, spec);
+    const hit = splatSamples(this.samples, impact, speed, spec);
     const add = splatCoats(speed, spec);
     for (const i of hit) this.coats[i]! += add;
     return hit.length;
@@ -256,9 +270,9 @@ export class FrostingField {
    * ~0.3m away; the band keeps ground positions from reading tier paint.) */
   frostedNear(pos: Vec3, within = FROSTED_NEAR_M): boolean {
     const w2 = within * within;
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+    for (let i = 0; i < this.samples.length; i++) {
       if (this.coats[i]! === 0) continue;
-      const s = CAKE_SAMPLES[i]!.pos;
+      const s = this.samples[i]!.pos;
       const dx = s.x - pos.x;
       const dy = s.y - pos.y;
       const dz = s.z - pos.z;
@@ -279,10 +293,10 @@ export class FrostingField {
   coatsNear(pos: Vec3, within = STICKY_NEAR_M): number {
     const w2 = within * within;
     let max = 0;
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+    for (let i = 0; i < this.samples.length; i++) {
       const c = this.coats[i]!;
       if (c <= max) continue;
-      const s = CAKE_SAMPLES[i]!.pos;
+      const s = this.samples[i]!.pos;
       const dx = s.x - pos.x;
       const dy = s.y - pos.y;
       const dz = s.z - pos.z;

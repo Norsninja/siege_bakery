@@ -149,10 +149,11 @@ export function bannerText(
   order: OrderState,
   checks: readonly RequirementCheck[],
   verdict: Judgment | null,
+  topTier: number,
   next?: NextOrderNote,
 ): string {
   const list = checks
-    .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req)}`)
+    .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req, topTier)}`)
     .join("\n");
   const scoreLine = verdict
     ? `assembly ${verdict.score}/100 — coverage ${Math.round(verdict.coverage * 100)}% · neat ${Math.round(verdict.neatness * 100)}% · mess ${Math.round(verdict.mess * 100)}% · ${
@@ -217,6 +218,9 @@ export interface HudView {
   /** The run container (plans/13) — the top block renders by its phase:
    * the lobby invitation, the countdown, the rung header, the report. */
   run: RunWire;
+  /** The deal's summit tier index (view.dessert.topTier — spec refactor,
+   * plans/13 §3): zone words in the checklist are per-spec. */
+  topTier: number;
   machine: CatapultState;
   crankTicks: number;
   carrying: string | null;
@@ -268,7 +272,7 @@ export function hudLines(v: HudView): string[] {
               `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
               ...v.checks.map(
                 (c) =>
-                  `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req)} · ${describeProgress(c)}`,
+                  `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,
               ),
             ];
   const lines = [

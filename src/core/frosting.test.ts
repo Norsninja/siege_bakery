@@ -4,10 +4,11 @@
  * pin the laws, not just the numbers.
  */
 import { describe, it, expect } from "vitest";
-import { CAKE_TIERS, CAKE_Z } from "./arena";
+import { CAKE_Z } from "./arena";
 import { SPLAT_SPEED } from "./ballistics";
+import { CAKE_3 } from "./dessert";
 import {
-  CAKE_SAMPLES,
+  buildCensus,
   DEFAULT_SPLAT,
   FROST_DOLLOP_RADIUS,
   FROST_SPLASH_MAX_RADIUS,
@@ -18,25 +19,30 @@ import {
   type SplatSpec,
 } from "./frosting";
 
-const SUMMIT = { x: 0, y: CAKE_TIERS[2]!.top, z: CAKE_Z }; // y 5
-const LEDGE1 = { x: 3.5, y: CAKE_TIERS[0]!.top, z: CAKE_Z }; // y 2
+// The spec refactor (plans/13 §3): the census is a function of the spec.
+// These pins are CAKE-3's — each spec row gets its own.
+const TIERS = CAKE_3.tiers;
+const SAMPLES = buildCensus(CAKE_3);
+
+const SUMMIT = { x: 0, y: TIERS[2]!.top, z: CAKE_Z }; // y 5
+const LEDGE1 = { x: 3.5, y: TIERS[0]!.top, z: CAKE_Z }; // y 2
 const GENTLE = SPLAT_SPEED - 1;
 const HOT = SPLAT_SPEED + 5;
 
 describe("the sample grid (pure function of the cake)", () => {
-  const tops = CAKE_SAMPLES.filter((s) => s.normal.y === 1);
-  const walls = CAKE_SAMPLES.filter((s) => s.normal.y === 0);
+  const tops = SAMPLES.filter((s) => s.normal.y === 1);
+  const walls = SAMPLES.filter((s) => s.normal.y === 0);
 
   it("is deterministic and dense, and every sample is a top or a wall", () => {
     expect(tops.length).toBeGreaterThan(150);
     expect(walls.length).toBeGreaterThan(150);
-    expect(tops.length + walls.length).toBe(CAKE_SAMPLES.length);
+    expect(tops.length + walls.length).toBe(SAMPLES.length);
   });
 
-  it("the sample count IS the wire format: 661, moved only on purpose (audit 2026-07-03)", () => {
+  it("cake-3's sample count IS its wire format: 661, moved only on purpose (audit 2026-07-03; per-spec since plans/13 §3)", () => {
     // welcome.frosting is coats-per-sample, and restore() REFUSES a
     // snapshot of any other length (version-skew guard) — so any tweak to
-    // SAMPLE_SPACING / WALL_SAMPLE_SPACING / ring margins / CAKE_TIERS
+    // SAMPLE_SPACING / WALL_SAMPLE_SPACING / ring margins / TIERS
     // that shifts this number breaks every mixed-build late join, and
     // pre-pin it did so SILENTLY (naked cake, no explanation). If this
     // fails, you changed the census: re-pin the number here, re-run
@@ -44,16 +50,18 @@ describe("the sample grid (pure function of the cake)", () => {
     // frac/TOWN_POTENTIAL/par with it (standing law, plans/07 + plans/08).
     // 661 = the AREA-HONEST census (plans/08): walls at top density are
     // two-thirds of the samples because they are two-thirds of the skin.
-    expect(CAKE_SAMPLES.length).toBe(661);
+    // THE ZERO-DRIFT PIN (plans/13 §3): the spec refactor must reproduce
+    // this number exactly — 661 is cake-3's forever; other rows pin their own.
+    expect(SAMPLES.length).toBe(661);
     expect(tops.length).toBe(218);
     expect(walls.length).toBe(443);
   });
 
   it("top samples sit on tier tops inside tier radii, facing up", () => {
-    const topYs = new Set(CAKE_TIERS.map((t) => t.top));
+    const topYs = new Set(TIERS.map((t) => t.top));
     for (const s of tops) {
       expect(topYs.has(s.pos.y)).toBe(true);
-      const tier = CAKE_TIERS.find((t) => t.top === s.pos.y)!;
+      const tier = TIERS.find((t) => t.top === s.pos.y)!;
       expect(Math.hypot(s.pos.x, s.pos.z - CAKE_Z)).toBeLessThanOrEqual(
         tier.radius,
       );
@@ -62,7 +70,7 @@ describe("the sample grid (pure function of the cake)", () => {
 
   it("wall samples sit ON their tier's cylinder face, facing radially out", () => {
     for (const s of walls) {
-      const tier = CAKE_TIERS.find(
+      const tier = TIERS.find(
         (t) => s.pos.y > t.bottom && s.pos.y < t.top,
       )!;
       expect(tier).toBeDefined();
@@ -74,7 +82,7 @@ describe("the sample grid (pure function of the cake)", () => {
   });
 
   it("samples every tier's exposed ring and every tier's wall", () => {
-    for (const t of CAKE_TIERS) {
+    for (const t of TIERS) {
       expect(tops.some((s) => s.pos.y === t.top)).toBe(true);
       expect(walls.some((s) => s.pos.y > t.bottom && s.pos.y < t.top)).toBe(
         true,
@@ -95,17 +103,17 @@ describe("the paint law", () => {
   });
 
   it("a splash paints more points than a dollop at the same spot", () => {
-    const a = new FrostingField();
-    const b = new FrostingField();
+    const a = new FrostingField(SAMPLES);
+    const b = new FrostingField(SAMPLES);
     expect(b.paint(SUMMIT, HOT)).toBeGreaterThan(a.paint(SUMMIT, GENTLE));
   });
 
   it("paints one story: summit spray never reaches the bottom tier or its wall", () => {
-    const field = new FrostingField();
+    const field = new FrostingField(SAMPLES);
     field.paint({ x: 0, y: 5.3, z: CAKE_Z }, HOT);
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
+    for (let i = 0; i < SAMPLES.length; i++) {
       if (field.coatAt(i) > 0)
-        expect(CAKE_SAMPLES[i]!.pos.y).toBeGreaterThan(3); // tier 3 country only
+        expect(SAMPLES[i]!.pos.y).toBeGreaterThan(3); // tier 3 country only
     }
   });
 
@@ -115,17 +123,17 @@ describe("the paint law", () => {
     // dollop reaches the wall's lower rings and counts. The WINDOW
     // narrowed with the small-splat law (plans/08, dollop 0.6): landing
     // within ~half a meter of the foot forgives; farther is honest mess.
-    const field = new FrostingField();
-    const foot = { x: 0, y: 0.3, z: CAKE_Z + CAKE_TIERS[0]!.radius + 0.3 };
+    const field = new FrostingField(SAMPLES);
+    const foot = { x: 0, y: 0.3, z: CAKE_Z + TIERS[0]!.radius + 0.3 };
     const painted = field.paint(foot, GENTLE);
     expect(painted).toBeGreaterThan(0);
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-      if (field.coatAt(i) > 0) expect(CAKE_SAMPLES[i]!.normal.y).toBe(0); // walls only
+    for (let i = 0; i < SAMPLES.length; i++) {
+      if (field.coatAt(i) > 0) expect(SAMPLES[i]!.normal.y).toBe(0); // walls only
     }
   });
 
   it("a glob that reaches no sample paints nothing — floor frosting", () => {
-    const field = new FrostingField();
+    const field = new FrostingField(SAMPLES);
     expect(field.paint({ x: 0, y: 0.3, z: 0 }, HOT)).toBe(0);
     expect(field.coverage()).toBe(0);
   });
@@ -133,7 +141,7 @@ describe("the paint law", () => {
 
 describe("the census measures", () => {
   it("coverage climbs with paint and stays in [0, 1]", () => {
-    const field = new FrostingField();
+    const field = new FrostingField(SAMPLES);
     expect(field.coverage()).toBe(0);
     field.paint(SUMMIT, HOT);
     const one = field.coverage();
@@ -144,19 +152,19 @@ describe("the census measures", () => {
   });
 
   it("neatness: uniform coats are neat, patchwork is not, naked is 0", () => {
-    const naked = new FrostingField();
+    const naked = new FrostingField(SAMPLES);
     expect(naked.neatness()).toBe(0);
-    const even = new FrostingField();
+    const even = new FrostingField(SAMPLES);
     even.paint(SUMMIT, HOT); // one splash, all 1s
     expect(even.neatness()).toBe(1);
-    const patchy = new FrostingField();
+    const patchy = new FrostingField(SAMPLES);
     patchy.paint(SUMMIT, HOT); // wide 1s...
     patchy.paint(SUMMIT, GENTLE); // ...with a thick dollop heart
     expect(patchy.neatness()).toBeLessThan(1);
   });
 
   it("frostedNear: paint under a rest position, within reach only", () => {
-    const field = new FrostingField();
+    const field = new FrostingField(SAMPLES);
     field.paint(SUMMIT, GENTLE);
     // A sprinkle at rest ON the painted summit (ball center ~0.3 above).
     expect(field.frostedNear({ x: 0.2, y: 5.3, z: CAKE_Z })).toBe(true);
@@ -167,15 +175,15 @@ describe("the census measures", () => {
   });
 
   it("snapshot/restore round-trips the field; skewed lengths are refused", () => {
-    const a = new FrostingField();
+    const a = new FrostingField(SAMPLES);
     a.paint(SUMMIT, HOT);
     a.paint(LEDGE1, GENTLE);
-    const b = new FrostingField();
+    const b = new FrostingField(SAMPLES);
     b.restore(a.snapshot());
     expect(b.coverage()).toBe(a.coverage());
     expect(b.neatness()).toBe(a.neatness());
     expect(b.snapshot()).toEqual(a.snapshot());
-    const c = new FrostingField();
+    const c = new FrostingField(SAMPLES);
     c.restore([1, 2, 3]); // wrong grid — refused, stays clean
     expect(c.coverage()).toBe(0);
     a.reset();
@@ -198,21 +206,21 @@ describe("per-topping splat specs (plans/10 — fudge runs DOWN walls)", () => {
   };
   // A tier-1 WALL sample and an impact point 1m directly above it (a ledge
   // hit at the tier-1 top edge, radially over the wall face).
-  const wallIdx = CAKE_SAMPLES.findIndex(
-    (s) => s.normal.y === 0 && s.pos.y < CAKE_TIERS[0]!.top - 0.5,
+  const wallIdx = SAMPLES.findIndex(
+    (s) => s.normal.y === 0 && s.pos.y < TIERS[0]!.top - 0.5,
   );
-  const wall = CAKE_SAMPLES[wallIdx]!;
+  const wall = SAMPLES[wallIdx]!;
   const above = { x: wall.pos.x, y: wall.pos.y + 1.0, z: wall.pos.z };
 
   it("the classic band cannot reach a wall sample 1m below the impact; fudge can", () => {
-    expect(splatSamples(above, GENTLE).includes(wallIdx)).toBe(false); // 1.0 > 0.8
-    expect(splatSamples(above, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(true); // runs down
+    expect(splatSamples(SAMPLES, above, GENTLE).includes(wallIdx)).toBe(false); // 1.0 > 0.8
+    expect(splatSamples(SAMPLES, above, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(true); // runs down
   });
 
   it("fudge barely reaches UP: the asymmetry is real, not just a longer band", () => {
     const below = { x: wall.pos.x, y: wall.pos.y - 0.5, z: wall.pos.z };
-    expect(splatSamples(below, GENTLE).includes(wallIdx)).toBe(true); // classic: 0.5 ≤ 0.8
-    expect(splatSamples(below, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(false); // 0.5 > 0.25
+    expect(splatSamples(SAMPLES, below, GENTLE).includes(wallIdx)).toBe(true); // classic: 0.5 ≤ 0.8
+    expect(splatSamples(SAMPLES, below, GENTLE, FUDGE_LIKE).includes(wallIdx)).toBe(false); // 0.5 > 0.25
   });
 
   it("DEFAULT_SPLAT reproduces the classic constants byte-for-byte", () => {
@@ -221,9 +229,9 @@ describe("per-topping splat specs (plans/10 — fudge runs DOWN walls)", () => {
     expect(splatRadius(GENTLE, DEFAULT_SPLAT)).toBe(FROST_DOLLOP_RADIUS);
     expect(splatRadius(HOT, DEFAULT_SPLAT)).toBe(splatRadius(HOT));
     expect(splatCoats(GENTLE, DEFAULT_SPLAT)).toBe(splatCoats(GENTLE));
-    const f = new FrostingField();
+    const f = new FrostingField(SAMPLES);
     f.paint(LEDGE1, HOT, DEFAULT_SPLAT);
-    const g = new FrostingField();
+    const g = new FrostingField(SAMPLES);
     g.paint(LEDGE1, HOT);
     expect(f.snapshot()).toEqual(g.snapshot());
   });

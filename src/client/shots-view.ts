@@ -22,6 +22,7 @@ import {
   PROJECTILE_RADIUS,
   type GrainBody,
 } from "../core/projectiles";
+import type { DessertGeometry } from "../core/dessert";
 import { TOWNS } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import { isPaint, TOPPINGS } from "../game/toppings";
@@ -144,14 +145,18 @@ export class ShotsView {
   }
 
   /** The fresh-cake law: everything on the dessert leaves with it. The
-   * Room does the same on its side; sync() sweeps the orphaned meshes. */
-  clearCakeSolids(): void {
-    this.shots.clearCakeSolids(this.world);
+   * Room does the same on its side; sync() sweeps the orphaned meshes.
+   * `dessert` must be the OUTGOING deal's geometry (plans/13 §3 redeal
+   * ordering — the caller clears BEFORE rebinding). */
+  clearCakeSolids(dessert: DessertGeometry): void {
+    this.shots.clearCakeSolids(this.world, dessert);
   }
 
-  /** One fixed tick: advance the shared world; markers + splat readout. */
-  step(flash: (msg: string, ms?: number) => void): void {
-    const ev = this.shots.step(this.world);
+  /** One fixed tick: advance the shared world; markers + splat readout.
+   * `dessert` is the CURRENT deal's geometry (an argument, never a field
+   * — the slice-2 ruling; this view outlives the deal). */
+  step(dessert: DessertGeometry, flash: (msg: string, ms?: number) => void): void {
+    const ev = this.shots.step(this.world, dessert);
     // Bursts: the carrier's mesh leaves with its body (sync sweeps it);
     // every grain gets a confetti capsule. One flash for the whole pop.
     for (const b of ev.bursts) {

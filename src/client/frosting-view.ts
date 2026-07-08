@@ -19,11 +19,11 @@
  */
 import * as THREE from "three";
 import {
-  CAKE_SAMPLES,
   FrostingField,
   splatRadius,
   splatSamples,
   STICKY_NEAR_M,
+  type FrostSample,
 } from "../core/frosting";
 import { TOPPINGS } from "../game/toppings";
 import type { Vec3 } from "../core/ballistics";
@@ -70,25 +70,50 @@ export function blobCrest(coats: number): number {
 }
 
 export class FrostingView {
-  private readonly field = new FrostingField();
-  private readonly blobs: THREE.InstancedMesh;
+  private field: FrostingField;
+  private samples: readonly FrostSample[];
+  private blobs: THREE.InstancedMesh;
   private readonly groundSplats: THREE.Mesh[] = [];
   /** Monotonic — the stagger must keep cycling once the FIFO is full
    * (audit 2026-07-03: array length pins at the cap, so length%7 froze
    * and every post-cap disc z-fought at the same height). */
   private splatCount = 0;
 
-  constructor(private readonly scene: THREE.Scene) {
-    this.blobs = new THREE.InstancedMesh(
+  constructor(
+    private readonly scene: THREE.Scene,
+    samples: readonly FrostSample[],
+  ) {
+    this.samples = samples;
+    this.field = new FrostingField(samples);
+    this.blobs = this.buildBlobs();
+    this.refresh();
+  }
+
+  /** One InstancedMesh per census — sized to the DEAL's samples (spec
+   * refactor, plans/13 §3). */
+  private buildBlobs(): THREE.InstancedMesh {
+    const blobs = new THREE.InstancedMesh(
       new THREE.SphereGeometry(BLOB_GEO_RADIUS, 10, 8),
       // White base + per-instance color (fudge paints dark, plans/10).
       new THREE.MeshStandardMaterial({ color: 0xffffff }),
-      CAKE_SAMPLES.length,
+      this.samples.length,
     );
-    this.blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const base = new THREE.Color(FROSTING_COLOR);
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) this.blobs.setColorAt(i, base);
-    scene.add(this.blobs);
+    for (let i = 0; i < this.samples.length; i++) blobs.setColorAt(i, base);
+    this.scene.add(blobs);
+    return blobs;
+  }
+
+  /** THE DESSERT REBIND (plans/13 §3): the fresh deal's census replaces
+   * this one — new field (naked cake), new instancing. Ground splats
+   * persist across deals like the floor litter does (the crew's mess,
+   * not the dessert's — fresh-cake law). Replaces the old reset(). */
+  bindDessert(samples: readonly FrostSample[]): void {
+    removeAndDispose(this.blobs);
+    this.samples = samples;
+    this.field = new FrostingField(samples);
+    this.blobs = this.buildBlobs();
     this.refresh();
   }
 
@@ -98,7 +123,8 @@ export class FrostingView {
     const spec = TOPPINGS[topping]?.splat;
     this.field.paint(pos, speed, spec);
     const color = new THREE.Color(PAINT_COLORS[topping] ?? FROSTING_COLOR);
-    for (const i of splatSamples(pos, speed, spec)) this.blobs.setColorAt(i, color);
+    for (const i of splatSamples(this.samples, pos, speed, spec))
+      this.blobs.setColorAt(i, color);
     if (this.blobs.instanceColor) this.blobs.instanceColor.needsUpdate = true;
     if (pos.y < GROUND_SPLAT_BELOW_Y) this.addGroundSplat(pos, speed, topping);
     this.refresh();
@@ -107,17 +133,13 @@ export class FrostingView {
   /** The welcome snapshot: the painted cake as it lies (late join/refresh). */
   restore(coats: number[]): void {
     if (!this.field.restore(coats))
-      // Version skew: the server's census disagrees with this build's.
-      // Starting clean is correct; starting SILENTLY clean was the trap.
+      // Version/spec skew: the server's census disagrees with this one —
+      // a build mismatch, or the dessert rebind didn't happen before the
+      // snapshot (the boot-order law's tripwire, plans/13 §3). Starting
+      // clean is correct; starting SILENTLY clean was the trap.
       console.warn(
-        `frosting snapshot refused: ${coats.length} coats vs ${CAKE_SAMPLES.length} samples — client/server build mismatch?`,
+        `frosting snapshot refused: ${coats.length} coats vs ${this.samples.length} samples — client/server build or spec mismatch?`,
       );
-    this.refresh();
-  }
-
-  /** A fresh deal: the fresh cake wheels out naked. */
-  reset(): void {
-    this.field.reset();
     this.refresh();
   }
 
@@ -159,8 +181,8 @@ export class FrostingView {
     const q = new THREE.Quaternion();
     const p = new THREE.Vector3();
     const sc = new THREE.Vector3();
-    for (let i = 0; i < CAKE_SAMPLES.length; i++) {
-      const s = CAKE_SAMPLES[i]!;
+    for (let i = 0; i < this.samples.length; i++) {
+      const s = this.samples[i]!;
       const coats = this.field.coatAt(i);
       const k = blobScale(coats);
       // Flatten along the surface normal: lying on tops, clinging to walls.

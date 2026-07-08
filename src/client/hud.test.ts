@@ -125,7 +125,7 @@ describe("bannerText — three endings, culprit always named", () => {
 
   it("delighted: stars + the list + the score line", () => {
     const order = { ...createOrder([], 100), status: "won" as const };
-    const text = bannerText(order, rows, judgment({ stars: 2, score: 74 }));
+    const text = bannerText(order, rows, judgment({ stars: 2, score: 74 }), 2);
     expect(text).toContain("THE PATRON IS DELIGHTED! ★★");
     expect(text).toContain("✗ 3 × cherry ON the cake"); // the culprit law
     expect(text).toContain("assembly 74/100");
@@ -138,6 +138,7 @@ describe("bannerText — three endings, culprit always named", () => {
       order,
       rows,
       judgment({ accepted: false, score: 40, stars: 0, waste: 0.4 }),
+      2,
     );
     expect(text).toContain("REFUSED.");
     expect(text).toContain("it is TERRIBLE.");
@@ -147,7 +148,7 @@ describe("bannerText — three endings, culprit always named", () => {
 
   it("hungry: the clock died first — no verdict, the list still names rows", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
-    const text = bannerText(order, rows, null);
+    const text = bannerText(order, rows, null, 2);
     expect(text).toContain("TIME!");
     expect(text).toContain("the patron goes hungry");
     expect(text).toContain("✗ 3 × cherry ON the cake");
@@ -155,7 +156,7 @@ describe("bannerText — three endings, culprit always named", () => {
 
   it("the linger countdown shows the clock; the gates close with the deal", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
-    const text = bannerText(order, rows, null, { seconds: 7, away: false });
+    const text = bannerText(order, rows, null, 2, { seconds: 7, away: false });
     expect(text).toContain("a new order in 7s");
     expect(text).toContain("the gates close with it");
     expect(text).not.toContain("HURRY"); // home bakers aren't nagged
@@ -163,7 +164,7 @@ describe("bannerText — three endings, culprit always named", () => {
 
   it("a baker out of his town is WARNED before the deal carries him home (2026-07-07)", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
-    const text = bannerText(order, rows, null, { seconds: 4, away: true });
+    const text = bannerText(order, rows, null, 2, { seconds: 4, away: true });
     expect(text).toContain("a new order in 4s");
     expect(text).toContain("YOU ARE NOT IN YOUR TOWN!");
     expect(text).toContain("carried home");
@@ -172,7 +173,7 @@ describe("bannerText — three endings, culprit always named", () => {
 
   it("a run-ending loss promises NO new order — the run ends (plans/13)", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
-    const text = bannerText(order, rows, null, {
+    const text = bannerText(order, rows, null, 2, {
       seconds: 6,
       away: true, // no carry-home follows a loss; the warning would lie
       runEnds: true,
@@ -189,6 +190,7 @@ describe("hudLines", () => {
     checks: [check(false, 1)],
     // A live rung by default — the pre-campaign HUD, one header deeper.
     run: { phase: "running", rung: 1 },
+    topTier: 2, // cake-3's summit (spec refactor, plans/13 §3)
     machine: machine(),
     crankTicks: 0,
     carrying: null,

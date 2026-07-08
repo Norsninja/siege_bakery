@@ -27,12 +27,8 @@
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
-import {
-  buildArenaColliders,
-  inReadyCircle,
-  isOnCake,
-  TOWNS,
-} from "../core/arena";
+import { buildArenaColliders, inReadyCircle, TOWNS } from "../core/arena";
+import { dessertGeometry, type DessertGeometry } from "../core/dessert";
 import { FrostingField, splatCovers, STICKY_NEAR_M } from "../core/frosting";
 import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
@@ -51,6 +47,7 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "../game/judgment";
+import { specForRung } from "../game/campaign";
 import { evaluateOrder } from "../game/order";
 import { OrderFlow, standardRequirements } from "../game/order-flow";
 import { RunFlow } from "../game/run-flow";
@@ -133,10 +130,21 @@ export class Room {
       coats?: number;
     }
   > = [];
-  /** The frosting field — paint events accumulate here (plans/07). Reset
-   * with the order: a fresh cake wheels out between deals (paint is the
-   * scoreboard; a fresh FROST row must not start half-met). */
-  private readonly frosting = new FrostingField();
+  /** THE DEAL'S DESSERT (spec refactor, plans/13 §3): bound once per deal
+   * by redealDessert() — the Room is the geometry's server-side owner;
+   * core/ classes receive it as an ARGUMENT, never hold it. Slice 2 deals
+   * cake-3 every rung (game/campaign.ts stand-in) but the swap path runs
+   * for real at every deal boundary. */
+  private dessert: DessertGeometry;
+  /** The dessert's collider handles — torn down and rebuilt at the deal
+   * (arena statics build once in the constructor; the dessert is per-deal
+   * state, the collider split of plans/13 §3). */
+  private dessertColliders: RAPIER.Collider[];
+  /** The frosting field — paint events accumulate here (plans/07).
+   * REPLACED with the deal (was reset): a fresh cake wheels out between
+   * deals, and the field's census is per-spec now. stickyPaint reads it
+   * through `this`, so replacement follows automatically. */
+  private frosting: FrostingField;
   private readonly roster = new Roster();
   private tickCount = 0;
   private patronSeq = 0;
@@ -157,9 +165,15 @@ export class Room {
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
+    // The boot dessert: the dormant order is the next run's rung 1
+    // (plans/13 — the lobby is a sandbox over a real cake).
+    this.dessert = dessertGeometry(specForRung(1));
+    this.dessertColliders = this.dessert.buildColliders(this.world);
+    this.frosting = new FrostingField(this.dessert.samples);
     // The conversion law's paint oracle (plans/10 §8): grains grip where
     // they hit wet paint ON the dessert skin — walls included. The client
-    // binds its own field twin.
+    // binds its own field twin. Reads through `this` — the per-deal field
+    // replacement follows without rebinding.
     this.shots.stickyPaint = (p) => this.frosting.frostedNear(p, STICKY_NEAR_M);
   }
 
@@ -306,12 +320,29 @@ export class Room {
     }
   }
 
+  /** THE FRESH-CAKE LAW's physical half, per-spec since the refactor
+   * (plans/13 §3 rulings — THE REDEAL ORDERING): clear the cake's solids
+   * with the OUTGOING geometry (bodies leave with the dessert they rested
+   * ON), tear down its colliders, bind the incoming rung's spec, build its
+   * colliders, and roll a fresh field over its census. Floor litter is the
+   * crew's mess and stays. Every deal boundary — startRun and the rung
+   * climb — walks this one path. */
+  private redealDessert(): void {
+    this.shots.clearCakeSolids(this.world, this.dessert);
+    for (const c of this.dessertColliders) this.world.removeCollider(c, false);
+    this.dessert = dessertGeometry(specForRung(Math.max(1, this.run.rung)));
+    this.dessertColliders = this.dessert.buildColliders(this.world);
+    this.frosting = new FrostingField(this.dessert.samples);
+    this.settled = [];
+    this.lingerVerdict = null; // the fresh deal owes nobody a verdict
+  }
+
   /** Step physics; landings become scored deliveries (stale tags litter,
    * score nothing — audit AUD-4). Same-tick landings BATCH (plans/10 §5):
    * one census + one `scored` per (topping, fate) group — a settling burst
    * must not be forty broadcasts. Singles behave exactly as before. */
   private tickScoringPhase(): void {
-    const ev = this.shots.step(this.world);
+    const ev = this.shots.step(this.world, this.dessert);
     const groups = new Map<string, { topping: string; onCake: boolean; count: number }>();
     const note = (topping: string, onCake: boolean): void => {
       const k = `${topping}|${onCake ? 1 : 0}`;
@@ -342,7 +373,7 @@ export class Room {
     // litters the world (its body landed); it just counts for nothing.
     for (const s of ev.settled) {
       if (s.tag !== this.flow.deal) continue;
-      const onCake = isOnCake(s.pos);
+      const onCake = this.dessert.isOnCake(s.pos);
       this.settled.push({ topping: s.topping, pos: s.pos, onCake, body: s.body });
       note(s.topping, onCake);
     }
@@ -374,6 +405,7 @@ export class Room {
     // fresh deal wipes the cake and the ledger anyway.
     if (this.run.phase !== "running") return;
     const r = evaluateOrder(
+      this.dessert,
       this.flow.order,
       this.ledger(), // earlier deliveries may have been shoved since
       this.frosting,
@@ -443,6 +475,7 @@ export class Room {
       const { utterance } = this.flow.patronLook(
         this.ledger(), // he judges the cake as it LIES
         this.currentChecks(),
+        this.dessert.topTier,
       );
       this.roster.broadcast({ t: "patron", text: utterance, seq: ++this.patronSeq });
       this.roster.broadcast({
@@ -468,20 +501,17 @@ export class Room {
         });
       } else if (this.run.orderConcluded(this.endedWon) === "nextRung") {
         // "redeal" on a WON order: the ladder climbs — THE FRESH-CAKE LAW
-        // (2026-07-05): the finished dessert is gone and a naked cake
-        // wheels out. Paint, stuck sprinkle records (they live in
-        // `settled`, plans/10 §8), resting cherries — everything ON it
-        // leaves with it. Floor litter is the crew's mess, not the
-        // dessert's; it stays, all run long (plans/13).
-        this.settled = [];
-        this.frosting.reset();
-        this.shots.clearCakeSolids(this.world);
-        this.lingerVerdict = null; // the fresh deal owes nobody a verdict
+        // (2026-07-05): the finished dessert is gone and the next rung's
+        // wheels out (redealDessert — the per-spec swap since plans/13
+        // §3). Everything ON it leaves with it; floor litter is the
+        // crew's mess, not the dessert's; it stays, all run long.
+        this.redealDessert();
         this.roster.broadcast({
           t: "order",
           order: this.flow.order,
           checks: this.currentChecks(),
           fresh: true,
+          rung: this.run.rung,
         });
         this.broadcastRun();
       } else {
@@ -515,15 +545,13 @@ export class Room {
    * carries into the run. */
   private startRun(): void {
     this.flow.dealFresh();
-    this.settled = [];
-    this.frosting.reset();
-    this.shots.clearCakeSolids(this.world);
-    this.lingerVerdict = null;
+    this.redealDessert();
     this.roster.broadcast({
       t: "order",
       order: this.flow.order,
       checks: this.currentChecks(),
       fresh: true,
+      rung: this.run.rung,
     });
     this.broadcastRun();
   }
@@ -583,13 +611,14 @@ export class Room {
       if (!s.body || !s.body.isValid()) continue;
       const p = s.body.translation();
       s.pos = { x: p.x, y: p.y, z: p.z };
-      s.onCake = isOnCake(s.pos);
+      s.onCake = this.dessert.isOnCake(s.pos);
     }
     return this.settled;
   }
 
   private currentChecks(): RequirementCheck[] {
     return checkRequirements(
+      this.dessert,
       this.flow.order.requirements,
       this.ledger(),
       this.frosting,
@@ -597,7 +626,13 @@ export class Room {
   }
 
   private judgeNow() {
-    return judge(this.flow.order, this.ledger(), this.frosting, this.flow.shotsFired);
+    return judge(
+      this.dessert,
+      this.flow.order,
+      this.ledger(),
+      this.frosting,
+      this.flow.shotsFired,
+    );
   }
 
   memberCount(): number {

@@ -197,13 +197,18 @@ export type ServerMsg =
    * the verdict the banner renders (delighted/refused/hungry). `fresh`
    * rides along exactly when the room DEALS anew: the fresh cake wheels
    * out — clients clear their local frosting AND every solid on the
-   * dessert (the fresh-cake law; floor litter stays). */
+   * dessert (the fresh-cake law; floor litter stays). `rung` rides with
+   * `fresh` (THE WIRE LAW, plans/13 §3): the deal carries the rung
+   * number — and thus the DessertSpec, looked up in shared code — never
+   * geometry. Clients rebind their dessert from it, AFTER clearing with
+   * the outgoing geometry (the redeal ordering ruling). */
   | {
       t: "order";
       order: OrderState;
       checks: RequirementCheck[];
       judgment?: Judgment;
       fresh?: true;
+      rung?: number;
     }
   /** The Patron spoke. Any rows/clock he changed follow in an `order`
    * message; this is the voice. `seq` marks distinct utterances. */

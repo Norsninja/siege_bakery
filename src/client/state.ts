@@ -6,6 +6,8 @@
  * them (carrying, netStatus). net-handlers.ts mutates it; main.ts and
  * hud.ts read it.
  */
+import { dessertGeometry, type DessertGeometry } from "../core/dessert";
+import { specForRung } from "../game/campaign";
 import { createCatapult } from "../game/catapult";
 import type { Judgment, RequirementCheck } from "../game/judgment";
 import { createOrder, type OrderState } from "../game/order";
@@ -24,6 +26,11 @@ export interface MatchView {
   /** The run container (plans/13) — server truth from welcome + `run`
    * messages; the HUD's top block and the banner render by its phase. */
   run: RunWire;
+  /** THE DEAL'S DESSERT, client side (spec refactor, plans/13 §3): bound
+   * by net-handlers from the wire's rung — welcome and every fresh deal —
+   * BEFORE any dessert-derived snapshot state adopts (the boot-order law).
+   * main.ts reads it for the local sim's step and the HUD's zone words. */
+  dessert: DessertGeometry;
   /** Rides the order message that ENDS the order; null while running. */
   verdict: Judgment | null;
   lastPatron: { text: string; seq: number } | null;
@@ -69,6 +76,7 @@ export function createMatchView(): MatchView {
     order: createOrder([], 90 * 60), // rows arrive with `welcome`
     checks: [],
     run: { phase: "lobby", rung: 0 }, // truth arrives with `welcome`
+    dessert: dessertGeometry(specForRung(1)), // rebound by `welcome`
     verdict: null,
     lastPatron: null,
     myId: null,

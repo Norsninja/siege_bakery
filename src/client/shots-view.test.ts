@@ -17,6 +17,7 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { GRAVITY } from "../core/constants";
 import { CAKE_Z } from "../core/arena";
+import { CAKE_3, dessertGeometry } from "../core/dessert";
 import type { StepEvents } from "../core/projectiles";
 import { TOPPINGS } from "../game/toppings";
 import { ShotsView } from "./shots-view";
@@ -32,7 +33,7 @@ function harness() {
   const world = new RAPIER.World(GRAVITY);
   const scene = new THREE.Scene();
   const shotsView = new ShotsView(world, scene);
-  const frostingView = new FrostingView(scene);
+  const frostingView = new FrostingView(scene, GEOM.samples);
   const sprinklesView = new SprinklesView(scene);
   shotsView.onPaintImpact = (topping, pos, speed) => {
     frostingView.paintImpact(topping, pos, speed);
@@ -51,6 +52,9 @@ function harness() {
   return { shotsView, setEvents, count };
 }
 
+// The deal's geometry (spec refactor, plans/13 §3) — cake-3, the anchor.
+const GEOM = dessertGeometry(CAKE_3);
+
 // A grip point on the cake skin and a glob landing on the very same point.
 const G = { x: 3.5, y: 2.0, z: CAKE_Z };
 const N = { x: 0, y: 1, z: 0 };
@@ -68,7 +72,7 @@ describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
   it("a grip and a covering glob on the SAME tick: the grip SURVIVES (mirrors the Room)", () => {
     const { shotsView, setEvents, count } = harness();
     setEvents({ ...empty, impacts: [coveringImpact], stuck: [grip] });
-    shotsView.step(noop);
+    shotsView.step(GEOM, noop);
     // Old order (add then bury) removed it → 0; the Room would have counted
     // it. The fix keeps the record: bury runs before this tick's grip exists.
     expect(count()).toBe(1);
@@ -77,10 +81,10 @@ describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
   it("a glob on a STRICTLY LATER tick still buries the grip (burial law intact)", () => {
     const { shotsView, setEvents, count } = harness();
     setEvents({ ...empty, stuck: [grip] }); // tick 1: grip only
-    shotsView.step(noop);
+    shotsView.step(GEOM, noop);
     expect(count()).toBe(1);
     setEvents({ ...empty, impacts: [coveringImpact] }); // tick 2: the glob
-    shotsView.step(noop);
+    shotsView.step(GEOM, noop);
     expect(count()).toBe(0); // buried — the record is IN the cake now
   });
 });

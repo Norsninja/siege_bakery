@@ -5,14 +5,19 @@
  * before whimsy.
  */
 import { describe, it, expect } from "vitest";
-import { FrostingField } from "../core/frosting";
+import { CAKE_3, dessertGeometry } from "../core/dessert";
+import { buildCensus, FrostingField } from "../core/frosting";
 import { createGiant, type PatronContext } from "./patron";
 import { createOrder, type OrderState } from "./order";
 import { checkRequirements, type Requirement } from "./judgment";
 
+// The spec refactor (plans/13 §3): zones are tier INDICES now, and the
+// rules see the deal's geometry — cake-3 here, the anchor row.
+const GEOM = dessertGeometry(CAKE_3);
+
 const rows = (): Requirement[] => [
   { kind: "count-on-cake", topping: "cherry", needed: 2 },
-  { kind: "count-in-zone", topping: "lime", zone: "tier2", needed: 1 },
+  { kind: "count-in-zone", topping: "lime", zone: 1, needed: 1 },
 ];
 
 /** Context builder: checks derive from the order's live rows + a fake
@@ -23,9 +28,10 @@ function ctx(
   over: Partial<PatronContext> = {},
 ): PatronContext {
   const checks = checkRequirements(
+    GEOM,
     order.requirements,
     [],
-    new FrostingField(),
+    new FrostingField(buildCensus(CAKE_3)),
   ).map((c, i) => {
     const current = currents[i] ?? 0;
     return { ...c, current, met: current >= c.target };
@@ -37,6 +43,7 @@ function ctx(
     prevMess: 0,
     secondsLeft: 60,
     look: 0,
+    topTier: GEOM.topTier,
     rng: () => 0.9, // no whims unless a test injects one
     ...over,
   };
@@ -82,7 +89,7 @@ describe("The Giant", () => {
     // No row references cherry, so the demand MAY fire (one-number law).
     const cherryless: Requirement[] = [
       { kind: "count-on-cake", topping: "sprinkles", needed: 2 },
-      { kind: "count-in-zone", topping: "lime", zone: "tier2", needed: 1 },
+      { kind: "count-in-zone", topping: "lime", zone: 1, needed: 1 },
     ];
     const order = createOrder(cherryless, 5400);
     const act = g.act(ctx(order, [2, 0])); // sprinkle row met, lime not

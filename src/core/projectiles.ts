@@ -33,7 +33,7 @@
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { GRAIN_COLLISION_GROUPS, SHOT_COLLISION_GROUPS } from "./constants";
-import { cakeSurface, distanceToCake, isOnCake } from "./arena";
+import type { DessertGeometry } from "./dessert";
 import { mulberry32 } from "./rng";
 import type { Vec3 } from "./ballistics";
 
@@ -356,8 +356,11 @@ export class ProjectileManager {
    * mess, not the dessert's, and stays. In-flight shots keep flying (a
    * stale lob still lands, still scores nothing — audit AUD-4). Both
    * replicas call this on the fresh deal and remove the identical set —
-   * body positions are the shared truth. Returns how many left. */
-  clearCakeSolids(world: RAPIER.World): number {
+   * body positions are the shared truth. Returns how many left.
+   * `dessert` must be the OUTGOING deal's geometry (plans/13 §3 rulings:
+   * bodies leave with the dessert they rested ON — clear BEFORE the
+   * collider swap; this argument is what makes the ordering visible). */
+  clearCakeSolids(world: RAPIER.World, dessert: DessertGeometry): number {
     const inFlight = new Set<number>();
     for (const t of this.tracked.values()) inFlight.add(t.body.handle);
     let removed = 0;
@@ -365,7 +368,7 @@ export class ProjectileManager {
       const b = this.bodies[i]!;
       if (inFlight.has(b.body.handle)) continue;
       const p = b.body.translation();
-      if (!isOnCake({ x: p.x, y: p.y, z: p.z })) continue;
+      if (!dessert.isOnCake({ x: p.x, y: p.y, z: p.z })) continue;
       this.frozen.delete(b.body.handle);
       this.waking.delete(b.body.handle);
       world.removeRigidBody(b.body);
@@ -375,8 +378,12 @@ export class ProjectileManager {
     return removed;
   }
 
-  /** Step the world one fixed tick; returns impact and settle events. */
-  step(world: RAPIER.World): StepEvents {
+  /** Step the world one fixed tick; returns impact and settle events.
+   * `dessert` is the CURRENT deal's geometry — the fuse, the grip gate,
+   * and the grip placement all read it (an argument, never a field:
+   * slice-2 ruling — the manager outlives the deal, so it must be told
+   * which dessert it is flying over, every tick). */
+  step(world: RAPIER.World, dessert: DessertGeometry): StepEvents {
     // The wake pass (freeze law) — BEFORE the physics step, so a frozen
     // solid is dynamic again by the time anything can touch it. Movers are
     // every live shot plus any woken solid still actually moving (a shoved
@@ -420,7 +427,7 @@ export class ProjectileManager {
     for (const [handle, shot] of this.tracked) {
       if (!shot.burst || shot.impacted) continue;
       const p = shot.body.translation();
-      if (distanceToCake(p) > shot.burst.proximityM) continue;
+      if (dessert.distanceToCake(p) > shot.burst.proximityM) continue;
       this.burstNow(world, handle, shot, bursts);
     }
 
@@ -469,7 +476,7 @@ export class ProjectileManager {
         if (
           shot.grain &&
           this.stickyPaint !== null &&
-          distanceToCake({ x: p.x, y: p.y, z: p.z }) <= GRIP_SKIN_M &&
+          dessert.distanceToCake({ x: p.x, y: p.y, z: p.z }) <= GRIP_SKIN_M &&
           this.stickyPaint({ x: p.x, y: p.y, z: p.z })
         ) {
           shot.impacted = true;
@@ -532,7 +539,7 @@ export class ProjectileManager {
       const shot = this.tracked.get(handle);
       if (!shot) continue;
       const p = shot.body.translation();
-      const surf = cakeSurface({ x: p.x, y: p.y, z: p.z });
+      const surf = dessert.cakeSurface({ x: p.x, y: p.y, z: p.z });
       world.removeRigidBody(shot.body);
       this.tracked.delete(handle);
       const i = this.bodies.findIndex((b) => b.body === shot.body);

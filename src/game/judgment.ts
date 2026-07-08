@@ -13,7 +13,7 @@
  *
  * game/ law: pure data + pure functions, imports core/ only.
  */
-import { isInZone, tierOf, TOP_TIER, type ZoneId } from "../core/arena";
+import { tierLabel, type DessertGeometry, type ZoneId } from "../core/dessert";
 import type { Vec3 } from "../core/ballistics";
 import type { FrostingField } from "../core/frosting";
 import { canCrown, deliveryWeight } from "./toppings";
@@ -84,8 +84,11 @@ export function weighedMess(settled: readonly SettledTopping[]): number {
 }
 
 /** Census every row against everything at rest and the frosting field.
- * Pure; called by the Room after each delivery and each Patron amendment. */
+ * Pure; called by the Room after each delivery and each Patron amendment.
+ * `dessert` is the deal's geometry (spec refactor, plans/13 §3) — the
+ * crown's summit and the zone oracle are per-spec now. */
 export function checkRequirements(
+  dessert: DessertGeometry,
   reqs: readonly Requirement[],
   settled: readonly SettledTopping[],
   frosting: FrostingField,
@@ -107,7 +110,7 @@ export function checkRequirements(
       const met =
         uppermost !== null &&
         uppermost.topping === req.topping &&
-        tierOf(uppermost.pos) === TOP_TIER;
+        dessert.tierOf(uppermost.pos) === dessert.topTier;
       return { req, current: met ? 1 : 0, target: 1, met };
     }
     if (req.kind === "frost-coverage") {
@@ -123,7 +126,7 @@ export function checkRequirements(
           ? s.onCake
           : req.kind === "on-frosting"
             ? s.onCake && frosting.frostedNear(s.pos)
-            : isInZone(req.zone, s.pos)
+            : dessert.isInZone(req.zone, s.pos)
       )
         current++;
     }
@@ -185,12 +188,13 @@ export interface Judgment {
  * exactly like floor limes.
  */
 export function judge(
+  dessert: DessertGeometry,
   order: JudgedOrder,
   settled: readonly SettledTopping[],
   frosting: FrostingField,
   shotsFired: number,
 ): Judgment {
-  const checks = checkRequirements(order.requirements, settled, frosting);
+  const checks = checkRequirements(dessert, order.requirements, settled, frosting);
   const met = checks.length > 0 && checks.every((c) => c.met);
 
   const coverage = frosting.coverage();
@@ -239,16 +243,12 @@ export function judge(
   };
 }
 
-const ZONE_LABELS: Record<ZoneId, string> = {
-  cake: "ON the cake",
-  tier1: "on the BOTTOM TIER",
-  tier2: "on the MIDDLE TIER",
-  tier3: "on the TOP TIER",
-};
-
 /** One row's words — shared by the HUD checklist and the end banner.
- * "×" dodges pluralization (cherry/cherries) in a data-driven pantry. */
-export function describeRequirement(req: Requirement): string {
+ * "×" dodges pluralization (cherry/cherries) in a data-driven pantry.
+ * `topTier` is the deal's summit index (DessertGeometry.topTier) — zone
+ * words are per-spec since the refactor (core/dessert tierLabel: BOTTOM/
+ * MIDDLE/TOP reproduce cake-3's names exactly). */
+export function describeRequirement(req: Requirement, topTier: number): string {
   if (req.kind === "crown") return `1 × ${req.topping} AS THE CROWN`;
   // "YOUR SIDE": one town reaches its near hemisphere (plans/08) — the ask
   // reads as a number the table can actually hit, whatever the town count.
@@ -257,7 +257,9 @@ export function describeRequirement(req: Requirement): string {
   if (req.kind === "on-frosting")
     return `${req.needed} × ${req.topping} ON THE FROSTING`;
   const where =
-    req.kind === "count-on-cake" ? ZONE_LABELS.cake : ZONE_LABELS[req.zone];
+    req.kind === "count-on-cake" || req.zone === "cake"
+      ? "ON the cake"
+      : tierLabel(req.zone, topTier);
   return `${req.needed} × ${req.topping} ${where}`;
 }
 

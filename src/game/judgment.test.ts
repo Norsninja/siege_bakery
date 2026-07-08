@@ -6,8 +6,9 @@
  * above the surface it lies on.
  */
 import { describe, it, expect } from "vitest";
-import { CAKE_TIERS, CAKE_Z, isInZone } from "../core/arena";
-import { CAKE_SAMPLES, FrostingField } from "../core/frosting";
+import { CAKE_Z } from "../core/arena";
+import { CAKE_3, dessertGeometry } from "../core/dessert";
+import { buildCensus, FrostingField } from "../core/frosting";
 import { SPLAT_SPEED } from "../core/ballistics";
 import {
   checkRequirements,
@@ -18,9 +19,15 @@ import {
   type SettledTopping,
 } from "./judgment";
 
-const LEDGE_Y = CAKE_TIERS[0]!.top + 0.3; // resting on the bottom tier
-const MID_Y = CAKE_TIERS[1]!.top + 0.3; // resting on the middle-tier ledge
-const TOP_Y = CAKE_TIERS[2]!.top + 0.3; // resting on the summit
+// The spec refactor (plans/13 §3): the rules see the deal's geometry —
+// cake-3 here, the anchor row; zones are tier INDICES now.
+const GEOM = dessertGeometry(CAKE_3);
+const TIERS = CAKE_3.tiers;
+const SAMPLES = buildCensus(CAKE_3);
+
+const LEDGE_Y = TIERS[0]!.top + 0.3; // resting on the bottom tier
+const MID_Y = TIERS[1]!.top + 0.3; // resting on the middle-tier ledge
+const TOP_Y = TIERS[2]!.top + 0.3; // resting on the summit
 
 const at = (
   topping: string,
@@ -30,16 +37,16 @@ const at = (
 ): SettledTopping => ({ topping, pos: { x, y, z: CAKE_Z }, onCake });
 
 /** A cake nobody frosted. */
-const naked = () => new FrostingField();
+const naked = () => new FrostingField(SAMPLES);
 /** A cake under one perfect uniform coat: coverage 1, neatness 1. */
 const fullCoat = () => {
-  const f = new FrostingField();
-  f.restore(new Array<number>(CAKE_SAMPLES.length).fill(1));
+  const f = new FrostingField(SAMPLES);
+  f.restore(new Array<number>(SAMPLES.length).fill(1));
   return f;
 };
 
 const CHERRIES_2: Requirement = { kind: "count-on-cake", topping: "cherry", needed: 2 };
-const LIME_MID: Requirement = { kind: "count-in-zone", topping: "lime", zone: "tier2", needed: 1 };
+const LIME_MID: Requirement = { kind: "count-in-zone", topping: "lime", zone: 1, needed: 1 };
 const CROWN: Requirement = { kind: "crown", topping: "cherry" };
 /** potential 1 = "the whole census is reachable" — the unit-law fixture;
  * the of-reach normalization has its own pins below (plans/08). */
@@ -48,12 +55,12 @@ const SPRINKLES_2: Requirement = { kind: "on-frosting", topping: "sprinkles", ne
 
 describe("zones are tiers", () => {
   it("each tier claims its own ledge; the floor claims nothing", () => {
-    expect(isInZone("tier3", { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(true);
-    expect(isInZone("cake", { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(true);
-    expect(isInZone("tier1", { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(false);
-    expect(isInZone("tier1", { x: 3.5, y: LEDGE_Y, z: CAKE_Z })).toBe(true);
-    expect(isInZone("tier2", { x: 2.6, y: MID_Y, z: CAKE_Z })).toBe(true);
-    expect(isInZone("cake", { x: 0, y: 0.35, z: CAKE_Z + 5 })).toBe(false); // the floor
+    expect(GEOM.isInZone(2, { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(true);
+    expect(GEOM.isInZone("cake", { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(true);
+    expect(GEOM.isInZone(0, { x: 0.5, y: TOP_Y, z: CAKE_Z - 0.5 })).toBe(false);
+    expect(GEOM.isInZone(0, { x: 3.5, y: LEDGE_Y, z: CAKE_Z })).toBe(true);
+    expect(GEOM.isInZone(1, { x: 2.6, y: MID_Y, z: CAKE_Z })).toBe(true);
+    expect(GEOM.isInZone("cake", { x: 0, y: 0.35, z: CAKE_Z + 5 })).toBe(false); // the floor
   });
 });
 
@@ -65,21 +72,21 @@ describe("checkRequirements", () => {
       at("lime", 2.6, MID_Y), // wrong topping for this row
       at("cherry", 8, 0.3, false), // rolled off — the patron gets nothing
     ];
-    const [c] = checkRequirements([CHERRIES_2], settled, naked());
+    const [c] = checkRequirements(GEOM, [CHERRIES_2], settled, naked());
     expect(c?.current).toBe(2);
     expect(c?.met).toBe(true);
   });
 
   it("a zone row demands its tier: on-cake-but-wrong-tier moves nothing", () => {
     const wrongTier = [at("lime", 3.5, LEDGE_Y)];
-    expect(checkRequirements([LIME_MID], wrongTier, naked())[0]?.met).toBe(false);
-    const [c] = checkRequirements([LIME_MID], [at("lime", 2.6, MID_Y)], naked());
+    expect(checkRequirements(GEOM, [LIME_MID], wrongTier, naked())[0]?.met).toBe(false);
+    const [c] = checkRequirements(GEOM, [LIME_MID], [at("lime", 2.6, MID_Y)], naked());
     expect(c?.current).toBe(1);
     expect(c?.met).toBe(true);
   });
 
   it("every row reports progress toward its own target", () => {
-    const checks = checkRequirements(
+    const checks = checkRequirements(GEOM, 
       [CHERRIES_2, LIME_MID],
       [at("cherry", 3.5, LEDGE_Y)],
       naked(),
@@ -91,15 +98,15 @@ describe("checkRequirements", () => {
   });
 
   it("rows speak the checklist's language", () => {
-    expect(describeRequirement(CHERRIES_2)).toBe("2 × cherry ON the cake");
-    expect(describeRequirement(LIME_MID)).toBe("1 × lime on the MIDDLE TIER");
-    expect(describeRequirement(CROWN)).toBe("1 × cherry AS THE CROWN");
-    expect(describeRequirement(FROST_HALF)).toBe("FROST 50% OF YOUR SIDE");
-    expect(describeRequirement(SPRINKLES_2)).toBe("2 × sprinkles ON THE FROSTING");
+    expect(describeRequirement(CHERRIES_2, GEOM.topTier)).toBe("2 × cherry ON the cake");
+    expect(describeRequirement(LIME_MID, GEOM.topTier)).toBe("1 × lime on the MIDDLE TIER");
+    expect(describeRequirement(CROWN, GEOM.topTier)).toBe("1 × cherry AS THE CROWN");
+    expect(describeRequirement(FROST_HALF, GEOM.topTier)).toBe("FROST 50% OF YOUR SIDE");
+    expect(describeRequirement(SPRINKLES_2, GEOM.topTier)).toBe("2 × sprinkles ON THE FROSTING");
   });
 
   it("progress reads as one number: counts as counts, the fraction as percent", () => {
-    const [frost, sprinkles] = checkRequirements(
+    const [frost, sprinkles] = checkRequirements(GEOM, 
       [FROST_HALF, SPRINKLES_2],
       [],
       naked(),
@@ -123,12 +130,12 @@ describe("checkRequirements", () => {
 describe("the frost row — the one fractional requirement (plans/07)", () => {
   it("current is the live covered fraction; met at the promised frac", () => {
     const field = naked();
-    const [c0] = checkRequirements([FROST_HALF], [], field);
+    const [c0] = checkRequirements(GEOM, [FROST_HALF], [], field);
     expect(c0?.current).toBe(0);
     expect(c0?.met).toBe(false);
     // Paint every second sample: coverage ≥ 0.5, the promise kept.
-    field.restore(CAKE_SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
-    const [c1] = checkRequirements([FROST_HALF], [], field);
+    field.restore(SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
+    const [c1] = checkRequirements(GEOM, [FROST_HALF], [], field);
     expect(c1?.current).toBeGreaterThanOrEqual(0.5);
     expect(c1?.met).toBe(true);
   });
@@ -138,14 +145,14 @@ describe("the frost row — the one fractional requirement (plans/07)", () => {
     // the promise kept, and current reads 0.5, not 0.25.
     const row: Requirement = { kind: "frost-coverage", frac: 0.5, potential: 0.5 };
     const field = naked();
-    field.restore(CAKE_SAMPLES.map((_, i) => (i % 4 === 0 ? 1 : 0)));
-    const [c] = checkRequirements([row], [], field);
+    field.restore(SAMPLES.map((_, i) => (i % 4 === 0 ? 1 : 0)));
+    const [c] = checkRequirements(GEOM, [row], [], field);
     expect(c?.current).toBeGreaterThanOrEqual(0.5);
     expect(c?.current).toBeLessThan(0.6);
     expect(c?.met).toBe(true);
     // Beating the measured ceiling clamps: "all of it", never 120%.
     const full = fullCoat();
-    expect(checkRequirements([row], [], full)[0]?.current).toBe(1);
+    expect(checkRequirements(GEOM, [row], [], full)[0]?.current).toBe(1);
   });
 });
 
@@ -157,13 +164,13 @@ describe("on-frosting — sprinkles count only where frosting already is", () =>
       at("sprinkles", 3.5, LEDGE_Y), // bottom ledge, unpainted (yet)
       at("sprinkles", 8, 0.3, false), // the floor — never counts
     ];
-    expect(checkRequirements([SPRINKLES_2], settled, field)[0]?.current).toBe(0);
+    expect(checkRequirements(GEOM, [SPRINKLES_2], settled, field)[0]?.current).toBe(0);
     // A dollop on the summit: the summit sprinkle now sits on frosting.
-    field.paint({ x: 0, y: CAKE_TIERS[2]!.top, z: CAKE_Z }, SPLAT_SPEED - 1);
-    expect(checkRequirements([SPRINKLES_2], settled, field)[0]?.current).toBe(1);
+    field.paint({ x: 0, y: TIERS[2]!.top, z: CAKE_Z }, SPLAT_SPEED - 1);
+    expect(checkRequirements(GEOM, [SPRINKLES_2], settled, field)[0]?.current).toBe(1);
     // A dollop on the bottom ledge: both counted, the row met.
-    field.paint({ x: 3.5, y: CAKE_TIERS[0]!.top, z: CAKE_Z }, SPLAT_SPEED - 1);
-    const [c] = checkRequirements([SPRINKLES_2], settled, field);
+    field.paint({ x: 3.5, y: TIERS[0]!.top, z: CAKE_Z }, SPLAT_SPEED - 1);
+    const [c] = checkRequirements(GEOM, [SPRINKLES_2], settled, field);
     expect(c?.current).toBe(2);
     expect(c?.met).toBe(true);
   });
@@ -171,11 +178,11 @@ describe("on-frosting — sprinkles count only where frosting already is", () =>
 
 describe("the crown — uppermost SOLID on the cake, resting on the summit", () => {
   it("a bare cake has no crown", () => {
-    expect(checkRequirements([CROWN], [], naked())[0]?.met).toBe(false);
+    expect(checkRequirements(GEOM, [CROWN], [], naked())[0]?.met).toBe(false);
   });
 
   it("a cherry on the top tier with nothing above it IS the crown", () => {
-    const [c] = checkRequirements(
+    const [c] = checkRequirements(GEOM, 
       [CROWN],
       [at("cherry", 3.5, LEDGE_Y), at("cherry", 0, TOP_Y)],
       naked(),
@@ -186,26 +193,26 @@ describe("the crown — uppermost SOLID on the cake, resting on the summit", () 
 
   it("the summit must be claimed: the highest cherry on a LOWER tier is no crown", () => {
     expect(
-      checkRequirements([CROWN], [at("cherry", 2.6, MID_Y)], naked())[0]?.met,
+      checkRequirements(GEOM, [CROWN], [at("cherry", 2.6, MID_Y)], naked())[0]?.met,
     ).toBe(false);
   });
 
   it("a usurper lime landing higher un-crowns the cherry — the decoy is a hazard", () => {
     const crowned = [at("cherry", 0, TOP_Y)];
-    expect(checkRequirements([CROWN], crowned, naked())[0]?.met).toBe(true);
+    expect(checkRequirements(GEOM, [CROWN], crowned, naked())[0]?.met).toBe(true);
     // ...then a mis-grabbed lime settles ON TOP of the cherry (y +0.6).
     const usurped = [...crowned, at("lime", 0, TOP_Y + 0.6)];
-    expect(checkRequirements([CROWN], usurped, naked())[0]?.met).toBe(false);
+    expect(checkRequirements(GEOM, [CROWN], usurped, naked())[0]?.met).toBe(false);
   });
 
   it("paint never crowns and never usurps (plans/07)", () => {
     // Frosting alone on the summit is not a crown...
     expect(
-      checkRequirements([CROWN], [at("frosting", 0, TOP_Y)], naked())[0]?.met,
+      checkRequirements(GEOM, [CROWN], [at("frosting", 0, TOP_Y)], naked())[0]?.met,
     ).toBe(false);
     // ...and a splash ABOVE the cherry does not void it — a splash cannot
     // be picked back up, so letting it usurp would be unrecoverable.
-    const [c] = checkRequirements(
+    const [c] = checkRequirements(GEOM, 
       [CROWN],
       [at("cherry", 0, TOP_Y), at("frosting", 0, TOP_Y + 0.6)],
       naked(),
@@ -214,7 +221,7 @@ describe("the crown — uppermost SOLID on the cake, resting on the summit", () 
   });
 
   it("off-cake toppings cannot usurp, however high they lie", () => {
-    const [c] = checkRequirements(
+    const [c] = checkRequirements(GEOM, 
       [CROWN],
       [
         at("cherry", 0, TOP_Y),
@@ -237,7 +244,7 @@ describe("judge — the two gates, weights home (plans/07)", () => {
   const clean = [at("cherry", 3.5, LEDGE_Y), at("cherry", 0, TOP_Y)];
 
   it("a frosted clean bake under par: met, accepted, full marks, three stars", () => {
-    const j = judge(order, clean, fullCoat(), 2);
+    const j = judge(GEOM, order, clean, fullCoat(), 2);
     expect(j).toMatchObject({ met: true, accepted: true, score: 100, stars: 3 });
     expect(j.coverage).toBe(1);
     expect(j.neatness).toBe(1);
@@ -249,20 +256,20 @@ describe("judge — the two gates, weights home (plans/07)", () => {
   it("a NAKED cake caps at 50 even played perfectly — frosting is 50% of the grade", () => {
     // 0.25 integrity + 0.15 tidy + 0.10 par = 0.50: borderline-accepted at
     // passScore 50, one grudging star. The patron wants his cake DRESSED.
-    const j = judge(order, clean, naked(), 2);
+    const j = judge(GEOM, order, clean, naked(), 2);
     expect(j.score).toBe(50);
     expect(j.stars).toBe(1);
   });
 
   it("gate 1 fails when a row is unmet — hungry, no stars, whatever the score", () => {
-    const j = judge(order, [at("cherry", 3.5, LEDGE_Y)], fullCoat(), 1);
+    const j = judge(GEOM, order, [at("cherry", 3.5, LEDGE_Y)], fullCoat(), 1);
     expect(j.met).toBe(false);
     expect(j.accepted).toBe(false);
     expect(j.stars).toBe(0);
   });
 
   it("mess drags the score: every floor delivery stings, whatever it is", () => {
-    const j = judge(
+    const j = judge(GEOM, 
       order,
       [...clean, at("lime", 8, 0.3, false), at("frosting", -8, 0.3, false)],
       fullCoat(),
@@ -276,7 +283,7 @@ describe("judge — the two gates, weights home (plans/07)", () => {
     // Half the samples painted against potential 0.5: ALL of reach painted —
     // effective 1, full coverage credit, and the top tier claimed.
     const field = naked();
-    field.restore(CAKE_SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
+    field.restore(SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
     const withRow = {
       ...order,
       requirements: [
@@ -284,7 +291,7 @@ describe("judge — the two gates, weights home (plans/07)", () => {
         { kind: "frost-coverage", frac: 0.5, potential: 0.5 } as Requirement,
       ],
     };
-    const j = judge(withRow, clean, field, 2);
+    const j = judge(GEOM, withRow, clean, field, 2);
     expect(j.effectiveCoverage).toBe(1);
     expect(j.score).toBe(100);
     expect(j.stars).toBe(3);
@@ -302,19 +309,19 @@ describe("judge — the two gates, weights home (plans/07)", () => {
     };
     const paintFraction = (fr: number) => {
       const f = naked();
-      f.restore(CAKE_SAMPLES.map((_, i) => (i / CAKE_SAMPLES.length < fr ? 1 : 0)));
+      f.restore(SAMPLES.map((_, i) => (i / SAMPLES.length < fr ? 1 : 0)));
       return f;
     };
-    expect(judge(withRow, clean, paintFraction(0.55), 2).stars).toBe(1);
-    expect(judge(withRow, clean, paintFraction(0.75), 2).stars).toBe(2);
-    expect(judge(withRow, clean, paintFraction(0.95), 2).stars).toBe(3);
+    expect(judge(GEOM, withRow, clean, paintFraction(0.55), 2).stars).toBe(1);
+    expect(judge(GEOM, withRow, clean, paintFraction(0.75), 2).stars).toBe(2);
+    expect(judge(GEOM, withRow, clean, paintFraction(0.95), 2).stars).toBe(3);
   });
 
   it("waste decays past par; a naked hosed-down bakery gets REFUSED", () => {
-    const overPar = judge(order, clean, fullCoat(), 12);
+    const overPar = judge(GEOM, order, clean, fullCoat(), 12);
     expect(overPar.waste).toBe(0.5); // 6 par / 12 fired
     expect(overPar.score).toBe(95);
-    const hosed = judge(
+    const hosed = judge(GEOM, 
       order,
       [...clean, ...Array.from({ length: 8 }, (_, i) => at("cherry", i, 0.3, false))],
       naked(),
@@ -332,10 +339,10 @@ describe("grains (plans/10)", () => {
       // A burst grain came to rest ON the cherry — strictly higher.
       at("sprinkles", 0.05, TOP_Y + 0.35),
     ];
-    const [check] = checkRequirements([CROWN], settled, fullCoat());
+    const [check] = checkRequirements(GEOM, [CROWN], settled, fullCoat());
     expect(check!.met).toBe(true); // garnish is not a crown
     // The decoy law survives untouched: a LIME above still usurps.
-    const usurped = checkRequirements(
+    const usurped = checkRequirements(GEOM, 
       [CROWN],
       [...settled, at("lime", -0.05, TOP_Y + 0.6)],
       fullCoat(),
@@ -349,7 +356,7 @@ describe("grains (plans/10)", () => {
     const wildBurst = Array.from({ length: 40 }, (_, i) =>
       at("sprinkles", 8 + i * 0.1, 0.05, false),
     );
-    const v = judge(
+    const v = judge(GEOM, 
       {
         requirements: [FROST_HALF],
         parShots: 6,

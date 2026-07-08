@@ -14,8 +14,15 @@ import {
   type Settled,
 } from "./projectiles";
 import { buildArenaColliders, CAKE_Z } from "./arena";
+import { CAKE_3, dessertGeometry } from "./dessert";
 import { FrostingField, STICKY_NEAR_M } from "./frosting";
 import type { Vec3 } from "./ballistics";
+
+// The deal's geometry (spec refactor, plans/13 §3) — cake-3, the anchor.
+// The bare flat-world tests pass it too: the fuse/grip/clear oracles are
+// ARGUMENTS now, and a world with no cake colliders still answers "is
+// this on the dessert footprint" honestly (nothing there is).
+const GEOM = dessertGeometry(CAKE_3);
 
 beforeAll(async () => {
   await RAPIER.init();
@@ -37,7 +44,7 @@ function settleOne(
   topping: string,
 ): Settled {
   for (let i = 0; i < 1800; i++) {
-    const hit = shots.step(world).settled.find((s) => s.topping === topping);
+    const hit = shots.step(world, GEOM).settled.find((s) => s.topping === topping);
     if (hit) return hit;
   }
   throw new Error(`${topping} never settled`);
@@ -59,7 +66,7 @@ describe("the freeze law", () => {
     const rest = settleOne(world, shots, "cherry");
     expect(body.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
     // Ten seconds of empty world: a frozen solid is EXACTLY where it scored.
-    for (let i = 0; i < 600; i++) shots.step(world);
+    for (let i = 0; i < 600; i++) shots.step(world, GEOM);
     const p = body.translation();
     expect(p.x).toBe(rest.pos.x);
     expect(p.y).toBe(rest.pos.y);
@@ -83,7 +90,7 @@ describe("the freeze law", () => {
     let woke = false;
     let extraSettles = 0;
     for (let i = 0; i < 900; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       extraSettles += ev.settled.filter((s) => s.topping === "cherry").length;
       if (cherry.bodyType() === RAPIER.RigidBodyType.Dynamic) woke = true;
     }
@@ -114,7 +121,7 @@ describe("the freeze law", () => {
       { x: 0, y: 0, z: 0 },
       "lime",
     );
-    for (let i = 0; i < 900; i++) shots.step(world);
+    for (let i = 0; i < 900; i++) shots.step(world, GEOM);
     expect(dist(rest.pos, cherry.translation())).toBeGreaterThan(0.05);
     expect(cherry.bodyType()).toBe(RAPIER.RigidBodyType.Fixed); // re-frozen where it lies
   });
@@ -124,7 +131,7 @@ describe("the freeze law", () => {
     const shots = new ProjectileManager();
     const body = shots.spawnAtRest(world, { x: 0, y: 0.3, z: 0 }, "sprinkle");
     let settles = 0;
-    for (let i = 0; i < 120; i++) settles += shots.step(world).settled.length;
+    for (let i = 0; i < 120; i++) settles += shots.step(world, GEOM).settled.length;
     expect(settles).toBe(0); // scored long ago on the wire; reports nothing
     expect(body.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
     // And it still shows in the late-join snapshot as resting truth.
@@ -148,6 +155,7 @@ function makeArenaWorld(): RAPIER.World {
   const world = new RAPIER.World(GRAVITY);
   world.timestep = FIXED_DT;
   buildArenaColliders(world);
+  GEOM.buildColliders(world); // the dessert is per-deal since plans/13 §3
   return world;
 }
 
@@ -166,7 +174,7 @@ describe("the cluster airburst (plans/10)", () => {
     let burst = null;
     let carrierImpacts = 0;
     for (let i = 0; i < 300 && !burst; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       carrierImpacts += ev.impacts.filter((im) => !im.grain).length;
       burst = ev.bursts[0] ?? null;
     }
@@ -181,7 +189,7 @@ describe("the cluster airburst (plans/10)", () => {
     let grainImpacts = 0;
     let settles = 0;
     for (let i = 0; i < 900; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       grainImpacts += ev.impacts.filter((im) => im.grain).length;
       settles += ev.settled.length;
     }
@@ -203,7 +211,7 @@ describe("the cluster airburst (plans/10)", () => {
       { burst: TEST_BURST, seed: 9, tag: 0 },
     );
     let burst = null;
-    for (let i = 0; i < 600 && !burst; i++) burst = shots.step(world).bursts[0] ?? null;
+    for (let i = 0; i < 600 && !burst; i++) burst = shots.step(world, GEOM).bursts[0] ?? null;
     expect(burst).not.toBeNull();
     expect(burst!.pos.y).toBeLessThan(1); // popped AT the ground, not midair
     expect(burst!.grains).toHaveLength(TEST_BURST.grains);
@@ -214,7 +222,7 @@ describe("the cluster airburst (plans/10)", () => {
     // FrostingField painted where the grain will hit — no stubbed oracle.
     const world = makeArenaWorld();
     const shots = new ProjectileManager();
-    const field = new FrostingField();
+    const field = new FrostingField(GEOM.samples);
     // Two dollops on the tier-1 wall's near face (slow = dollop, tidy).
     field.paint({ x: 0, y: 1.0, z: CAKE_Z + 4 }, 3);
     field.paint({ x: 0, y: 1.8, z: CAKE_Z + 4 }, 3);
@@ -231,7 +239,7 @@ describe("the cluster airburst (plans/10)", () => {
     let settles = 0;
     let grainImpacts = 0;
     for (let i = 0; i < 600 && !stuck; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       settles += ev.settled.length;
       grainImpacts += ev.impacts.filter((im) => im.grain).length;
       stuck = ev.stuck[0] ?? null;
@@ -263,7 +271,7 @@ describe("the cluster airburst (plans/10)", () => {
     );
     let rest = null;
     for (let i = 0; i < 900 && !rest; i++)
-      rest = bare.step(world2).settled[0] ?? null;
+      rest = bare.step(world2, GEOM).settled[0] ?? null;
     expect(rest).not.toBeNull();
     const bareRadial = Math.hypot(rest!.pos.x, rest!.pos.z - CAKE_Z);
     expect(bareRadial).toBeGreaterThan(4.12); // fell off the wall to the ground
@@ -294,7 +302,7 @@ describe("the cluster airburst (plans/10)", () => {
     let settledGrain = null;
     let stuckCount = 0;
     for (let i = 0; i < 900; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       stuckCount += ev.stuck.length;
       settledGrain = ev.settled[0] ?? settledGrain;
     }
@@ -302,7 +310,7 @@ describe("the cluster airburst (plans/10)", () => {
     expect(settledGrain).not.toBeNull();
     expect(settledGrain!.pos.y).toBeLessThan(0.2); // honest floor litter
     // And the fresh cake does NOT take it: floor litter is the crew's mess.
-    expect(shots.clearCakeSolids(world)).toBe(0);
+    expect(shots.clearCakeSolids(world, GEOM)).toBe(0);
     expect(shots.resting()).toHaveLength(1);
   });
 
@@ -319,7 +327,7 @@ describe("the cluster airburst (plans/10)", () => {
       "sprinkles",
       TEST_BURST.grain,
     );
-    for (let i = 0; i < 120; i++) shots.step(world);
+    for (let i = 0; i < 120; i++) shots.step(world, GEOM);
     expect(first.bodyType()).toBe(RAPIER.RigidBodyType.Fixed);
     // A second grain arrives OVERHEAD via a high proximity pop — the
     // carrier ceases ~4m away (a carrier is a ball and CAN touch grains,
@@ -338,7 +346,7 @@ describe("the cluster airburst (plans/10)", () => {
     let mover: RAPIER.RigidBody | null = null;
     let closest = Infinity;
     for (let i = 0; i < 900; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       mover = ev.bursts[0]?.grains[0] ?? mover;
       if (mover && mover.isValid()) {
         const m = mover.translation();
@@ -354,7 +362,7 @@ describe("the cluster airburst (plans/10)", () => {
     shots.spawn(world, { x: 0, y: 2, z: CAKE_Z + 4.5 }, { x: 0, y: 0, z: 0 }, "cherry");
     let woke = false;
     for (let i = 0; i < 300 && !woke; i++) {
-      shots.step(world);
+      shots.step(world, GEOM);
       woke = first.bodyType() === RAPIER.RigidBodyType.Dynamic;
     }
     expect(woke).toBe(true);
@@ -373,9 +381,9 @@ describe("the cluster airburst (plans/10)", () => {
       TEST_BURST.grain,
     );
     shots.spawnAtRest(world, { x: 6, y: 0.3, z: CAKE_Z + 10 }, "lime");
-    for (let i = 0; i < 120; i++) shots.step(world); // settle + freeze
+    for (let i = 0; i < 120; i++) shots.step(world, GEOM); // settle + freeze
     expect(shots.resting()).toHaveLength(3);
-    const removed = shots.clearCakeSolids(world);
+    const removed = shots.clearCakeSolids(world, GEOM);
     expect(removed).toBe(2); // the cherry and the tier-top grain left with it
     const left = shots.resting();
     expect(left).toHaveLength(1);
@@ -393,7 +401,7 @@ describe("the cluster airburst (plans/10)", () => {
         "sprinkles",
         { burst: TEST_BURST, seed: 1234, tag: 0 },
       );
-      for (let i = 0; i < 900; i++) shots.step(world);
+      for (let i = 0; i < 900; i++) shots.step(world, GEOM);
       return shots
         .resting()
         .map((r): [number, number, number] => [r.pos.x, r.pos.y, r.pos.z]);

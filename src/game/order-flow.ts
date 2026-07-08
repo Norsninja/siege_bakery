@@ -127,6 +127,7 @@ export class OrderFlow {
   patronLook(
     ledger: readonly SettledTopping[],
     checks: RequirementCheck[],
+    topTier: number,
   ): { utterance: string } {
     // Burst-weighted, same arithmetic as judge() (plans/10 §3): the Giant
     // must not thunder forty times harder at one bad sprinkle pop.
@@ -138,6 +139,7 @@ export class OrderFlow {
       prevMess: this.prevMess,
       secondsLeft: this.order.ticksLeft / 60,
       look: this.looks,
+      topTier,
       rng: this.rng,
     });
     this.prevMess = mess;

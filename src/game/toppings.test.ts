@@ -7,10 +7,12 @@
  * pins bind the shipped rows to behavior. game/ test: imports core/ (legal).
  */
 import { describe, it, expect } from "vitest";
-import { CAKE_SAMPLES } from "../core/frosting";
-import { CAKE_TIERS } from "../core/arena";
-import { splatSamples } from "../core/frosting";
+import { CAKE_3 } from "../core/dessert";
+import { buildCensus, splatSamples } from "../core/frosting";
 import { TOPPINGS, isPaint, canCrown, deliveryWeight } from "./toppings";
+
+// The spec refactor (plans/13 §3): the census is per-spec — cake-3 here.
+const SAMPLES = buildCensus(CAKE_3);
 
 /** A gentle landing (below SPLAT_SPEED) — the dollop path, so radius is the
  * spec's dollopRadius and the vertical bands are what decide reach. */
@@ -45,10 +47,10 @@ describe("pantry classification (isPaint / canCrown / deliveryWeight)", () => {
 describe("the SHIPPED fudge row runs DOWN walls (plans/10 §4 — the moat job)", () => {
   // A tier-1 WALL sample and impacts placed relative to it, same geometry as
   // the core mechanism test — but driven by TOPPINGS.fudge.splat itself.
-  const wallIdx = CAKE_SAMPLES.findIndex(
-    (s) => s.normal.y === 0 && s.pos.y < CAKE_TIERS[0]!.top - 0.5,
+  const wallIdx = SAMPLES.findIndex(
+    (s) => s.normal.y === 0 && s.pos.y < CAKE_3.tiers[0]!.top - 0.5,
   );
-  const wall = CAKE_SAMPLES[wallIdx]!;
+  const wall = SAMPLES[wallIdx]!;
   const fudge = TOPPINGS.fudge!.splat!;
 
   it("has a splat spec at all (it is a paint row)", () => {
@@ -58,13 +60,13 @@ describe("the SHIPPED fudge row runs DOWN walls (plans/10 §4 — the moat job)"
 
   it("reaches a wall sample 1m BELOW a ledge impact — the classic cannot", () => {
     const above = { x: wall.pos.x, y: wall.pos.y + 1.0, z: wall.pos.z };
-    expect(splatSamples(above, GENTLE, fudge).includes(wallIdx)).toBe(true); // bandDown runs it down
-    expect(splatSamples(above, GENTLE).includes(wallIdx)).toBe(false); // classic band stops short
+    expect(splatSamples(SAMPLES, above, GENTLE, fudge).includes(wallIdx)).toBe(true); // bandDown runs it down
+    expect(splatSamples(SAMPLES, above, GENTLE).includes(wallIdx)).toBe(false); // classic band stops short
   });
 
   it("barely reaches UP: the asymmetry is real, not just a longer band", () => {
     const below = { x: wall.pos.x, y: wall.pos.y - 0.5, z: wall.pos.z };
-    expect(splatSamples(below, GENTLE, fudge).includes(wallIdx)).toBe(false); // 0.5 > bandUp
-    expect(splatSamples(below, GENTLE).includes(wallIdx)).toBe(true); // classic reaches up
+    expect(splatSamples(SAMPLES, below, GENTLE, fudge).includes(wallIdx)).toBe(false); // 0.5 > bandUp
+    expect(splatSamples(SAMPLES, below, GENTLE).includes(wallIdx)).toBe(true); // classic reaches up
   });
 });

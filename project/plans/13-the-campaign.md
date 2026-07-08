@@ -89,6 +89,53 @@ function of the spec. The seams, found 2026-07-08:
 - **Ballistics/tests/research**: launch tables don't change (machine
   is constant law); tests that assume cake-3 import the row.
 
+### Rulings of record (slice-2 discussion, 2026-07-08 third session)
+
+Decided with the visionary before building — the consumer map was
+verified first (every oracle call site read, not inferred):
+
+1. **BIND ONCE.** `dessertGeometry(spec)` is the ONE public form: it
+   binds the tier math and builds the samples/census once per deal.
+   The census forces a bound object anyway (samples are hot-path
+   state); one idiom beats two. The tier math lives as PRIVATE
+   functions inside core/dessert.ts — auditable in one screen, but
+   NOT exported: a public free layer would let a call site import the
+   CAKE_3 row directly and compile while scoring rung 5 against
+   cake-3. Export a private function later only when a real customer
+   appears.
+2. **GEOMETRY IS AN ARGUMENT, NEVER A FIELD** on core/ classes.
+   ProjectileManager.step(world, geom) and clearCakeSolids(world,
+   geom) take it explicitly — the visionary's ruling: the argument is
+   impossible to get wrong silently, where a field is state someone
+   must remember to update. (stickyPaint stays a field only because
+   it is a cross-module closure that reads through its owner live.)
+3. **THE OLD ZERO-ARG ORACLES ARE DELETED, NOT ALIASED.** tsc is the
+   tripwire: every call site must say where its geometry came from.
+   The TOWNS-alias precedent is explicitly REJECTED here — towns are
+   static so aliases are harmless; the dessert changes per deal, so a
+   live-code alias bound to cake-3 is exactly the drift the zero-
+   drift proof cannot see.
+4. **REDEAL ORDERING:** clearCakeSolids with the OUTGOING geometry →
+   tear down old dessert colliders → build the new spec's → replace
+   the FrostingField. Bodies leave with the dessert they rested ON.
+   Invisible while every deal is cake-3; wrong the first time a
+   smaller cake follows a bigger one.
+5. **CAKE_Z STAYS IN ARENA.** The arena owns WHERE the dessert sits
+   (the axis towns rotate about); the spec owns WHAT it is.
+6. **ZoneId generalizes to tier index**, including the WORDS:
+   ZONE_LABELS' bottom/middle/top become a rule over N tiers (bottom
+   and top always by name; interior tiers by ordinal). Order-facing
+   text — the culprit-naming law applies.
+7. **CLIENT BOOT ORDER:** bind the deal's geometry (from the wire's
+   rung) BEFORE the frosting snapshot applies — frosting-view's
+   length guard is the existing tripwire that fires if this slips
+   (plans/11 §4 boot-order law, repeated).
+8. **Knowingly stale until slice 3:** the research .mts tools (they
+   import the deleted arena exports; they gain a spec parameter in
+   slice 3 — research/06's header already warns) and the potential
+   tables (TOWN_POTENTIAL et al. are cake-3's MEASURED numbers; they
+   become per-spec rows when slice 3 measures the other specs).
+
 ### The wire law
 
 The fresh-deal message carries the RUNG NUMBER (and thus spec id) —
@@ -227,6 +274,22 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    spec row must reproduce every pinned number (661 census, WIN-path
    pins, tier oracles) — the refactor ships before any second row
    exists, so drift has nowhere to hide.
+   **[BUILT 2026-07-08 (third session), under the §3 rulings above:
+   core/dessert.ts (DessertSpec, CAKE_3, dessertGeometry — the one
+   public form; tier math private), buildCensus(spec) in frosting.ts,
+   FrostingField takes its census, ProjectileManager.step/
+   clearCakeSolids take geometry as ARGUMENTS, judgment/order/patron
+   thread it, ZoneId is a tier index with tierLabel words, arena keeps
+   CAKE_Z + statics only, Room owns redealDessert() in the ruled
+   ordering, the deal msg carries rung, the client rebinds colliders/
+   cake meshes/blob instancing/tripod per deal behind the boot-order
+   law, game/campaign.ts specForRung is the slice-3 stand-in. ZERO
+   DRIFT PROVEN: 661/218/443 pins, WIN path, two-rooms-converge, the
+   settle ladder — all green untouched (293 tests, both tsc legs);
+   live-verified: boot → lobby cake renders from the spec → ready-up
+   deals rung 1 through redealDessert with no snapshot-refused warning
+   → a 6-click glob lands on the rebuilt colliders, paints the
+   per-spec census, and scores.]**
 3. **Spec-parameterize the re-pin tools** (research/13 + /11 take a
    spec); measure cake-1/2 and the proposed cake-4/5/6 rows; author
    the RUNGS table against the measurements (§4's law).

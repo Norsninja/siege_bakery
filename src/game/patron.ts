@@ -44,6 +44,9 @@ export interface PatronContext {
   readonly secondsLeft: number;
   /** How many looks this Patron has taken THIS order (0 on the first). */
   readonly look: number;
+  /** The deal's summit tier index (spec refactor, plans/13 §3) — the
+   * urgent reminder speaks a row's words, and zone words are per-spec. */
+  readonly topTier: number;
   readonly rng: RandomFn;
 }
 
@@ -137,7 +140,7 @@ export function createGiant(): Patron {
         const missing = ctx.checks.find((c) => !c.met);
         if (missing) {
           return {
-            utterance: `TIME RUNS SHORT. DO NOT FORGET: ${describeRequirement(missing.req)}.`,
+            utterance: `TIME RUNS SHORT. DO NOT FORGET: ${describeRequirement(missing.req, ctx.topTier)}.`,
             patienceDeltaSeconds: -PATIENCE_BURN_URGENT_S,
           };
         }

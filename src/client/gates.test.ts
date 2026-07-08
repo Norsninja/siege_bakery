@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, TOWNS } from "../core/arena";
+import { CAKE_3, dessertGeometry } from "../core/dessert";
 import { Baker, type BakerInput } from "../core/baker";
 import { ProjectileManager } from "../core/projectiles";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
@@ -167,7 +168,7 @@ describe("TownGates: the switch-between-orders fence", () => {
       "cherry",
       { consumeOnImpact: false, tag: 0, seed: 1 },
     );
-    for (let i = 0; i < 30; i++) shots.step(w);
+    for (let i = 0; i < 30; i++) shots.step(w, dessertGeometry(CAKE_3));
     // It crossed the fence plane as if nothing were there — the
     // deterministic arc never knows the gate exists.
     expect(body.translation().z).toBeLessThan(GATE0_Z - 0.5);

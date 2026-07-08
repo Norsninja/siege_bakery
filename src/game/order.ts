@@ -16,6 +16,7 @@
  * dying first is gate 1 failure — the patron goes hungry (lost, the sad
  * kind). Late shots after the verdict change nothing.
  */
+import type { DessertGeometry } from "../core/dessert";
 import type { FrostingField } from "../core/frosting";
 import {
   checkRequirements,
@@ -78,18 +79,19 @@ export function tickOrder(state: OrderState): OrderState {
  * A finished order never un-finishes; late landings still show in checks.
  */
 export function evaluateOrder(
+  dessert: DessertGeometry,
   state: OrderState,
   settled: readonly SettledTopping[],
   frosting: FrostingField,
   shotsFired: number,
 ): { state: OrderState; checks: RequirementCheck[]; judgment?: Judgment } {
-  const checks = checkRequirements(state.requirements, settled, frosting);
+  const checks = checkRequirements(dessert, state.requirements, settled, frosting);
   if (
     state.status === "running" &&
     checks.length > 0 &&
     checks.every((c) => c.met)
   ) {
-    const judgment = judge(state, settled, frosting, shotsFired);
+    const judgment = judge(dessert, state, settled, frosting, shotsFired);
     return {
       state: { ...state, status: judgment.accepted ? "won" : "lost" },
       checks,

@@ -5,6 +5,8 @@
  * spawning the deterministic local lob, ghost lifecycle, and the flash
  * line — which stay where the scene lives.
  */
+import { dessertGeometry, type DessertGeometry } from "../core/dessert";
+import { specForRung } from "../game/campaign";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import type { RequirementCheck } from "../game/judgment";
 import type {
@@ -34,11 +36,18 @@ export interface NetFx {
   /** Adopt the welcome's frosting snapshot — the painted cake as it lies
    * (plans/07; the one surface that ever crosses the wire). */
   restoreFrosting(coats: number[]): void;
-  /** A fresh deal: the fresh cake wheels out — clear local paint. */
-  resetFrosting(): void;
+  /** THE DESSERT REBIND (spec refactor, plans/13 §3): the wire's rung
+   * named a spec; swap the client's dessert colliders, cake visuals, and
+   * frosting view to it — the fresh cake wheels out naked (this replaces
+   * the old resetFrosting). Called AFTER clearCakeSolids (which must
+   * read the OUTGOING geometry) and BEFORE any dessert-derived snapshot
+   * state adopts (the boot-order law). */
+  bindDessert(dessert: DessertGeometry): void;
   /** A fresh deal, the solid half (fresh-cake law): everything resting ON
    * the dessert leaves with it; floor litter stays. The Room removed the
-   * same set from its world — body positions are the shared truth. */
+   * same set from its world — body positions are the shared truth. Reads
+   * view.dessert at CALL time — the outgoing geometry, by the ordering
+   * above. */
   clearCakeSolids(): void;
   /** Adopt the welcome's stuck-sprinkle records (conversion law, plans/10
    * §8) — perched on the frosting the snapshot just restored. */
@@ -72,6 +81,13 @@ export function applyServerMsg(
       view.order = msg.order;
       view.checks = msg.checks;
       view.run = msg.run;
+      // THE BOOT-ORDER LAW (plans/13 §3 rulings, the plans/11 §4 discipline
+      // repeated): bind the deal's dessert BEFORE adopting anything derived
+      // from it — resting toppings need its colliders under them, and the
+      // frosting snapshot must land on a field sized to its census
+      // (frosting-view's length guard is the tripwire if this slips).
+      view.dessert = dessertGeometry(specForRung(msg.run.rung));
+      fx.bindDessert(view.dessert);
       // Joined mid-banner: adopt the verdict, or the banner words gate-1
       // hunger over a WON order (audit 2026-07-03).
       view.verdict = msg.judgment ?? null;
@@ -145,8 +161,13 @@ export function applyServerMsg(
       if (msg.judgment) view.verdict = msg.judgment;
       else if (msg.order.status === "running") view.verdict = null; // fresh deal
       if (msg.fresh) {
-        fx.resetFrosting();
+        // THE REDEAL ORDERING (plans/13 §3 rulings), client half: clear
+        // the cake's solids with the OUTGOING geometry — bodies leave
+        // with the dessert they rested ON — THEN bind the incoming rung's
+        // spec (colliders swap, naked cake, fresh field).
         fx.clearCakeSolids();
+        view.dessert = dessertGeometry(specForRung(msg.rung ?? view.run.rung));
+        fx.bindDessert(view.dessert);
         fx.clearStuck();
         fx.clearLandingRings();
       }

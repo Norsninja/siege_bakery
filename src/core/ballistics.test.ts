@@ -17,13 +17,14 @@ import {
 } from "./ballistics";
 import { ProjectileManager, type Impact } from "./projectiles";
 import { Baker } from "./baker";
-import {
-  buildArenaColliders,
-  MACHINE_BASE,
-  CAKE_Z,
-  CAKE_TIERS,
-  tierOf,
-} from "./arena";
+import { buildArenaColliders, MACHINE_BASE, CAKE_Z } from "./arena";
+import { CAKE_3, dessertGeometry } from "./dessert";
+
+// The deal's geometry (spec refactor, plans/13 §3) — cake-3, the anchor:
+// every settle-ladder pin below is measured against exactly these tiers.
+const GEOM = dessertGeometry(CAKE_3);
+const tierOf = (pos: { x: number; y: number; z: number }): number | null =>
+  GEOM.tierOf(pos);
 
 describe("launch math (pure)", () => {
   it("speed ladder: flop at zero, linear per click", () => {
@@ -92,14 +93,15 @@ describe("launch math (pure)", () => {
 
 // The REAL arena (core/arena.ts) — no duplicated geometry. The shots fly
 // from the actual plinth over the actual wall onto the actual tiers.
-const CAKE_FRONT_Z = CAKE_Z + CAKE_TIERS[0]!.radius;
-const CAKE_BACK_Z = CAKE_Z - CAKE_TIERS[0]!.radius;
-const TOP_TIER_Y = CAKE_TIERS[2]!.top;
+const CAKE_FRONT_Z = CAKE_Z + CAKE_3.tiers[0]!.radius;
+const CAKE_BACK_Z = CAKE_Z - CAKE_3.tiers[0]!.radius;
+const TOP_TIER_Y = CAKE_3.tiers[2]!.top;
 
 function makeRange(): { world: RAPIER.World; shots: ProjectileManager } {
   const world = new RAPIER.World(GRAVITY);
   world.timestep = FIXED_DT;
   buildArenaColliders(world);
+  GEOM.buildColliders(world); // the dessert is per-deal since plans/13 §3
   return { world, shots: new ProjectileManager() };
 }
 
@@ -112,7 +114,7 @@ function fireAndLand(clicks: number, tiltDeg = 0): Impact {
     "cherry",
   );
   for (let i = 0; i < 600; i++) {
-    const first = shots.step(world).impacts[0];
+    const first = shots.step(world, GEOM).impacts[0];
     if (first) return first;
   }
   throw new Error(`no impact within 10s for ${clicks} clicks`);
@@ -131,7 +133,7 @@ function fireAndSettle(
     "cherry",
   );
   for (let i = 0; i < 1800; i++) {
-    const first = shots.step(world).settled[0];
+    const first = shots.step(world, GEOM).settled[0];
     if (first) return first.pos;
   }
   throw new Error(`no rest within 30s for ${clicks} clicks`);
@@ -188,7 +190,7 @@ describe("the lob, end to end (headless Rapier)", () => {
     let impacts = 0;
     let settles = 0;
     for (let i = 0; i < 1800; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       impacts += ev.impacts.length;
       settles += ev.settled.length;
     }
@@ -214,7 +216,7 @@ describe("the lob, end to end (headless Rapier)", () => {
         "cherry",
       );
       for (let i = 0; i < 1800; i++) {
-        const first = shots.step(world).settled[0];
+        const first = shots.step(world, GEOM).settled[0];
         if (first) return first.pos;
       }
       throw new Error("no rest");
@@ -235,7 +237,7 @@ describe("the lob, end to end (headless Rapier)", () => {
     let impacts = 0;
     let settles = 0;
     for (let i = 0; i < 1800; i++) {
-      const ev = shots.step(world);
+      const ev = shots.step(world, GEOM);
       impacts += ev.impacts.length;
       settles += ev.settled.length;
     }
@@ -258,7 +260,7 @@ describe("the lob, end to end (headless Rapier)", () => {
       "frosting",
       { consumeOnImpact: true },
     );
-    for (let i = 0; i < 600; i++) shots.step(world);
+    for (let i = 0; i < 600; i++) shots.step(world, GEOM);
     shots.spawn(
       world,
       launchOrigin(MACHINE_BASE, 0),
@@ -266,7 +268,7 @@ describe("the lob, end to end (headless Rapier)", () => {
       "cherry",
     );
     for (let i = 0; i < 1800; i++) {
-      const first = shots.step(world).settled[0];
+      const first = shots.step(world, GEOM).settled[0];
       if (first) {
         expect(first.pos).toEqual(clean);
         return;
@@ -291,7 +293,7 @@ describe("the lob, end to end (headless Rapier)", () => {
     shots.spawn(world, { x: 0, y: 3.2, z: 0 }, { x: 0, y: 0, z: 0 }, "lime");
     const impactsBy = new Map<string, number>();
     for (let i = 0; i < 1800; i++) {
-      for (const im of shots.step(world).impacts)
+      for (const im of shots.step(world, GEOM).impacts)
         impactsBy.set(im.topping, (impactsBy.get(im.topping) ?? 0) + 1);
     }
     expect(impactsBy.get("cherry")).toBe(1);
@@ -314,7 +316,7 @@ describe("the lob, end to end (headless Rapier)", () => {
     });
     let globImpact: Impact | undefined;
     for (let i = 0; i < 1800; i++) {
-      for (const im of shots.step(world).impacts)
+      for (const im of shots.step(world, GEOM).impacts)
         if (im.topping === "frosting") globImpact = im;
     }
     expect(globImpact).toBeDefined();

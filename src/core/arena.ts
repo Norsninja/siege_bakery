@@ -32,32 +32,11 @@ export const ARENA_HALF_LENGTH = CROSS_HALF + 1; // walls just past endpoints
 export const ARENA_HALF_WIDTH = 8;
 export const WALL_HEIGHT = 1;
 
-/** The cake: three concentric ROUND tiers at the old cake spot — plinth to
- * center still 18 m. Square (plans/05) went cylindrical at the front of the
- * frosting slice (plans/07 phase R) so the coverage census is built once
- * against final geometry. Radii = the pinned square half-extents verbatim:
- * the cylinder study (research/04-cylinder-tier-study.mts) confirmed the
- * centerline settle ladder survives unchanged (6 → tier 2, 7 → tier 3,
- * notch 1 + full crank = the tier-clearing crown shot that cannot overshoot)
- * and the curved ledges still catch at moderate traverse (±8°); the summit
- * demands a centered shot, which is the crown earning its name. */
+/** THE DESSERT SPOT (plans/13 §3 rulings): the arena owns WHERE the
+ * dessert sits — the axis both towns rotate about, plinth to center still
+ * 18 m. WHAT sits there is a DessertSpec row (core/dessert.ts), bound per
+ * deal; this file has no idea how many tiers it has. */
 export const CAKE_Z = -CROSS_HALF - 18; // -30
-
-export interface CakeTier {
-  /** x/z radius (tiers are cylinders, concentric on CAKE_Z). */
-  radius: number;
-  bottom: number;
-  top: number;
-}
-
-export const CAKE_TIERS: readonly CakeTier[] = [
-  { radius: 4, bottom: 0, top: 2 },
-  { radius: 3, bottom: 2, top: 3.5 },
-  { radius: 2.25, bottom: 3.5, top: 5 },
-];
-
-/** Index of the summit tier — where a crown must rest (game/judgment). */
-export const TOP_TIER = CAKE_TIERS.length - 1;
 
 export interface WallDef {
   hx: number;
@@ -201,7 +180,11 @@ export const GROUND_HALF_X = 40;
 export const GROUND_HALF_Z = 48;
 export const GROUND_CENTER_Z = CAKE_Z;
 
-/** Build the static world every simulation agrees on. */
+/** Build the ARENA STATICS every simulation agrees on: ground, walls,
+ * pantries, plinths — built ONCE per world. The dessert's colliders left
+ * this function with the spec refactor (plans/13 §3): they are per-deal
+ * state, built and torn down through DessertGeometry.buildColliders by
+ * whoever owns the deal. */
 export function buildArenaColliders(world: RAPIER.World): void {
   world.createCollider(
     RAPIER.ColliderDesc.cuboid(GROUND_HALF_X, 0.1, GROUND_HALF_Z)
@@ -226,138 +209,4 @@ export function buildArenaColliders(world: RAPIER.World): void {
         .setTranslation(t.plinth.x, t.plinth.y, t.plinth.z),
     );
   }
-  for (const t of CAKE_TIERS) {
-    const hy = (t.top - t.bottom) / 2;
-    world.createCollider(
-      RAPIER.ColliderDesc.cylinder(hy, t.radius).setTranslation(
-        0,
-        t.bottom + hy,
-        CAKE_Z,
-      ),
-    );
-  }
-}
-
-/**
- * Which tier a rest position sits ON — the TOPMOST tier whose disc holds it
- * at (or a wedge-slack 0.1 below) its top level. A topping on the tier-2
- * ledge pressed against the tier-3 wall is on tier 2; a topping atop
- * another topping still reads the tier under the stack. null = not on the
- * cake. Scoring truth is REST position; this is its geometry oracle.
- */
-export function tierOf(pos: Vec3): number | null {
-  for (let i = CAKE_TIERS.length - 1; i >= 0; i--) {
-    const t = CAKE_TIERS[i]!;
-    if (Math.hypot(pos.x, pos.z - CAKE_Z) <= t.radius && pos.y > t.top - 0.1)
-      return i;
-  }
-  return null;
-}
-
-/** Scoring geometry: is a rest position part of the dessert — on a tier
- * top? (The 2026-07-05 skin widening for wall-stuck grain BODIES reverted
- * with the conversion law, plans/10 §8: stuck sprinkles are surface
- * RECORDS now, not bodies, so no body ever legitimately rests off-tier
- * yet on the dessert.) */
-export function isOnCake(pos: Vec3): boolean {
-  return tierOf(pos) !== null;
-}
-
-/** Analytic distance from a point to the TIER STACK (the union of the cake
- * cylinders) — the sprinkle proximity fuse (plans/10). Zero inside a tier.
- * sqrt/mul/add ONLY (no hypot): clients REPLAY bursts from the shot event's
- * seed, so the fuse must agree across engines to the bit (the cross-engine
- * honesty law, core/frosting.ts header). */
-export function distanceToCake(pos: Vec3): number {
-  const dzc = pos.z - CAKE_Z;
-  const radial = Math.sqrt(pos.x * pos.x + dzc * dzc);
-  let best = Infinity;
-  for (const t of CAKE_TIERS) {
-    const dr = radial > t.radius ? radial - t.radius : 0;
-    const dy =
-      pos.y < t.bottom ? t.bottom - pos.y : pos.y > t.top ? pos.y - t.top : 0;
-    const d = Math.sqrt(dr * dr + dy * dy);
-    if (d < best) best = d;
-  }
-  return best;
-}
-
-/** Nearest point ON the tier stack's skin, with its outward normal — the
- * conversion law's placement oracle (plans/10 §8): a gripped grain's
- * record is its skin point (scoring truth: tierOf works on it) and the
- * client perches the sprinkle visual along the normal, atop the frosting
- * blob. sqrt/mul/div only — exactly rounded, cross-engine identical, like
- * distanceToCake above. For a point INSIDE a tier (contact penetration,
- * rare) the shallower of wall/top wins — never a downward normal. */
-export function cakeSurface(pos: Vec3): { point: Vec3; normal: Vec3 } {
-  const dzc = pos.z - CAKE_Z;
-  const radial = Math.sqrt(pos.x * pos.x + dzc * dzc);
-  // Radial direction; dead-center tie-break is +x (deterministic, and a
-  // grain exactly on the axis cannot grip a wall anyway).
-  const dirx = radial > 0 ? pos.x / radial : 1;
-  const dirz = radial > 0 ? dzc / radial : 0;
-  let best: { d: number; point: Vec3; normal: Vec3 } | null = null;
-  for (const t of CAKE_TIERS) {
-    let cand: { d: number; point: Vec3; normal: Vec3 };
-    const inR = radial <= t.radius;
-    const inY = pos.y >= t.bottom && pos.y <= t.top;
-    if (inR && inY) {
-      // Inside the cylinder: project to the shallower face (wall or top).
-      const wallPen = t.radius - radial;
-      const topPen = t.top - pos.y;
-      cand =
-        topPen <= wallPen
-          ? {
-              d: 0,
-              point: { x: pos.x, y: t.top, z: pos.z },
-              normal: { x: 0, y: 1, z: 0 },
-            }
-          : {
-              d: 0,
-              point: {
-                x: t.radius * dirx,
-                y: pos.y,
-                z: CAKE_Z + t.radius * dirz,
-              },
-              normal: { x: dirx, y: 0, z: dirz },
-            };
-    } else {
-      // Outside: clamp to the solid cylinder — the nearest skin point —
-      // and the normal is the offset direction (top, wall, or rim blend).
-      const cr = inR ? radial : t.radius;
-      const cy = pos.y < t.bottom ? t.bottom : pos.y > t.top ? t.top : pos.y;
-      const point: Vec3 = { x: cr * dirx, y: cy, z: CAKE_Z + cr * dirz };
-      const dx = pos.x - point.x;
-      const dy = pos.y - point.y;
-      const dz = pos.z - point.z;
-      const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      cand = {
-        d,
-        point,
-        normal:
-          d > 0
-            ? { x: dx / d, y: dy / d, z: dz / d }
-            : { x: dirx, y: 0, z: dirz },
-      };
-    }
-    if (best === null || cand.d < best.d) best = cand;
-  }
-  return { point: best!.point, normal: best!.normal };
-}
-
-/** Named scoring zones orders can demand. "peak" retired with the box cake
- * (plans/05) — the crown requirement took its job, and the tiers themselves
- * are the zones now: order vocabulary like "2 × cherry on the MIDDLE TIER". */
-export type ZoneId = "cake" | "tier1" | "tier2" | "tier3";
-
-const ZONE_TIER: Record<Exclude<ZoneId, "cake">, number> = {
-  tier1: 0,
-  tier2: 1,
-  tier3: 2,
-};
-
-export function isInZone(zone: ZoneId, pos: Vec3): boolean {
-  const tier = tierOf(pos);
-  if (tier === null) return false;
-  return zone === "cake" || tier === ZONE_TIER[zone];
 }

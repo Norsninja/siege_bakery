@@ -56,7 +56,7 @@ function harness(): {
       spawnShot: (m) => spawned.push(m.topping),
       spawnResting: (t) => spawned.push(`rest:${t.topping}`),
       restoreFrosting: (coats) => frosting.push(`restore:${coats.length}`),
-      resetFrosting: () => frosting.push("reset"),
+      bindDessert: (d) => frosting.push(`bind:${d.spec.id}`),
       clearCakeSolids: () => frosting.push("clear-cake"),
       restoreStuck: (list) => frosting.push(`stuck:${list.length}`),
       clearStuck: () => frosting.push("clear-stuck"),
@@ -110,19 +110,25 @@ describe("applyServerMsg", () => {
     expect(h.view.checks[0]?.current).toBe(1);
     expect(h.ghosts).toEqual(["+2"]);
     // The world as it lies: the settled cherry is recreated locally (F2)
-    // and the painted cake comes back with it (plans/07).
+    // and the painted cake comes back with it (plans/07) — AFTER the
+    // dessert rebind (the boot-order law, plans/13 §3: the snapshot must
+    // land on the deal's census, and resting toppings need its colliders).
     expect(h.spawned).toEqual(["rest:cherry"]);
-    expect(h.frosting).toEqual(["restore:3", "stuck:0"]);
+    expect(h.frosting).toEqual(["bind:cake-3", "restore:3", "stuck:0"]);
   });
 
-  it("a fresh deal wheels out a fresh cake — paint, on-cake solids, stuck, AND landing rings clear; other order msgs never do", () => {
+  it("a fresh deal wheels out a fresh cake — clear with the OLD dessert, then bind the rung's; other order msgs never do", () => {
     const h = harness();
     applyServerMsg(h.view, orderMsg(), h.fx); // 1Hz clock correction
     expect(h.frosting).toEqual([]);
-    applyServerMsg(h.view, orderMsg({ fresh: true }), h.fx); // the re-deal
-    // Rings ride the same clear (playtest 2026-07-07): annotations about
-    // the dead order's shots must not point at paint that is gone.
-    expect(h.frosting).toEqual(["reset", "clear-cake", "clear-stuck", "clear-rings"]);
+    applyServerMsg(h.view, orderMsg({ fresh: true, rung: 2 }), h.fx); // the re-deal
+    // THE REDEAL ORDERING (plans/13 §3 rulings): clear-cake runs FIRST —
+    // bodies leave with the dessert they rested ON (the outgoing geometry)
+    // — then the incoming rung's spec binds (colliders, cake, fresh field;
+    // the bind replaced the old reset). Rings ride the same clear
+    // (playtest 2026-07-07): annotations about the dead order's shots
+    // must not point at paint that is gone.
+    expect(h.frosting).toEqual(["clear-cake", "bind:cake-3", "clear-stuck", "clear-rings"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {

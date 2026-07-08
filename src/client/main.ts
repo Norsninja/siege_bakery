@@ -68,13 +68,18 @@ async function main(): Promise<void> {
 
   // --- The match, as this client knows it (state.ts) ---
   const view = createMatchView();
+  // The DEAL's dessert colliders (spec refactor, plans/13 §3): per-deal
+  // state in the shared world, torn down and rebuilt by fx.bindDessert.
+  // Seeded from the placeholder view; the welcome rebinds.
+  let dessertColliders = view.dessert.buildColliders(physics);
 
   // --- The world on screen (scene.ts) ---
   const canvas = document.getElementById("app") as HTMLCanvasElement;
   const gs = buildGameScene(canvas);
   const { renderer, scene, camera, heldMesh } = gs;
+  gs.setDessert(view.dessert.spec.tiers); // the placeholder cake, pre-welcome
   const shotsView = new ShotsView(physics, scene);
-  const frostingView = new FrostingView(scene);
+  const frostingView = new FrostingView(scene, view.dessert.samples);
   const sprinklesView = new SprinklesView(scene);
   // Paint lands in the local sim → the local field (deterministic twin of
   // the Room's — sync-shots-not-surfaces). The topping rides along: fudge
@@ -98,6 +103,7 @@ async function main(): Promise<void> {
   // The dessert report (client/snapshot.ts): the tripod, its corner frame,
   // and the caption slot. Photo taken on the banner-show edge below.
   const snapshot = new DessertSnapshot(renderer);
+  snapshot.aimAt(view.dessert.spec.tiers); // re-aimed by every rebind
   const snapEl = document.getElementById("snapshot");
   const snapImg = snapEl?.querySelector("img") ?? null;
   const snapCaption = snapEl?.querySelector("figcaption") ?? null;
@@ -114,11 +120,19 @@ async function main(): Promise<void> {
     spawnShot: (msg) => shotsView.spawn(msg),
     spawnResting: (t) => shotsView.spawnResting(t),
     restoreFrosting: (coats) => frostingView.restore(coats),
-    resetFrosting: () => {
-      frostingView.reset();
+    bindDessert: (dessert) => {
+      // THE DESSERT REBIND (plans/13 §3): colliders swap in the shared
+      // world, the cake meshes rebuild, the frosting view rolls a fresh
+      // field over the new census, the tripod re-aims. Called AFTER
+      // clearCakeSolids (which read the OUTGOING view.dessert).
+      for (const c of dessertColliders) physics.removeCollider(c, false);
+      dessertColliders = dessert.buildColliders(physics);
+      gs.setDessert(dessert.spec.tiers);
+      frostingView.bindDessert(dessert.samples);
+      snapshot.aimAt(dessert.spec.tiers);
       shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
     },
-    clearCakeSolids: () => shotsView.clearCakeSolids(),
+    clearCakeSolids: () => shotsView.clearCakeSolids(view.dessert),
     restoreStuck: (list) => {
       // The record carries its GRIP-TIME coats (plans/10 §8): replay that
       // fixed perch — never re-measure the current blob, or a sprinkle a
@@ -359,7 +373,7 @@ async function main(): Promise<void> {
 
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
-      shotsView.step(flash);
+      shotsView.step(view.dessert, flash);
 
       // THE RUN'S EDGES (plans/13): rung 1 deals the moment the countdown
       // holds — a baker readied in town 0's circle while ASSIGNED to town
@@ -427,13 +441,19 @@ async function main(): Promise<void> {
         if (bannerShown) {
           // Re-worded every tick: the countdown + the away warning live.
           lingerTicks = Math.max(0, lingerTicks - 1);
-          banner.textContent = bannerText(view.order, view.checks, view.verdict, {
-            seconds: Math.ceil(lingerTicks / 60),
-            away: depthIntoTown(view.yourTown, baker.position()) <= 0,
-            // A lost order ends the run (plans/13): no deal follows this
-            // linger — the banner must not promise one.
-            runEnds: view.order.status === "lost",
-          });
+          banner.textContent = bannerText(
+            view.order,
+            view.checks,
+            view.verdict,
+            view.dessert.topTier,
+            {
+              seconds: Math.ceil(lingerTicks / 60),
+              away: depthIntoTown(view.yourTown, baker.position()) <= 0,
+              // A lost order ends the run (plans/13): no deal follows this
+              // linger — the banner must not promise one.
+              runEnds: view.order.status === "lost",
+            },
+          );
           // Caption rides the same cadence: the verdict can land a beat
           // after the show edge (its broadcast races the status flip).
           if (snapCaption) snapCaption.textContent = snapshotCaption(view.verdict);
@@ -490,6 +510,7 @@ async function main(): Promise<void> {
         order: view.order,
         checks: view.checks,
         run: view.run,
+        topTier: view.dessert.topTier,
         machine: myMachine(view).machine,
         crankTicks: myMachine(view).crankTicks,
         carrying: view.carrying,

@@ -14,7 +14,6 @@ import {
   WALLS,
   WALL_HEIGHT,
   CAKE_Z,
-  CAKE_TIERS,
   TOWNS,
   GATE_HALF_WIDTH,
   GROUND_HALF_X,
@@ -25,6 +24,7 @@ import {
   READY_CIRCLE,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
+import type { CakeTier } from "../core/dessert";
 import {
   CRANK_TICKS_PER_CLICK,
   TENSION_MAX_CLICKS,
@@ -292,6 +292,9 @@ export interface GameScene {
   /** The lobby's ready circle (plans/13): shown whenever the run is NOT
    * live — the standing invitation to start (or restart) the run. */
   setReadyCircle(visible: boolean): void;
+  /** THE DESSERT REBIND, visuals half (spec refactor, plans/13 §3): the
+   * deal's tiers replace the cake meshes. Called with every bindDessert. */
+  setDessert(tiers: readonly CakeTier[]): void;
   /** Target town `t`'s rig + pantry (welcome, or an honored pickTown). */
   bindTown(t: number): void;
 }
@@ -332,18 +335,28 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     box(PLINTH_HALF.x * 2, PLINTH_HALF.y * 2, PLINTH_HALF.z * 2, 0x5a5a66,
       t.plinth.x, t.plinth.y, t.plinth.z, scene);
   }
-  // The cake: three ROUND tiers straight from core/arena (plans/07 phase R),
-  // sponge paling toward the summit so the climb is READABLE from the
-  // catapult.
+  // The dessert: ROUND tiers from the DEAL's spec (plans/13 §3 — was the
+  // module-level CAKE_TIERS), sponge paling toward the summit so the climb
+  // is READABLE from the catapult. Rebuilt by setDessert at every rebind;
+  // main seeds it from the placeholder view before the first frame.
   const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a];
-  CAKE_TIERS.forEach((t, i) => {
-    const m = new THREE.Mesh(
-      new THREE.CylinderGeometry(t.radius, t.radius, t.top - t.bottom, 48),
-      new THREE.MeshStandardMaterial({ color: TIER_COLORS[i] ?? 0xefd39a }),
-    );
-    m.position.set(0, (t.top + t.bottom) / 2, CAKE_Z);
-    scene.add(m);
-  });
+  let cakeMeshes: THREE.Mesh[] = [];
+  const setDessert = (tiers: readonly CakeTier[]): void => {
+    for (const m of cakeMeshes) removeAndDispose(m);
+    cakeMeshes = tiers.map((t, i) => {
+      const m = new THREE.Mesh(
+        new THREE.CylinderGeometry(t.radius, t.radius, t.top - t.bottom, 48),
+        new THREE.MeshStandardMaterial({
+          // Paling toward the summit whatever the height: reuse the ramp,
+          // clamp past its end (a 5-tier cake's upper tiers read palest).
+          color: TIER_COLORS[Math.min(i, TIER_COLORS.length - 1)]!,
+        }),
+      );
+      m.position.set(0, (t.top + t.bottom) / 2, CAKE_Z);
+      scene.add(m);
+      return m;
+    });
+  };
   // Crossing stripes — each town's pantry↔machine run gets its own.
   for (const t of TOWNS)
     for (let i = 0; i <= 4; i++) {
@@ -445,6 +458,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     setReadyCircle(visible: boolean): void {
       readyCircle.visible = visible;
     },
+    setDessert,
     setHighlight(kind: InteractableKind | null): void {
       for (const meshes of Object.values(gs.interactables))
         for (const m of meshes)
