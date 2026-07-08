@@ -95,6 +95,15 @@ export class Roster {
     if (!Number.isInteger(town) || town < 0 || town >= activeTowns) return false;
     if (m.town === town) return false;
     m.town = town;
+    // THE HANDS LET GO (audit 2026-07-07 S-MED-2): intent routes purely by
+    // m.town, so without this a picker's held crank, pending lever pull,
+    // and queued crates would instantly drive the NEW town's machine with
+    // nobody standing at it. Assignment moves the baker's ADDRESS; his
+    // hands open. (Deterministic either way — this is a match rule, not a
+    // convergence fix.)
+    m.held = { ...IDLE_OP };
+    m.leverPulls = 0;
+    m.loads = [];
     return true;
   }
 

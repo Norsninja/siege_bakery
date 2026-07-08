@@ -11,7 +11,11 @@ import {
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
 } from "../game/tuning";
-import { CRANK_TICKS_PER_CLICK, SCREW_TICKS_PER_NOTCH } from "../game/catapult";
+import {
+  CRANK_TICKS_PER_CLICK,
+  SCREW_TICKS_PER_NOTCH,
+  TENSION_MAX_CLICKS,
+} from "../game/catapult";
 import type { ServerMsg } from "../game/protocol";
 
 interface FakeClient {
@@ -938,6 +942,41 @@ describe("Room: the match, headless over protocol", () => {
     // …and the mid-banner joiner still gets the frozen one, byte-for-byte.
     const carol = connect(room, "carol");
     expect(carol.last("welcome")?.judgment).toEqual(frozen);
+  });
+
+  it("an honored pick OPENS the picker's hands — held crank and queued crates stay behind (audit 2026-07-07 S-MED-2)", () => {
+    // Intent routes purely by member town: before the reset, a picker's
+    // held crank and queued loads teleported to the NEW machine and drove
+    // it with nobody standing there. Now position-as-pick makes real picks
+    // happen, so the rule is live, not latent.
+    const room = new Room();
+    const a = connect(room, "alice");
+    room.onMessage(a.id, { t: "unlockTown2" });
+    // Hands full at town 0: crank HELD (never released) + a crate queued.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    run(room, CRANK_TICKS_PER_CLICK * 2);
+    room.onMessage(a.id, { t: "load", topping: "cherry" });
+    // The patron burns the order out; the pick lands in the linger.
+    let guard = 0;
+    while (
+      (a.last("order")?.order.status ?? "running") === "running" &&
+      guard++ < (ORDER_SECONDS + 10) * 60
+    )
+      room.tick();
+    room.onMessage(a.id, { t: "pickTown", town: 1 });
+    run(room, CRANK_TICKS_PER_CLICK * 2); // held crank WOULD wind town 1 here
+    expect(a.last("town")?.town).toBe(1); // the pick was honored...
+    const w = connect(room, "peek").last("welcome");
+    // ...but the hands let go: town 1's machine is untouched (no tension,
+    // no partial crank, nothing loaded — the queued cherry died too)...
+    expect(w?.machines[1]?.machine.tensionClicks).toBe(0);
+    expect(w?.machines[1]?.crankTicks).toBe(0);
+    expect(w?.machines[1]?.machine.loaded).toBeNull();
+    // ...and town 0 keeps what was already WOUND (tension is the machine's,
+    // not the member's). Non-vacuous: the held crank ground town 0 to FULL
+    // tension during the order burn — the hold was real right up to the
+    // pick that opened it.
+    expect(w?.machines[0]?.machine.tensionClicks).toBe(TENSION_MAX_CLICKS);
   });
 
   it("a glob fired during the linger cannot paint the NEXT order (audit 2026-07-03)", () => {

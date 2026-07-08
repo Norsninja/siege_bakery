@@ -45,7 +45,7 @@ import { createMatchView, myMachine, predictClock } from "./state";
 import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
-import { depthIntoTown, TownGates } from "./gates";
+import { depthIntoTown, townToPick, TownGates } from "./gates";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ORDER_RESET_TICKS } from "../game/tuning";
 import { ShotsView } from "./shots-view";
@@ -229,6 +229,9 @@ async function main(): Promise<void> {
   let tickCounter = 0;
   /** Linger countdown, in ticks — armed when the banner shows. */
   let lingerTicks = 0;
+  /** The last pickTown spoken this linger — edge guard, re-armed when the
+   * rule reads null (left the fort, ack landed, or the deal closed it). */
+  let pickSent: number | null = null;
   let last = performance.now();
   let accumulator = 0;
   function frame(now: number): void {
@@ -273,6 +276,22 @@ async function main(): Promise<void> {
         view.yourTown,
         baker.position(),
       );
+      // POSITION IS THE PICK (gates.ts townToPick, visionary 2026-07-07):
+      // run clearly into a fort during the linger and the client speaks
+      // the pick for you — the honored ack moves yourTown (server truth,
+      // plans/11 §5), re-binds your prompts, and the carry-home then
+      // respects the choice. Edge-guarded: one send per fort entered.
+      const pick = townToPick(
+        view.order.status === "running",
+        view.yourTown,
+        view.machines.length,
+        baker.position(),
+      );
+      if (pick === null) pickSent = null;
+      else if (pick !== pickSent) {
+        transport.send({ t: "pickTown", town: pick });
+        pickSent = pick;
+      }
 
       // Hands on the machine = feet planted. Otherwise, normal movement.
       const engaged = machineEngaged(grip, eHeld);

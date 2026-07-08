@@ -12,7 +12,7 @@ import { FIXED_DT, GRAVITY } from "../core/constants";
 import { buildArenaColliders, TOWNS } from "../core/arena";
 import { Baker, type BakerInput } from "../core/baker";
 import { ProjectileManager } from "../core/projectiles";
-import { depthIntoTown, TownGates } from "./gates";
+import { depthIntoTown, townToPick, TownGates } from "./gates";
 
 const GATE0_Z = TOWNS[0]!.gate.z; // -13
 const GATE1_Z = TOWNS[1]!.gate.z; // -47
@@ -171,5 +171,32 @@ describe("TownGates: the switch-between-orders fence", () => {
     // It crossed the fence plane as if nothing were there — the
     // deterministic arc never knows the gate exists.
     expect(body.translation().z).toBeLessThan(GATE0_Z - 0.5);
+  });
+});
+
+describe("townToPick — position is the pick (visionary, 2026-07-07)", () => {
+  // Pure rule over real arena coordinates: gate planes at z=-13 / z=-47,
+  // interiors on the pantry side, "clearly inside" = the latch's margin.
+  const T1_DEEP = { z: GATE1_Z - 2 }; // 2m past town 1's plane, inside
+  const T1_SHALLOW = { z: GATE1_Z - 0.5 }; // inside, but inside the margin
+  const T0_DEEP = { z: 10 }; // town 0's spawn depth
+  const MIDFIELD = { z: -30 }; // the cake — nobody's town
+
+  it("clearly inside the other fort during the linger: pick it", () => {
+    expect(townToPick(false, 0, 2, T1_DEEP)).toBe(1);
+  });
+  it("while the order runs: never (the server refuses those anyway)", () => {
+    expect(townToPick(true, 0, 2, T1_DEEP)).toBeNull();
+  });
+  it("your own fort is not a pick; running home again re-picks home", () => {
+    expect(townToPick(false, 1, 2, T1_DEEP)).toBeNull();
+    expect(townToPick(false, 1, 2, T0_DEEP)).toBe(0);
+  });
+  it("the doorway band is not a commitment — the pick needs the latch's own margin", () => {
+    expect(townToPick(false, 0, 2, T1_SHALLOW)).toBeNull();
+  });
+  it("midfield picks nothing; a dormant fort is scenery (activeTowns bounds the rule)", () => {
+    expect(townToPick(false, 0, 2, MIDFIELD)).toBeNull();
+    expect(townToPick(false, 0, 1, T1_DEEP)).toBeNull();
   });
 });

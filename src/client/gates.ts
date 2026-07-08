@@ -56,6 +56,30 @@ export function depthIntoTown(
   return (pos.z - t.gate.z) * Math.sign(t.pantry.z - t.gate.z);
 }
 
+/** POSITION IS THE PICK (visionary, 2026-07-07): during the linger — the
+ * only time the gates stand open — a baker clearly inside a fort that
+ * isn't his assignment is CHOOSING it; the client speaks the pickTown
+ * input for him (the run through the doorway is the ceremony; there is no
+ * menu). "Clearly inside" is the gate law's own CLOSE_MARGIN, so the pick
+ * and the latch agree about what "in" means. The server stays the
+ * authority: it refuses picks while the order runs or beyond activeTowns
+ * (a dormant fort is scenery — standing in it picks nothing, and the
+ * carry-home returns you at the deal). Returns the town to pick, or null.
+ * Pure — main.ts sends on the edge; the honored ack moves yourTown. */
+export function townToPick(
+  orderRunning: boolean,
+  yourTown: number,
+  activeTowns: number,
+  pos: { z: number },
+): number | null {
+  if (orderRunning) return null; // picks are linger-only (the server law too)
+  for (let t = 0; t < activeTowns; t++) {
+    if (t === yourTown) continue;
+    if (depthIntoTown(t, pos) > CLOSE_MARGIN) return t;
+  }
+  return null;
+}
+
 export class TownGates {
   private readonly fences: RAPIER.Collider[];
 
