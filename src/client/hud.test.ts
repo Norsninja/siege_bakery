@@ -76,9 +76,15 @@ describe("arcGlyph", () => {
 });
 
 describe("promptFor", () => {
-  it("screw prompt carries degrees + the glyph", () => {
+  it("machine controls redirect to their crew posts (plans/14)", () => {
     expect(promptFor("screw", machine({ tiltNotch: 1 }), null)).toBe(
-      "hold E + W/S — elevation screw · +2.5° ▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯",
+      "worked from the GUNNER'S POST — stand behind the machine · E",
+    );
+    expect(promptFor("wheel", machine(), null)).toBe(
+      "worked from the GUNNER'S POST — stand behind the machine · E",
+    );
+    expect(promptFor("winch", machine(), null)).toBe(
+      "cranked from the WINCH POST — the machine's right flank · E",
     );
   });
 
@@ -178,6 +184,8 @@ describe("hudLines", () => {
     locked: true,
     target: null,
     flash: null,
+    manned: null,
+    nearPost: null,
     ...over,
   });
 
@@ -212,7 +220,35 @@ describe("hudLines", () => {
       }),
     );
     expect(lines[0]).toContain("co-op bakery · 3 baking · you are baker 3");
-    expect(lines[lines.length - 2]).toBe("▸ E — pull the release lever!");
+    expect(lines[lines.length - 2]).toBe("▸ the gunner fires — F, from the post");
     expect(lines[lines.length - 1]).toBe("LOOSED!");
+  });
+
+  it("the gunner's panel: legend + the aiming instrument (the ladder's home, plans/14)", () => {
+    const lines = hudLines(
+      view({
+        manned: "gunner",
+        machine: machine({ traverseDeg: -8.5, tiltNotch: 6 }),
+        target: "wheel", // crosshair prompts stay quiet while manned
+      }),
+    );
+    expect(lines[lines.length - 2]).toBe(
+      "▸ GUNNER'S POST — A/D wheel · W/S screw · F fire · E step off",
+    );
+    expect(lines[lines.length - 1]).toBe(
+      "  arc ▮▮▮▮·▮▮▮▯·▯▯▯▯·▯▯▯▯·▯▯▯ +15° · traverse -8.5°",
+    );
+  });
+
+  it("winch panel and the on-foot invitations", () => {
+    expect(hudLines(view({ manned: "winch" })).pop()).toBe(
+      "▸ WINCH POST — hold Space to crank · E step off",
+    );
+    expect(hudLines(view({ nearPost: "gunner" })).pop()).toBe(
+      "▸ E — man the gunner's post",
+    );
+    expect(hudLines(view({ nearPost: "winch" })).pop()).toBe(
+      "▸ E — man the winch",
+    );
   });
 });

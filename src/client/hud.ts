@@ -23,6 +23,7 @@ import {
   type RequirementCheck,
 } from "../game/judgment";
 import type { OrderState } from "../game/order";
+import type { Post } from "./posts";
 
 /** Everything the crosshair can engage. (Lives here for now; the decomp's
  * input/scene modules share it — re-home if it ever grows legs.) */
@@ -54,8 +55,9 @@ export type NetStatus = "loopback" | "connecting" | "open" | "closed";
  * at once (the notch-1/3 misread fix, kept through the vernier). 19
  * positions since the 2.5° table (research/13): grouped in FOURS — one
  * group is 10° — so a glance counts groups, not boxes. VISIONARY CALL
- * 2026-07-08: the full ladder lives ONLY in the screw prompt (you see it
- * while you dial); the always-on machine line carries the compact
+ * 2026-07-08: the full ladder lives ONLY where you dial — that meant the
+ * screw prompt, and with the gun crew (plans/14) it means the GUNNER'S
+ * instrument line; the always-on machine line carries the compact
  * numeric form — a 23-char ladder between three stats muddied which
  * stat owned it. */
 export const arcGlyph = (tiltNotch: number): string => {
@@ -73,14 +75,17 @@ export function promptFor(
   carrying: string | null,
 ): string {
   switch (kind) {
+    // The machine's CONTROLS are worked from crew posts now (plans/14):
+    // crosshair-touching a part redirects to where the body stands. The
+    // bucket and shelves below stay walk-up interactions — the loader is
+    // the runner.
     case "wheel":
-      return "hold E + A/D — traverse wheel";
-    case "winch":
-      return "hold E — crank the winch";
     case "screw":
-      return `hold E + W/S — elevation screw · +${machine.tiltNotch * TILT_DEG_PER_NOTCH}° ${arcGlyph(machine.tiltNotch)}`;
+      return "worked from the GUNNER'S POST — stand behind the machine · E";
+    case "winch":
+      return "cranked from the WINCH POST — the machine's right flank · E";
     case "lever":
-      return "E — pull the release lever!";
+      return "the gunner fires — F, from the post";
     case "bucket":
       if (machine.loaded !== null) return "bucket is full — fire it!";
       return carrying !== null
@@ -182,6 +187,11 @@ export interface HudView {
   target: InteractableKind | null;
   /** Active flash message, or null once expired. */
   flash: string | null;
+  /** The post this baker is manning (plans/14), or null on foot. */
+  manned: Post | null;
+  /** The post whose zone the baker stands in (mannable with E); only
+   * meaningful while on foot. */
+  nearPost: Post | null;
 }
 
 export function hudLines(v: HudView): string[] {
@@ -207,7 +217,26 @@ export function hudLines(v: HudView): string[] {
       : "Click to grab the mouse · WASD move · Shift sprint · E interact",
     `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
   ];
-  if (v.target) lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying)}`);
+  // The crew posts (plans/14). Manned = the post's own panel — the
+  // gunner's carries the aiming instrument (the ladder's home, the
+  // 2026-07-08 gauge-split call, moved here with the posts). On foot in
+  // a zone = the invitation.
+  if (v.manned === "gunner") {
+    lines.push(
+      "▸ GUNNER'S POST — A/D wheel · W/S screw · F fire · E step off",
+      `  arc ${arcGlyph(v.machine.tiltNotch)} +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° · traverse ${v.machine.traverseDeg.toFixed(1)}°`,
+    );
+  } else if (v.manned === "winch") {
+    lines.push("▸ WINCH POST — hold Space to crank · E step off");
+  } else if (v.nearPost) {
+    lines.push(
+      v.nearPost === "gunner"
+        ? "▸ E — man the gunner's post"
+        : "▸ E — man the winch",
+    );
+  }
+  if (v.target && v.manned === null)
+    lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying)}`);
   if (v.flash) lines.push(v.flash);
   return lines;
 }

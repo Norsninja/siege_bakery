@@ -2,6 +2,12 @@
  * Input — keyboard/pointer-lock wiring + GRIP SEMANTICS (M2 of the decomp
  * phase, plans/06). Extracted verbatim from main.ts.
  *
+ * [SUPERSEDED WHILE THE GUN-CREW EXPERIMENT RUNS (plans/14, 2026-07-08):
+ * main.ts now derives machine ops from posts.ts — updateGrip / deriveOp /
+ * machineEngaged are kept intact BELOW, unwired, so the experiment's
+ * rollback is a one-commit revert. If the posts stick, delete them with
+ * their tests, on purpose.]
+ *
  * The grip law (plans/04, playtest bug 2026-07-03): the control you engage
  * with E stays GRIPPED until E is released — the crosshair slipping off, or
  * the control moving under it (the jack post extends as it works), must
@@ -87,6 +93,7 @@ export class InputTracker {
   yaw = 0; // 0 faces -Z: spawn looks at the catapult and cake
   pitch = 0;
   private ePressed = false;
+  private fPressed = false;
 
   constructor(canvas: HTMLCanvasElement) {
     canvas.addEventListener("click", () => {
@@ -109,12 +116,14 @@ export class InputTracker {
     window.addEventListener("keydown", (e) => {
       this.keys.add(e.code);
       if (e.code === "KeyE" && !e.repeat) this.ePressed = true;
+      if (e.code === "KeyF" && !e.repeat) this.fPressed = true;
     });
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("blur", () => {
       this.keys.clear();
-      // A stale E edge must not fire a lever pull on refocus (audit).
+      // A stale edge must not fire a lever pull on refocus (audit).
       this.ePressed = false;
+      this.fPressed = false;
     });
   }
 
@@ -122,6 +131,13 @@ export class InputTracker {
   takeEdgeE(): boolean {
     const edge = this.ePressed;
     this.ePressed = false;
+    return edge;
+  }
+
+  /** The F edge (the gunner's lever, plans/14) — same one-tick contract. */
+  takeEdgeF(): boolean {
+    const edge = this.fPressed;
+    this.fPressed = false;
     return edge;
   }
 }

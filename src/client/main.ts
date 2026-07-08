@@ -30,16 +30,12 @@ import {
   bannerText,
   hudLines,
   snapshotCaption,
+  SHELF_TOPPING,
   type InteractableKind,
 } from "./hud";
 import { DessertSnapshot } from "./snapshot";
-import {
-  InputTracker,
-  updateGrip,
-  deriveOp,
-  deriveMove,
-  machineEngaged,
-} from "./input";
+import { InputTracker, deriveMove } from "./input";
+import { postAnchors, postAt, postOp, type Post } from "./posts";
 import { createMatchView, myMachine, predictClock } from "./state";
 import { bannerLatch, tickInteraction } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
@@ -222,9 +218,11 @@ async function main(): Promise<void> {
 
   // --- Fixed-timestep loop, rendering decoupled ---
   let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
-  /** GRAB SEMANTICS (input.ts): the control you engage with E stays gripped
-   * until E is released. */
-  let heldTarget: InteractableKind | null = null;
+  /** The post this baker mans (plans/14) — the whole "hands on machine"
+   * state now. Null = on foot. */
+  let manned: Post | null = null;
+  /** The zone the baker stood in last tick — HUD invitation line. */
+  let nearPostShown: Post | null = null;
   let tickCounter = 0;
   /** Linger countdown, in ticks — armed when the banner shows. */
   let lingerTicks = 0;
@@ -242,16 +240,55 @@ async function main(): Promise<void> {
 
     while (accumulator >= FIXED_DT) {
       tickCounter++;
-      const eHeld = input.keys.has("KeyE");
       const eEdge = input.takeEdgeE();
+      const fEdge = input.takeEdgeF();
 
-      // Grip: latch the crosshair target while E is held; release with E.
-      heldTarget = updateGrip(heldTarget, eHeld, target);
-      const grip = heldTarget ?? target;
+      // THE GUN CREW (plans/14, experiment 2026-07-08): machine ops come
+      // from the post you MAN, not crosshair grips + E-chords. Zones ride
+      // your own town's machine; a teleport out of the zone (carry-home,
+      // the fresh deal) un-mans you automatically — feet planted means E
+      // is otherwise the only way out.
+      const bakerPos = baker.position();
+      const anchors = postAnchors(
+        TOWNS[view.yourTown]!.base,
+        TOWNS[view.yourTown]!.facingDeg,
+      );
+      if (manned !== null && postAt(bakerPos, anchors) !== manned)
+        manned = null;
+      const nearPost = manned === null ? postAt(bakerPos, anchors) : null;
+      nearPostShown = nearPost;
 
-      // Hold state on the machine → send only on change. HOLD ops read the
-      // GRIP (sticky), edge ops below keep reading the live crosshair.
-      const op = deriveOp(grip, eHeld, input.keys);
+      // One E edge, one meaning, in precedence order: step off a post >
+      // walk-up interaction under the crosshair (bucket/shelves — the
+      // loader's loop, untouched) > man the post you stand in.
+      const edgeTarget =
+        target !== null &&
+        (target === "bucket" || SHELF_TOPPING[target] !== undefined)
+          ? target
+          : null;
+      let manEdge = false;
+      if (eEdge) {
+        if (manned !== null) manned = null;
+        else if (edgeTarget === null && nearPost !== null) {
+          manned = nearPost;
+          manEdge = true;
+          // The gunner's welcome: a gentle snap down the throw line —
+          // then the head is free. The reticle never aims (plans/14 law).
+          if (manned === "gunner") {
+            const m = myMachine(view).machine;
+            let yaw =
+              (((TOWNS[view.yourTown]!.facingDeg + m.traverseDeg) % 360) *
+                Math.PI) /
+              180;
+            if (yaw > Math.PI) yaw -= 2 * Math.PI;
+            else if (yaw <= -Math.PI) yaw += 2 * Math.PI;
+            input.yaw = yaw;
+          }
+        }
+      }
+
+      // Hold state on the machine from the manned post → send on change.
+      const op = postOp(manned, input.keys);
       if (
         op.turn !== lastOp.turn ||
         op.screw !== lastOp.screw ||
@@ -260,12 +297,26 @@ async function main(): Promise<void> {
         transport.send({ t: "op", turn: op.turn, screw: op.screw, crank: op.crank });
         lastOp = op;
       }
-      // Edges: pickup / lever / load — the RULES live in interactions.ts
-      // (tested); this is the wiring that executes them.
-      const act = tickInteraction(eEdge, target, view.carrying, myMachine(view).machine.loaded);
+      // Edges: pickup / load — the RULES live in interactions.ts (tested);
+      // this is the wiring that executes them. The lever is the gunner's F
+      // now: interactions.ts's lever branch is unreachable while the
+      // experiment runs (edgeTarget filters it) — rollback re-opens it.
+      const act = tickInteraction(
+        eEdge && manned === null && !manEdge,
+        edgeTarget,
+        view.carrying,
+        myMachine(view).machine.loaded,
+      );
       view.carrying = act.carrying;
       for (const m of act.send) transport.send(m);
       if (act.flash) flash(act.flash.msg, act.flash.ms);
+      // The gunner's lever: F fires, ALWAYS — a dry release is a mistake
+      // that executes (same comedy line the crosshair lever spoke).
+      if (fEdge && manned === "gunner") {
+        transport.send({ t: "lever" });
+        if (myMachine(view).machine.loaded === null)
+          flash("dry release — the crank was for nothing", 2500);
+      }
 
       // Gate fences first (they shape THIS tick's movement): your fort's
       // gate shuts while the order runs and you're home; opens with the
@@ -292,10 +343,10 @@ async function main(): Promise<void> {
         pickSent = pick;
       }
 
-      // Hands on the machine = feet planted. Otherwise, normal movement.
-      const engaged = machineEngaged(grip, eHeld);
+      // Manning a post = feet planted (one body, one job — plans/14).
+      // Otherwise, normal movement.
       const move: BakerInput =
-        debugInput ?? deriveMove(engaged, input.keys, input.yaw);
+        debugInput ?? deriveMove(manned !== null, input.keys, input.yaw);
       baker.step(move);
 
       if (tickCounter % POSE_SEND_EVERY === 0) {
@@ -417,6 +468,8 @@ async function main(): Promise<void> {
         locked: document.pointerLockElement === canvas,
         target,
         flash: now < flashUntil ? flashMsg : null,
+        manned,
+        nearPost: nearPostShown,
       }).join("\n");
     }
 
@@ -443,6 +496,8 @@ async function main(): Promise<void> {
       getMachines: () =>
         view.machines.map((m) => ({ ...m.machine, crankTicks: m.crankTicks })),
       getTarget: () => target,
+      getManned: () => manned,
+      getNearPost: () => nearPostShown,
       getOrder: () => ({ ...view.order }),
       getChecks: () => view.checks.map((c) => ({ ...c })),
       getJudgment: () => (view.verdict ? { ...view.verdict } : null),
