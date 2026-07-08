@@ -60,6 +60,7 @@ function harness(): {
       clearCakeSolids: () => frosting.push("clear-cake"),
       restoreStuck: (list) => frosting.push(`stuck:${list.length}`),
       clearStuck: () => frosting.push("clear-stuck"),
+      clearLandingRings: () => frosting.push("clear-rings"),
       upsertGhost: (p) => ghosts.push(`+${p.id}`),
       removeGhost: (id) => ghosts.push(`-${id}`),
       flash: (msg) => flashes.push(msg),
@@ -112,12 +113,14 @@ describe("applyServerMsg", () => {
     expect(h.frosting).toEqual(["restore:3", "stuck:0"]);
   });
 
-  it("a fresh deal wheels out a fresh cake — paint AND on-cake solids clear; other order msgs never do", () => {
+  it("a fresh deal wheels out a fresh cake — paint, on-cake solids, stuck, AND landing rings clear; other order msgs never do", () => {
     const h = harness();
     applyServerMsg(h.view, orderMsg(), h.fx); // 1Hz clock correction
     expect(h.frosting).toEqual([]);
     applyServerMsg(h.view, orderMsg({ fresh: true }), h.fx); // the re-deal
-    expect(h.frosting).toEqual(["reset", "clear-cake", "clear-stuck"]);
+    // Rings ride the same clear (playtest 2026-07-07): annotations about
+    // the dead order's shots must not point at paint that is gone.
+    expect(h.frosting).toEqual(["reset", "clear-cake", "clear-stuck", "clear-rings"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {

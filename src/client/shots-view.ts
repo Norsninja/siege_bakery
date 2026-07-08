@@ -221,6 +221,15 @@ export class ShotsView {
     return mesh;
   }
 
+  /** The fresh deal (fresh-cake law, redeal branch): rings are annotations
+   * about where THIS order's shots landed — under a fresh cake they point
+   * at paint and toppings that are gone. All of them come down with the
+   * dessert (playtest 2026-07-07); the physical floor litter stays. */
+  clearLandingMarkers(): void {
+    for (const m of this.markers) removeAndDispose(m);
+    this.markers.length = 0;
+  }
+
   private addLandingMarker(
     x: number,
     y: number,

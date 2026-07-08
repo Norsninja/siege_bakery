@@ -48,7 +48,10 @@
         top: 12px;
         right: 12px;
         display: none;
-        width: 264px;
+        /* ~10% of a 16:9 screen's area (visionary, 2026-07-07): the trophy
+           can afford confidence — it lives only in the linger. The vh cap
+           keeps ultrawide screens honest. */
+        width: min(27vw, 48vh);
         padding: 8px 8px 6px;
         background: #f5efdf;
         border: 1px solid #b8a888;
@@ -65,7 +68,7 @@
       #snapshot figcaption {
         margin-top: 5px;
         color: #4a3f2c;
-        font: italic 13px/1.3 Georgia, serif;
+        font: italic clamp(12px, 1.1vw, 17px)/1.3 Georgia, serif;
         text-align: center;
         white-space: pre-line;
       }

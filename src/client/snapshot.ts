@@ -23,9 +23,11 @@ import { CAKE_TIERS, CAKE_Z } from "../core/arena";
  * shallow enough that the tier walls (half the census) stay in frame. */
 const SNAP_POS = new THREE.Vector3(10, 12, CAKE_Z);
 const SNAP_TARGET = new THREE.Vector3(0, CAKE_TIERS[0]!.top, CAKE_Z);
-/** 4:3, small — it develops into a ~260px corner photo. */
-const SNAP_W = 480;
-const SNAP_H = 360;
+/** 4:3. The frame is ~10% of the screen now (min(27vw, 48vh) — up to
+ * ~690px wide on a 2560 display), so the film matches: crisp at that
+ * size, still one cheap read per order end. */
+const SNAP_W = 720;
+const SNAP_H = 540;
 
 export class DessertSnapshot {
   private readonly camera: THREE.PerspectiveCamera;

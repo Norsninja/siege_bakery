@@ -137,6 +137,7 @@ async function main(): Promise<void> {
         );
     },
     clearStuck: () => sprinklesView.clear(),
+    clearLandingRings: () => shotsView.clearLandingMarkers(),
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,

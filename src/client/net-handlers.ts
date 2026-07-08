@@ -45,6 +45,10 @@ export interface NetFx {
   restoreStuck(list: StuckTopping[]): void;
   /** A fresh deal: the stuck sprinkles left with the dessert. */
   clearStuck(): void;
+  /** A fresh deal: landing rings are annotations about the DEAD order's
+   * shots — under a fresh cake they point at paint that is gone (playtest
+   * 2026-07-07). All come down; physical floor litter stays by law. */
+  clearLandingRings(): void;
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
@@ -143,6 +147,7 @@ export function applyServerMsg(
         fx.resetFrosting();
         fx.clearCakeSolids();
         fx.clearStuck();
+        fx.clearLandingRings();
       }
       break;
     case "patron":
