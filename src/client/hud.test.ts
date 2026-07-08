@@ -67,11 +67,11 @@ describe("snapshotCaption — the photo speaks the Patron's voice (dessert repor
 });
 
 describe("arcGlyph", () => {
-  it("shows all 19 vernier positions, grouped in 10° fours (re-pinned 2026-07-08)", () => {
-    expect(arcGlyph(0)).toBe("▮▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯");
-    expect(arcGlyph(1)).toBe("▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯");
-    expect(arcGlyph(6)).toBe("▮▮▮▮·▮▮▮▯·▯▯▯▯·▯▯▯▯·▯▯▯"); // 6 notches = the old 15°
-    expect(arcGlyph(18)).toBe("▮▮▮▮·▮▮▮▮·▮▮▮▮·▮▮▮▮·▮▮▮");
+  it("shows all 13 vernier positions, grouped in 10° fours (clamp re-pin, plans/15 item 2)", () => {
+    expect(arcGlyph(0)).toBe("▮▯▯▯·▯▯▯▯·▯▯▯▯·▯");
+    expect(arcGlyph(1)).toBe("▮▮▯▯·▯▯▯▯·▯▯▯▯·▯");
+    expect(arcGlyph(6)).toBe("▮▮▮▮·▮▮▮▯·▯▯▯▯·▯"); // 6 notches = the old 15°
+    expect(arcGlyph(12)).toBe("▮▮▮▮·▮▮▮▮·▮▮▮▮·▮"); // the clamp: 85° total el
   });
 });
 
@@ -248,7 +248,7 @@ describe("hudLines", () => {
     // Compact arc on the always-on line (visionary call 2026-07-08): the
     // full ladder is the screw prompt's alone.
     expect(lines[lines.length - 1]).toBe(
-      "machine — traverse -12° · arc +2.5° (1/18) · tension 6/10 · bucket: cherry · hands: lime",
+      "machine — traverse -12° · arc +2.5° (1/12) · tension 6/10 · bucket: cherry · hands: lime",
     );
   });
 
@@ -279,7 +279,7 @@ describe("hudLines", () => {
       "▸ GUNNER'S POST — A/D wheel · W/S screw · F fire · E step off",
     );
     expect(lines[lines.length - 1]).toBe(
-      "  arc ▮▮▮▮·▮▮▮▯·▯▯▯▯·▯▯▯▯·▯▯▯ +15° · traverse -8.5°",
+      "  arc ▮▮▮▮·▮▮▮▯·▯▯▯▯·▯ +15° · traverse -8.5°",
     );
   });
 

@@ -266,6 +266,14 @@ export class MachineRig {
   get shownTiltNotch(): number {
     return this.lastTiltNotch;
   }
+
+  /** The frame tilt the player SEES, radians (test/debug) — the render
+   * contract pins it to the sim's tilt law (scene.test.ts): the ball's
+   * arc is real ballistics, so a frame that tilted differently would
+   * teach the machine wrong. */
+  get shownTiltRad(): number {
+    return this.tiltFrame.rotation.x;
+  }
 }
 
 export interface GameScene {

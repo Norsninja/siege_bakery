@@ -33,8 +33,19 @@ fresh-deal `clearLandingMarkers` law stays.
 
 ## 2. The tilt ladder's dead top — PRE-FRIEND-TEST, harness-gated
 
-**Status: unclaimed. NOT an eyeball change — verification obligation
-below.**
+**Status: DONE 2026-07-08 (fourth session) — merged into plans/13
+slice 3 (visionary-blessed) and landed. The clamp check ran first:
+research/11 (spec-parameterized) at cake-3 × maxNotch 12 reproduced
+EVERY pinned envelope number exactly (one town 79.0/81.2/90.3 at
+≤8/9/10, union 100.0% at ≤8, overlap 57.9/62.9/80.9) — notches 13–18
+bought zero coverage. TILT_MAX_NOTCH 18→12 in game/catapult.ts; every
+reader (sim clamp, HUD glyph ladder + numeric line, scene's visual
+tilt clamp) rides the constant symbolically, so one edit moved them
+all; HUD pins re-pinned (hud.test.ts). The rider landed as
+scene.test.ts — the render contract: the rig's shown frame tilt IS
+the sim tilt notch-for-notch, the visual clamp is the sim clamp, and
+the ball's arc was already real ballistics (shots-view spawns
+launchVelocity), so the 55°+tilt release cannot diverge.**
 
 The facts (so nobody re-derives them): the arm's release elevation is
 FIXED at 55° (`ballistics.ts LAUNCH_ELEVATION_DEG`); the vernier ADDS

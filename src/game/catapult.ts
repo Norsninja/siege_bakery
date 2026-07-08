@@ -47,12 +47,19 @@ export const CRANK_SECONDS_PER_CLICK = 0.75;
  * stay COARSE — the click economy is load-bearing — and elevation is
  * the FINE control. One notch moves the landing ~0.4–1.3m in the money
  * band; adjacent clicks land 1.8–8m apart, so 3–7 notches walk one
- * click gap. Ballistics adds the tilt to the arm's base elevation (55°);
- * 18 notches keep the full 45° throw of the old table: notch 14 (el 90°)
+ * click gap. Ballistics adds the tilt to the arm's base elevation (55°).
+ * CLAMPED 12 (≤85° total el; was 18 = the full 45° of the old table) —
+ * plans/15 item 2, landed with plans/13 slice 3: the top five notches
+ * were a pure trap (notch 13 lofts near-vertical and short, 14 (el 90°)
  * drops the shot on your own plinth, 15+ throw gently backwards over
- * the crew. Mistakes execute. */
+ * the crew — a player winding to max expecting MORE got the ball on
+ * their own head), and the clamp check (research/11, cake-3 at maxNotch
+ * 12, 2026-07-08) reproduced EVERY envelope number exactly — the cut
+ * notches bought zero coverage. Mistakes still execute below the clamp.
+ * Everyone reads this constant symbolically (sim clamp, HUD ladder,
+ * scene's visual tilt), so the render contract moves with it. */
 export const TILT_DEG_PER_NOTCH = 2.5;
-export const TILT_MAX_NOTCH = 18;
+export const TILT_MAX_NOTCH = 12;
 /** Real seconds of screwing per notch — the fine dial turns quick: a
  * 2–4 notch correction is 0.3–0.6s, a full-ladder sweep 2.7s of held
  * work (more total than the old 3×0.5s table, on purpose — the vernier
