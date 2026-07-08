@@ -74,34 +74,40 @@ event-based cake sync possible. Guard it like the 2D project did.
 ## Session protocol
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
-`project/research/` (per the global CLAUDE.md workflow). Current state:
-THE RUN CONTAINER LANDED (2026-07-08, second session): plans/13 THE
-CAMPAIGN is authored in full and blessed — order N = rung N = an
-N-tier cake (DessertSpec rows, colliders rebuilt at redeal, census
-derived from spec), a FAILED ORDER ENDS THE RUN, shared purse resets
-per run, shop only in the 18s separator (town 2 + fudge are shop
-purchases now — supersedes plans/09 §2's twist ladder), and THE
-LADDER'S TOP IS WHERE THE TOOLS SAY THE ENVELOPE DIES (no rung ask
-pins until its spec ran research/13 + /11). Slice 1 is BUILT and
-feel-tested: the game boots into a LOBBY (dormant order never ticks or
-scores; machines are a warmup sandbox), a GOLD READY CIRCLE in town
-0's yard starts the run when ALL bakers stand in it through a 3s
-countdown (stepping out or a mid-count joiner cancels), WON orders
-climb rungs with no lobby between, LOST orders show the RUN OVER
-report (no fresh deal — the next deal is the next run's), and a crew
-still in the circle auto-restarts. Order-status behaviors (gates,
-pickTown, clock, scoring) are ALL phase-gated — grep run.phase before
-adding another. Also this session: the review fixed two E-edge bugs —
-the precedence chain lives tested in interactions.resolveEEdge (each
-stage consumes the edge only when it ACTS) and the crosshair went
-PANTRY-ONLY (MACHINE_CONTROL_KINDS; machine parts left the raycast;
-watch item: if friend-test first-timers flounder at a mute machine,
-signposts return). 290 tests green, both tsc legs. Vernier/gun-crew
-laws unchanged (plans/14; one body one job; the reticle never aims;
-W/S = more/less; the 80% curve stays 48/39 idealized — the 4-player
-heroic number). Standing ledger: audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin ownerless. NEXT: review the
-session's work, then DISCUSS plans/13 slice 2 (DessertSpec core
-refactor, zero-drift proof against cake-3) before building; the friend
-test (plans/12) inherits the lobby whenever it lands. Port map:
+`project/research/` (per the global CLAUDE.md workflow).
+**SIDE-QUEST LEDGER: `project/plans/15-side-quests.md`** — triaged
+playtest notes with buckets and claim lines (rings-per-catapult, tilt
+clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
+power-ups = post-campaign discussion). Claim items there; don't
+re-triage. Current state:
+THE DESSERTSPEC LANDED (2026-07-08, third session): plans/13 slice 2
+is BUILT under §3's rulings of record, ZERO-DRIFT PROVEN (every
+pinned number — 661/218/443 census, WIN path, two-rooms-converge,
+settle ladder — reproduced with assertions untouched; 293 tests, both
+tsc legs) and live-verified through ready-up → rung 1 → scored splat
+→ run over → auto-restart. The cake is a DATA ROW now: core/dessert.
+ts holds DessertSpec + the CAKE_3 anchor + dessertGeometry(spec) —
+THE ONE PUBLIC FORM (tier math private; the old zero-arg oracles are
+DELETED, never aliased). GEOMETRY IS AN ARGUMENT, never a field, on
+core/ classes (step(world, geom), clearCakeSolids(world, OUTGOING
+geom)); THE REDEAL ORDERING (clear with old → tear down colliders →
+bind rung's spec → build → fresh field) lives in Room.redealDessert()
+and the client's fresh-deal branch, both pinned; the wire carries the
+RUNG, never geometry (specForRung in game/campaign.ts — the slice-3
+stand-in deals cake-3 every rung); clients bind the dessert BEFORE
+snapshot adoption (boot-order law; frosting-view's length guard
+tripwires it). Also this session: the slice-1 review found no bugs
+(two pins added: a LEAVER mid-countdown does not cancel, the LAST
+leaver does). Ready-circle/run-container laws unchanged (grep
+run.phase before adding order-status behavior); vernier/gun-crew laws
+unchanged (plans/14). KNOWINGLY STALE until slice 3: the research
+.mts tools (import deleted arena exports; they gain a spec parameter)
+and the potential tables (cake-3's measured numbers). Standing
+ledger: plans/15 side quests (claim, don't re-triage); snapshot
+tripod framing dies on tall specs; audit tranche C post-friend-test;
+wind plan and Bite/integrity re-pin ownerless. NEXT: the visionary's
+playtest feedback, then DISCUSS plans/13 slice 3 (research/13 + /11
+gain a spec parameter, measure cake-1/2/4/5/6, author RUNGS — the
+ladder's top is where the tools say the envelope dies) before
+building; the friend test (plans/12) inherits everything. Port map:
 research/01-port-gap-analysis.md.
