@@ -75,29 +75,33 @@ event-based cake sync possible. Guard it like the 2D project did.
 
 Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 `project/research/` (per the global CLAUDE.md workflow). Current state:
-VERNIER + GUN CREW LANDED (2026-07-08): the elevation vernier is
-2.5°×18 notches at 0.15s/notch (research/13, the standing re-pin tool;
-one notch = 0.4–1.3m of landing depth, 3–7 notches walk one click gap)
-— and its envelope consequence re-pinned TOWN_POTENTIAL to
-[0, 0.9, 1.0, 1.0, 1.0]: fine tilt BRIDGES THE MOAT (research/11
-RE-RUN — two-town union 100% at ≤8 clicks, contested overlap 63% at
-≤9, click 10 buys real one-town reach), so the towns rationale is
-throughput + contested ground now, not reach ceiling; asks unchanged
-(Option B, TOWN_ASK_POTENTIAL authored). Interaction is THE GUN CREW
-(plans/14, two feel-test rounds passed): crew posts replaced crosshair
-grips — gunner post left rear (E man, A/D wheel, W/S screw, F fire,
-translucent green ground circles from the one POST_SPOTS table), winch
-post right flank (Space/W wind, S UNWIND — crank is SIGNED on the wire,
-merge stalls opposites), bucket/pantry walk-up untouched. Laws: ONE
-BODY ONE JOB (floor space enforces co-op, never input awkwardness);
-the reticle never aims, camera position free; W/S = more/less at every
-post; no Ctrl (browser), no chords. input.ts keeps the superseded grip
-law for rollback. 263 tests green, both tsc legs. DECIDED: the 80%
-coverage curve stays as measured (48/39 idealized shots one/two-town —
-the 4-player heroic number); plans/13's per-rung asks author against
-the NEW curves. Standing ledger: audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin still ownerless. NEXT: review the
-session's work, then plans/13 THE CAMPAIGN (full plan, discussed first
-— DessertSpec rungs, spec-derived census, per-rung asks, shop/purse
-economy), then the two-PC friend test (plans/12, now including the gun
-crew). Port map: research/01-port-gap-analysis.md.
+THE RUN CONTAINER LANDED (2026-07-08, second session): plans/13 THE
+CAMPAIGN is authored in full and blessed — order N = rung N = an
+N-tier cake (DessertSpec rows, colliders rebuilt at redeal, census
+derived from spec), a FAILED ORDER ENDS THE RUN, shared purse resets
+per run, shop only in the 18s separator (town 2 + fudge are shop
+purchases now — supersedes plans/09 §2's twist ladder), and THE
+LADDER'S TOP IS WHERE THE TOOLS SAY THE ENVELOPE DIES (no rung ask
+pins until its spec ran research/13 + /11). Slice 1 is BUILT and
+feel-tested: the game boots into a LOBBY (dormant order never ticks or
+scores; machines are a warmup sandbox), a GOLD READY CIRCLE in town
+0's yard starts the run when ALL bakers stand in it through a 3s
+countdown (stepping out or a mid-count joiner cancels), WON orders
+climb rungs with no lobby between, LOST orders show the RUN OVER
+report (no fresh deal — the next deal is the next run's), and a crew
+still in the circle auto-restarts. Order-status behaviors (gates,
+pickTown, clock, scoring) are ALL phase-gated — grep run.phase before
+adding another. Also this session: the review fixed two E-edge bugs —
+the precedence chain lives tested in interactions.resolveEEdge (each
+stage consumes the edge only when it ACTS) and the crosshair went
+PANTRY-ONLY (MACHINE_CONTROL_KINDS; machine parts left the raycast;
+watch item: if friend-test first-timers flounder at a mute machine,
+signposts return). 290 tests green, both tsc legs. Vernier/gun-crew
+laws unchanged (plans/14; one body one job; the reticle never aims;
+W/S = more/less; the 80% curve stays 48/39 idealized — the 4-player
+heroic number). Standing ledger: audit tranche C post-friend-test;
+wind plan and Bite/integrity re-pin ownerless. NEXT: review the
+session's work, then DISCUSS plans/13 slice 2 (DessertSpec core
+refactor, zero-drift proof against cake-3) before building; the friend
+test (plans/12) inherits the lobby whenever it lands. Port map:
+research/01-port-gap-analysis.md.
