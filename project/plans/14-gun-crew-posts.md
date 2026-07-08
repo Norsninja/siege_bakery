@@ -91,6 +91,42 @@ Mechanics of record:
 4. Camera snap on manning: welcome or head-yank?
 5. Does F-to-fire misfire socially (F pressed while meaning to load)?
 
+## Review round (2026-07-08, post-feel-test walk-through)
+
+The code review of the landed build found both its issues in ONE place —
+main.ts's untested E-edge wiring (the pure functions around it were
+pinned; the precedence expression between them wasn't):
+
+1. **The step-off double-act**: pressing E to step off didn't consume
+   the edge, so with the bucket under the crosshair (reachable from both
+   posts — REACH_M 2.8) the same press stepped off AND loaded whatever
+   the baker carried. One edge, two meanings.
+2. **The eaten edge**: an empty-handed press at the bucket died in a
+   no-op interaction instead of manning the zone the baker stood in —
+   "E doesn't work at the winch sometimes."
+
+THE FIX (visionary-blessed): the precedence chain moved into
+interactions.ts as `resolveEEdge`, TESTED — same order (step off >
+pantry interaction > man), but each stage **consumes the edge only when
+it ACTS**. Stepping off takes the whole press; an interaction claims the
+press only by doing something; what's left mans the zone.
+
+AND THE CROSSHAIR WENT PANTRY-ONLY (visionary's call, same discussion):
+the machine's controls (wheel, screw, winch, lever) left the raycast
+entirely — their redirect prompts wore an interaction's costume ("… · E"
+beside "E — man the winch" was two E-lines meaning different things).
+`MACHINE_CONTROL_KINDS` (hud.ts) is the one set; scene.bindTown drops
+the meshes, `pantryTarget` refuses the kinds (belt + suspender), and the
+HUD invite YIELDS to an actionable target via `interactionActs` (a dry
+run of the real rules, never a copy). promptFor's redirect cases and the
+meshes stay underneath, superseded-kept, like the grip law.
+
+**FRIEND-TEST WATCH ITEM**: with the redirects gone, a first-time
+player's only teachers are the green circles + the zone invite + the
+post panel. If friends flounder at a mute machine (plans/12), reintroduce
+signpost prompts — reworded WITHOUT the "· E", and suppressed while
+inside a zone, so the ambiguity stays dead even if the teaching returns.
+
 ## Later, if it sticks
 
 - Visual post markers on the greybox (a stand-here flagstone per post).

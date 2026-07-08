@@ -12,7 +12,12 @@
  * these WITH them — that drift is exactly what the tests exist to catch.
  */
 import type { OrderState } from "../game/order";
-import { SHELF_TOPPING, type InteractableKind } from "./hud";
+import {
+  MACHINE_CONTROL_KINDS,
+  SHELF_TOPPING,
+  type InteractableKind,
+} from "./hud";
+import type { Post } from "./posts";
 
 /** The messages an interaction may send (a subset of ClientMsg). */
 export type InteractionMsg = { t: "lever" } | { t: "load"; topping: string };
@@ -57,6 +62,80 @@ export function tickInteraction(
   if (target === "bucket" && carrying !== null && machineLoaded === null)
     return { carrying: null, send: [{ t: "load", topping: carrying }], flash: null };
   return NOTHING(carrying);
+}
+
+// ---------------------------------------------------------------------------
+// THE GUN CREW's E-edge law (plans/14; review 2026-07-08). Precedence:
+// step off a post > walk-up pantry interaction > man the post you stand
+// in — and each stage CONSUMES the edge only when it ACTS. The review
+// caught the wiring version of this chain double-acting (stepping off
+// ALSO loaded the bucket under the crosshair) and edge-eating (an
+// empty-handed press at the bucket died instead of manning): rules in
+// wiring is exactly what the decomp law forbids, so the chain lives
+// here, under vitest.
+// ---------------------------------------------------------------------------
+
+/** The pantry-loop law: while the gun crew runs, the crosshair INTERACTS
+ * with the bucket and shelves only — the machine's controls are worked
+ * from posts. scene.bindTown drops those meshes from the raycast; this
+ * filter is the belt to that suspender, and it is what keeps the lever
+ * branch above unreachable (rollback re-opens it). */
+export function pantryTarget(
+  target: InteractableKind | null,
+): InteractableKind | null {
+  return target !== null && !MACHINE_CONTROL_KINDS.has(target) ? target : null;
+}
+
+/** Did the interaction DO anything — send, carry change, or flash? */
+const acts = (act: TickInteraction, carryingBefore: string | null): boolean =>
+  act.send.length > 0 || act.carrying !== carryingBefore || act.flash !== null;
+
+/** Would an E press at this crosshair act? The HUD's post invite yields
+ * to an actionable target (one press, one meaning — the invite must not
+ * promise a man that resolveEEdge would give to the interaction). A dry
+ * run of the real rules, never a copy of them. */
+export function interactionActs(
+  target: InteractableKind | null,
+  carrying: string | null,
+  machineLoaded: string | null,
+): boolean {
+  return acts(
+    tickInteraction(true, pantryTarget(target), carrying, machineLoaded),
+    carrying,
+  );
+}
+
+export interface EEdgeResult {
+  /** The post manned after the edge (the input `manned` when untouched). */
+  manned: Post | null;
+  /** The interaction's effects — the caller executes them either way
+   * (NOTHING whenever the edge went to a post instead). */
+  act: TickInteraction;
+  /** True exactly when this edge MANNED a post (the camera welcome). */
+  justManned: boolean;
+}
+
+/** One E edge, one meaning. Stepping off takes the WHOLE press; the
+ * interaction claims it only by acting; what's left mans the zone. */
+export function resolveEEdge(
+  eEdge: boolean,
+  manned: Post | null,
+  target: InteractableKind | null,
+  nearPost: Post | null,
+  carrying: string | null,
+  machineLoaded: string | null,
+): EEdgeResult {
+  if (eEdge && manned !== null)
+    return { manned: null, act: NOTHING(carrying), justManned: false };
+  const act = tickInteraction(
+    eEdge,
+    pantryTarget(target),
+    carrying,
+    machineLoaded,
+  );
+  if (eEdge && !acts(act, carrying) && nearPost !== null)
+    return { manned: nearPost, act, justManned: true };
+  return { manned, act, justManned: false };
 }
 
 /** The banner latch: when to show the verdict, when the fresh deal clears

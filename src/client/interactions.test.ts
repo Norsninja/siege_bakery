@@ -5,7 +5,13 @@
  * other tripwire.
  */
 import { describe, it, expect } from "vitest";
-import { bannerLatch, tickInteraction } from "./interactions";
+import {
+  bannerLatch,
+  interactionActs,
+  pantryTarget,
+  resolveEEdge,
+  tickInteraction,
+} from "./interactions";
 
 describe("tickInteraction", () => {
   it("does nothing without an E edge or a target", () => {
@@ -52,6 +58,86 @@ describe("tickInteraction", () => {
   it("machine controls are hold-ops, not interactions: no sends", () => {
     for (const t of ["wheel", "winch", "screw"] as const)
       expect(tickInteraction(true, t, "cherry", null).send).toEqual([]);
+  });
+});
+
+describe("pantryTarget — the crosshair speaks only to the pantry loop (plans/14)", () => {
+  it("machine controls are refused; bucket and shelves pass; null is null", () => {
+    for (const t of ["wheel", "winch", "screw", "lever"] as const)
+      expect(pantryTarget(t)).toBeNull();
+    expect(pantryTarget("bucket")).toBe("bucket");
+    expect(pantryTarget("shelf-cherry")).toBe("shelf-cherry");
+    expect(pantryTarget(null)).toBeNull();
+  });
+});
+
+describe("resolveEEdge — one E edge, one meaning (review 2026-07-08)", () => {
+  it("no edge: nothing moves", () => {
+    const r = resolveEEdge(false, "winch", "bucket", null, "cherry", null);
+    expect(r.manned).toBe("winch");
+    expect(r.act.send).toEqual([]);
+    expect(r.act.carrying).toBe("cherry");
+    expect(r.justManned).toBe(false);
+  });
+
+  it("stepping off takes the WHOLE press — the bucket under the crosshair must NOT load (the review's double-act)", () => {
+    const r = resolveEEdge(true, "winch", "bucket", null, "cherry", null);
+    expect(r.manned).toBeNull();
+    expect(r.act.send).toEqual([]); // no load rode along
+    expect(r.act.carrying).toBe("cherry"); // hands still full
+    expect(r.justManned).toBe(false);
+  });
+
+  it("an ACTING interaction claims the edge: loading beats manning", () => {
+    const r = resolveEEdge(true, null, "bucket", "winch", "cherry", null);
+    expect(r.act.send).toEqual([{ t: "load", topping: "cherry" }]);
+    expect(r.manned).toBeNull(); // the man did NOT also happen
+    expect(r.justManned).toBe(false);
+  });
+
+  it("a NO-OP interaction cannot eat the edge: empty hands at the bucket fall through to the man (the review's dead press)", () => {
+    const r = resolveEEdge(true, null, "bucket", "winch", null, null);
+    expect(r.manned).toBe("winch");
+    expect(r.justManned).toBe(true);
+    expect(r.act.send).toEqual([]);
+  });
+
+  it("a machine control under the crosshair never eats the edge — the lever branch stays unreachable, the zone mans", () => {
+    const r = resolveEEdge(true, null, "lever", "gunner", null, null);
+    expect(r.manned).toBe("gunner");
+    expect(r.justManned).toBe(true);
+    expect(r.act.send).toEqual([]); // NO lever msg: F fires now, not E
+  });
+
+  it("plain man: in the zone, no target", () => {
+    const r = resolveEEdge(true, null, null, "gunner", null, null);
+    expect(r.manned).toBe("gunner");
+    expect(r.justManned).toBe(true);
+  });
+
+  it("edge on open ground with nothing to do: nothing happens", () => {
+    const r = resolveEEdge(true, null, null, null, "cherry", null);
+    expect(r.manned).toBeNull();
+    expect(r.act.send).toEqual([]);
+    expect(r.act.carrying).toBe("cherry");
+  });
+});
+
+describe("interactionActs — the HUD invite yields only to a press that would act", () => {
+  it("actionable: load with full hands, pickup with empty hands", () => {
+    expect(interactionActs("bucket", "cherry", null)).toBe(true);
+    expect(interactionActs("shelf-lime", null, null)).toBe(true);
+  });
+
+  it("not actionable: empty hands at the bucket, full hands at a shelf, full bucket", () => {
+    expect(interactionActs("bucket", null, null)).toBe(false);
+    expect(interactionActs("shelf-lime", "cherry", null)).toBe(false);
+    expect(interactionActs("bucket", "lime", "cherry")).toBe(false);
+  });
+
+  it("machine controls never act — the lever's always-fire is filtered by the pantry law", () => {
+    expect(interactionActs("lever", null, null)).toBe(false);
+    expect(interactionActs("wheel", null, null)).toBe(false);
   });
 });
 

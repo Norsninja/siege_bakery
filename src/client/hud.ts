@@ -49,6 +49,20 @@ export const SHELF_TOPPING: Partial<Record<InteractableKind, string>> = {
   "shelf-fudge": "fudge",
 };
 
+/** The machine's CONTROLS — worked from crew posts while the gun-crew
+ * experiment runs (plans/14; review 2026-07-08). These kinds leave the
+ * crosshair entirely: scene.bindTown drops their meshes from the raycast
+ * (no highlight, no redirect prompt — the redirect lines wore an
+ * interaction's costume next to the post invite) and interactions.
+ * pantryTarget refuses them as the belt to that suspender. promptFor's
+ * redirect cases below stay, superseded-kept, for rollback. */
+export const MACHINE_CONTROL_KINDS: ReadonlySet<InteractableKind> = new Set([
+  "wheel",
+  "winch",
+  "screw",
+  "lever",
+] satisfies InteractableKind[]);
+
 export type NetStatus = "loopback" | "connecting" | "open" | "closed";
 
 /** The arc position as a filled ladder — the fill shows the whole scale
@@ -75,10 +89,12 @@ export function promptFor(
   carrying: string | null,
 ): string {
   switch (kind) {
-    // The machine's CONTROLS are worked from crew posts now (plans/14):
-    // crosshair-touching a part redirects to where the body stands. The
-    // bucket and shelves below stay walk-up interactions — the loader is
-    // the runner.
+    // The machine's CONTROLS are worked from crew posts now (plans/14).
+    // These redirect cases are UNREACHABLE while the experiment runs —
+    // MACHINE_CONTROL_KINDS drops the meshes from the raycast (review
+    // 2026-07-08: the redirects read as interactions beside the post
+    // invite) — kept, like the grip law, for rollback. The bucket and
+    // shelves below stay walk-up interactions — the loader is the runner.
     case "wheel":
     case "screw":
       return "worked from the GUNNER'S POST — stand behind the machine · E";

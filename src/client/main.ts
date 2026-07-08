@@ -30,14 +30,13 @@ import {
   bannerText,
   hudLines,
   snapshotCaption,
-  SHELF_TOPPING,
   type InteractableKind,
 } from "./hud";
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
 import { createMatchView, myMachine, predictClock } from "./state";
-import { bannerLatch, tickInteraction } from "./interactions";
+import { bannerLatch, interactionActs, resolveEEdge } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
@@ -258,34 +257,38 @@ async function main(): Promise<void> {
       const nearPost = manned === null ? postAt(bakerPos, anchors) : null;
       nearPostShown = nearPost;
 
-      // One E edge, one meaning, in precedence order: step off a post >
-      // walk-up interaction under the crosshair (bucket/shelves — the
-      // loader's loop, untouched) > man the post you stand in.
-      const edgeTarget =
-        target !== null &&
-        (target === "bucket" || SHELF_TOPPING[target] !== undefined)
-          ? target
-          : null;
-      let manEdge = false;
-      if (eEdge) {
-        if (manned !== null) manned = null;
-        else if (edgeTarget === null && nearPost !== null) {
-          manned = nearPost;
-          manEdge = true;
-          // The gunner's welcome: a gentle snap down the throw line —
-          // then the head is free. The reticle never aims (plans/14 law).
-          if (manned === "gunner") {
-            const m = myMachine(view).machine;
-            let yaw =
-              (((TOWNS[view.yourTown]!.facingDeg + m.traverseDeg) % 360) *
-                Math.PI) /
-              180;
-            if (yaw > Math.PI) yaw -= 2 * Math.PI;
-            else if (yaw <= -Math.PI) yaw += 2 * Math.PI;
-            input.yaw = yaw;
-          }
-        }
+      // One E edge, one meaning (plans/14; review 2026-07-08): the
+      // precedence chain — step off > pantry interaction > man the zone,
+      // each stage consuming the edge only when it ACTS — lives in
+      // interactions.resolveEEdge, TESTED; this is the wiring that
+      // executes what it decides. The lever is the gunner's F now:
+      // pantryTarget keeps interactions.ts's lever branch unreachable
+      // while the experiment runs — rollback re-opens it.
+      const resolved = resolveEEdge(
+        eEdge,
+        manned,
+        target,
+        nearPost,
+        view.carrying,
+        myMachine(view).machine.loaded,
+      );
+      manned = resolved.manned;
+      if (resolved.justManned && manned === "gunner") {
+        // The gunner's welcome: a gentle snap down the throw line —
+        // then the head is free. The reticle never aims (plans/14 law).
+        const m = myMachine(view).machine;
+        let yaw =
+          (((TOWNS[view.yourTown]!.facingDeg + m.traverseDeg) % 360) *
+            Math.PI) /
+          180;
+        if (yaw > Math.PI) yaw -= 2 * Math.PI;
+        else if (yaw <= -Math.PI) yaw += 2 * Math.PI;
+        input.yaw = yaw;
       }
+      view.carrying = resolved.act.carrying;
+      for (const m of resolved.act.send) transport.send(m);
+      if (resolved.act.flash)
+        flash(resolved.act.flash.msg, resolved.act.flash.ms);
 
       // Hold state on the machine from the manned post → send on change.
       const op = postOp(manned, input.keys);
@@ -297,19 +300,6 @@ async function main(): Promise<void> {
         transport.send({ t: "op", turn: op.turn, screw: op.screw, crank: op.crank });
         lastOp = op;
       }
-      // Edges: pickup / load — the RULES live in interactions.ts (tested);
-      // this is the wiring that executes them. The lever is the gunner's F
-      // now: interactions.ts's lever branch is unreachable while the
-      // experiment runs (edgeTarget filters it) — rollback re-opens it.
-      const act = tickInteraction(
-        eEdge && manned === null && !manEdge,
-        edgeTarget,
-        view.carrying,
-        myMachine(view).machine.loaded,
-      );
-      view.carrying = act.carrying;
-      for (const m of act.send) transport.send(m);
-      if (act.flash) flash(act.flash.msg, act.flash.ms);
       // The gunner's lever: F fires, ALWAYS — a dry release is a mistake
       // that executes (same comedy line the crosshair lever spoke).
       if (fEdge && manned === "gunner") {
@@ -469,7 +459,19 @@ async function main(): Promise<void> {
         target,
         flash: now < flashUntil ? flashMsg : null,
         manned,
-        nearPost: nearPostShown,
+        // The invite YIELDS to an actionable crosshair target (one press,
+        // one meaning): resolveEEdge would give E to the interaction, so
+        // promising a man here would lie. Non-actionable prompts ("hands
+        // empty — fetch a topping") coexist with the invite honestly.
+        nearPost:
+          nearPostShown !== null &&
+          !interactionActs(
+            target,
+            view.carrying,
+            myMachine(view).machine.loaded,
+          )
+            ? nearPostShown
+            : null,
       }).join("\n");
     }
 

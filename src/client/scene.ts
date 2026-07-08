@@ -32,7 +32,7 @@ import {
   TILT_MAX_NOTCH,
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
-import type { InteractableKind } from "./hud";
+import { MACHINE_CONTROL_KINDS, type InteractableKind } from "./hud";
 import { POST_SPOTS } from "./posts";
 
 export const TOPPING_COLORS: Record<string, number> = {
@@ -432,12 +432,23 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     bindTown(t: number): void {
       gs.setHighlight(null); // drop any glow on the old town's gear
       gs.interactables = townInteractables[t] ?? townInteractables[0]!;
-      gs.raycastTargets = Object.values(gs.interactables).flat();
+      // THE CROSSHAIR SPEAKS ONLY TO THE PANTRY LOOP while the gun crew
+      // runs (plans/14; review 2026-07-08): the machine's controls leave
+      // the raycast — no highlight, no redirect prompt wearing an
+      // interaction's costume beside the post invite. Meshes and
+      // promptFor's redirect cases stay underneath, superseded-kept;
+      // rollback re-admits the kinds here.
+      gs.raycastTargets = [];
       gs.kindOf = new Map();
       for (const [kind, meshes] of Object.entries(gs.interactables) as Array<
         [InteractableKind, THREE.Mesh[]]
-      >)
-        for (const m of meshes) gs.kindOf.set(m, kind);
+      >) {
+        if (MACHINE_CONTROL_KINDS.has(kind)) continue;
+        for (const m of meshes) {
+          gs.raycastTargets.push(m);
+          gs.kindOf.set(m, kind);
+        }
+      }
     },
   };
   gs.bindTown(0); // pre-welcome default; the welcome re-binds to yourTown
