@@ -62,6 +62,76 @@ export const CAKE_3: DessertSpec = {
   ],
 };
 
+// ---------------------------------------------------------------------------
+// THE LADDER'S CANDIDATE ROWS (plans/13 §4 + the cupcake amendment, §1).
+// Authored 2026-07-08 (fourth session) as slice-3 MEASUREMENT INPUT: no
+// rung's ask is pinned until its row has run research/13 + research/11
+// (the re-pin law of the ladder). Nothing deals these until the RUNGS
+// table goes live (slice 4) — until then game/campaign.ts still deals
+// CAKE_3 every rung.
+// ---------------------------------------------------------------------------
+
+/** Rung 1: today's base tier alone — the tutorial-by-play humble cake.
+ * Derived from the anchor, not copied: "today's base tier" is structural. */
+export const CAKE_1: DessertSpec = {
+  id: "cake-1",
+  tiers: CAKE_3.tiers.slice(0, 1),
+};
+
+/** Rung 2: base + middle — the rung that teaches the ledge. */
+export const CAKE_2: DessertSpec = {
+  id: "cake-2",
+  tiers: CAKE_3.tiers.slice(0, 2),
+};
+
+/** THE CUPCAKE (§1 amendment): one squat tiny tier — a PRECISION spike
+ * (tall rungs are REACH spikes). Its ladder position is decided at
+ * authoring, against its measured difficulty — after rung 3. */
+export const CUPCAKE: DessertSpec = {
+  id: "cupcake",
+  tiers: [{ radius: 1.2, bottom: 0, top: 1.5 }],
+};
+
+/** Rungs 4+ (plans/13 §4 hypothesis): each tier extends today's
+ * progression upward — radius step 0.65, height step 1.5 — so summits
+ * sit near y 6.5 / 8 / 9.5. THE LADDER'S TOP IS WHERE THE TOOLS SAY THE
+ * ENVELOPE DIES: if cake-6 proves unreachable it IS the near-impossible
+ * final rung; if merely heroic, a cake-7 gets authored. */
+const TIER_4 = { radius: 1.6, bottom: 5, top: 6.5 };
+const TIER_5 = { radius: 0.95, bottom: 6.5, top: 8 };
+const TIER_6 = { radius: 0.3, bottom: 8, top: 9.5 };
+
+export const CAKE_4: DessertSpec = {
+  id: "cake-4",
+  tiers: [...CAKE_3.tiers, TIER_4],
+};
+export const CAKE_5: DessertSpec = {
+  id: "cake-5",
+  tiers: [...CAKE_3.tiers, TIER_4, TIER_5],
+};
+export const CAKE_6: DessertSpec = {
+  id: "cake-6",
+  tiers: [...CAKE_3.tiers, TIER_4, TIER_5, TIER_6],
+};
+
+/** Every authored row, by wire id — the research tools' lookup and (from
+ * slice 4) the RUNGS table's referent. A row in this table is NOT a row
+ * in the ladder; RUNGS decides what deals. */
+export const DESSERT_SPECS: readonly DessertSpec[] = [
+  CUPCAKE,
+  CAKE_1,
+  CAKE_2,
+  CAKE_3,
+  CAKE_4,
+  CAKE_5,
+  CAKE_6,
+];
+
+/** Look a spec up by its wire id (research CLI, future RUNGS validation). */
+export function specById(id: string): DessertSpec | undefined {
+  return DESSERT_SPECS.find((s) => s.id === id);
+}
+
 /** Named scoring zones orders can demand: the whole dessert, or one tier
  * by INDEX (0 = base). Generalized from the tier1/2/3 strings with the
  * spec refactor (plans/13 §3) — an order row may only reference tiers its

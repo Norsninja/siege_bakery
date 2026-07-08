@@ -34,6 +34,19 @@ progressively harder until they reach near impossible. Rulings:
   SINGLE centered dessert; trays of many small desserts stay a later
   chapter (plans/09 §6 — that is a coverage-model restructuring, not a
   data swap).
+- **THE CUPCAKE AMENDMENT (2026-07-08, fourth session).** "Order N =
+  rung N = an N-tier cake" is amended: the ladder is authored spec
+  rows, monotonically HARDER, not necessarily monotonically TALLER. A
+  cupcake — one squat tiny tier — joins the ladder as a FIXED authored
+  rung after rung 3 (exact position decided at authoring, against its
+  measured difficulty): a PRECISION spike where tall tiers are REACH
+  spikes — the vernier's fine knob (research/13: 0.4–1.3 m/notch) is
+  what a small target tests. Random insertion was proposed and
+  REJECTED for v1 (it is procedural difficulty, a §7 non-goal; it
+  needs RNG in RunFlow and makes per-rung ask authoring ambiguous).
+  If run variety is ever wanted, the shape is authored ladder
+  VARIANTS, seeded per run — a post-campaign discussion beside
+  power-ups.
 
 ## 2. Foundations this plan is authored against (do not re-derive)
 
@@ -291,8 +304,16 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    → a 6-click glob lands on the rebuilt colliders, paints the
    per-spec census, and scores.]**
 3. **Spec-parameterize the re-pin tools** (research/13 + /11 take a
-   spec); measure cake-1/2 and the proposed cake-4/5/6 rows; author
-   the RUNGS table against the measurements (§4's law).
+   spec); measure cake-1/2, THE CUPCAKE (§1 amendment), and the
+   proposed cake-4/5/6 rows; author the RUNGS table against the
+   measurements (§4's law). MERGED IN (2026-07-08 fourth session,
+   visionary-blessed): the tilt clamp (plans/15 item 2) rides this
+   slice's measurement run — the clamp check (cake-3 potentials must
+   reproduce under TILT_MAX_NOTCH ~12 before the trap notches are
+   cut) is the same harness as the per-spec measurements, so every
+   new spec is measured under the clamped ladder ONCE instead of
+   full-ladder-then-remeasure. Rider: the render-contract check that
+   the visual arm rides the same tilt constants.
 4. **The ladder live**: per-rung deal/asks/clock; separator rebuilds
    colliders; run-over report.
 5. **Purse + pay + shop stall** with town-2 and fudge purchases.
@@ -305,8 +326,11 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
   slice-3 measurements.
 - Prices/pay scale — §5's table is a starting hypothesis for the feel
   pass.
-- Whether rung 1's humble cake wants to BE the cupcake spec row (a
-  squat single tier is nearly one) — visionary's call at authoring.
+- ~~Whether rung 1's humble cake wants to BE the cupcake spec row~~
+  RESOLVED 2026-07-08 (fourth session): the cupcake is its OWN rung
+  after rung 3 (§1 amendment) — a small surface needs a dialed-in
+  crew, so it is a mid-ladder precision test, not the tutorial. Rung
+  1 stays cake-1 (today's base tier alone).
 - Separator length under real shop+report+switch load — one constant.
 - Where the ready circle sits exactly (near spawn, clear of the
   pantry run) — greybox placement, feel pass moves it.

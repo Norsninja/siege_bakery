@@ -1,19 +1,35 @@
 /**
- * TILT-VERNIER STUDY (elevation vernier, 2026-07-08).
+ * TILT-VERNIER STUDY (elevation vernier, 2026-07-08) —
+ * SPEC-PARAMETERIZED 2026-07-08 (fourth session, plans/13 slice 3).
  *
- * Question: elevation becomes the FINE control (draw clicks stay coarse —
- * DECIDED 2026-07-07). Pin the vernier table by measuring what one degree
- * of tilt BUYS in landing position across the shipped click ladder (1..10
- * — post-bump envelope, heeding research/06's H-D5 warning).
+ * Usage: `npx tsx project/research/13-tilt-vernier-study.mts [specId]`
+ *   - specId: a DESSERT_SPECS wire id (default cake-3 — the anchor).
  *
- * Method: real Rapier, real arena colliders, real launchVelocity. Traverse
- * 0 (straight through cake max diameter), tilt 0..45 by 0.5°, one shot per
+ * PARAMETERIZATION ZERO-DRIFT PIN: `cake-3` must reproduce the MEASURED
+ * 2026-07-08 run below — 910 shots zero lost, 27 distinct on-cake
+ * (click, notch) combos on the 2.5°×18 table, click 7 notches 0–3 =
+ * four distinct T3-top radii all PLACE, notch 14 (el 90°) on your own
+ * plinth, 15+ backwards — or the parameterization drifted. [VERIFIED
+ * 2026-07-08 fourth session: all reproduced — 910/0, 27 combos
+ * (0+2+5+7+6+4+3 across c4..c10), c7n0–3 four T3-top places, n14 at
+ * r≈17.8 y≈1.3 = the plinth top.] (The candidate-table comparison of
+ * the original run is retired with its decision; this tool prints the
+ * SHIPPED table only — which, post-clamp (plans/15 item 2), is
+ * 2.5°×12. The tilt SWEEP stays 0..45° so the tool always sees past
+ * the clamp.)
+ *
+ * Original question + method (2026-07-08), unchanged: elevation is the
+ * FINE control (draw clicks stay coarse — DECIDED 2026-07-07). Measure
+ * what one degree of tilt BUYS in landing position across the shipped
+ * click ladder (1..10). Real Rapier, real arena statics + the spec's
+ * dessert colliders, real launchVelocity. Traverse 0 (straight through
+ * the dessert's max diameter), tilt 0..45 by 0.5°, one shot per
  * (click, tilt) in a fresh world; record first impact pos + speed.
  *
- * MEASURED 2026-07-08 (910 shots, zero lost) → DECISION, visionary-blessed:
- * TILT_DEG_PER_NOTCH 2.5° × TILT_MAX_NOTCH 18 (45° total kept),
- * SCREW_SECONDS_PER_NOTCH 0.15 (full sweep 2.7s — MORE total work than
- * the old 3×0.5s, on purpose: the vernier is dialed in 2–4 notch moves).
+ * MEASURED HISTORY (cake-3, kept as the record):
+ *   2026-07-08 (910 shots, zero lost) → DECISION, visionary-blessed:
+ *   TILT_DEG_PER_NOTCH 2.5° × TILT_MAX_NOTCH 18 (45° total kept),
+ *   SCREW_SECONDS_PER_NOTCH 0.15 (full sweep 2.7s).
  *   - Sensitivity in the money band: ~0.15–0.7 m/° at clicks 6–7, up to
  *     ~1.0 m/° at 9–10 → one 2.5° notch ≈ 0.4–1.3m of landing depth.
  *   - Adjacent-click gaps 1.8–8.1m → 3–7 notches walk one click gap:
@@ -31,8 +47,9 @@
  *     is mandatory after any tilt-table change. [DONE 2026-07-08: union
  *     100% at ≤8 clicks — the moat is bridged; see research/11 RE-RUN.]
  *
- * STANDING RE-PIN TOOL: tilt-table, launch-speed, or arena changes re-run
- * this. Reproducible: `npx tsx project/research/13-tilt-vernier-study.mts`.
+ * STANDING RE-PIN TOOL (the re-pin law of the ladder, plans/13 §4): no
+ * rung row's ask is pinned until ITS spec has run through this and
+ * research/11. Tilt-table, launch-speed, or arena changes re-run it too.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../../src/core/constants";
@@ -42,12 +59,21 @@ import {
   SPLAT_SPEED,
 } from "../../src/core/ballistics";
 import { ProjectileManager } from "../../src/core/projectiles";
+import { MACHINE_BASE, CAKE_Z, buildArenaColliders } from "../../src/core/arena";
 import {
-  MACHINE_BASE,
-  CAKE_TIERS,
-  CAKE_Z,
-  buildArenaColliders,
-} from "../../src/core/arena";
+  DESSERT_SPECS,
+  dessertGeometry,
+  specById,
+} from "../../src/core/dessert";
+import { TILT_DEG_PER_NOTCH, TILT_MAX_NOTCH } from "../../src/game/catapult";
+
+const specId = process.argv[2] ?? "cake-3";
+const spec = specById(specId);
+if (!spec)
+  throw new Error(
+    `unknown spec "${specId}" — rows: ${DESSERT_SPECS.map((s) => s.id).join(", ")}`,
+  );
+const geom = dessertGeometry(spec);
 
 await RAPIER.init();
 
@@ -67,8 +93,8 @@ interface Hit {
  * radius 0.3 rides above/outside surfaces. */
 function classify(p: { x: number; y: number; z: number }): string {
   const r = Math.hypot(p.x, p.z - CAKE_Z);
-  for (let i = CAKE_TIERS.length - 1; i >= 0; i--) {
-    const t = CAKE_TIERS[i]!;
+  for (let i = spec.tiers.length - 1; i >= 0; i--) {
+    const t = spec.tiers[i]!;
     if (Math.abs(p.y - (t.top + 0.3)) < 0.3 && r <= t.radius + 0.15)
       return `T${i + 1}-top `;
     if (p.y > t.bottom - 0.05 && p.y < t.top + 0.15 && Math.abs(r - (t.radius + 0.3)) < 0.3)
@@ -81,6 +107,8 @@ function classify(p: { x: number; y: number; z: number }): string {
   return `?(r${r.toFixed(1)},y${p.y.toFixed(1)})`;
 }
 
+console.log(`spec ${spec.id} (${spec.tiers.length} tiers, summit y ${spec.tiers[spec.tiers.length - 1]!.top})`);
+
 const hits = new Map<string, Hit>(); // key `${clicks}|${tilt*10}`
 let fired = 0;
 let lost = 0;
@@ -89,7 +117,8 @@ for (let clicks = 1; clicks <= 10; clicks++) {
     const tiltDeg = tilt10 / 10;
     const world = new RAPIER.World(GRAVITY);
     world.timestep = FIXED_DT;
-    buildArenaColliders(world);
+    buildArenaColliders(world); // arena statics
+    geom.buildColliders(world); // the spec's dessert (plans/13 §3)
     const mgr = new ProjectileManager();
     mgr.spawn(
       world,
@@ -101,7 +130,7 @@ for (let clicks = 1; clicks <= 10; clicks++) {
     fired++;
     let got = false;
     for (let i = 0; i < 2400; i++) {
-      const ev = mgr.step(world);
+      const ev = mgr.step(world, geom);
       const im = ev.impacts[0];
       if (im) {
         hits.set(`${clicks}|${tilt10}`, {
@@ -121,7 +150,7 @@ for (let clicks = 1; clicks <= 10; clicks++) {
 }
 console.log(`fired ${fired}, no-impact ${lost}`);
 console.log(
-  `machine base z=${MACHINE_BASE.z}, cake center z=${CAKE_Z} (${(MACHINE_BASE.z - CAKE_Z).toFixed(1)}m), cake front edge depth=-4`,
+  `machine base z=${MACHINE_BASE.z}, cake center z=${CAKE_Z} (${(MACHINE_BASE.z - CAKE_Z).toFixed(1)}m), cake front edge depth=-${spec.tiers[0]!.radius}`,
 );
 
 const at = (clicks: number, tiltDeg: number): Hit | undefined =>
@@ -173,39 +202,56 @@ for (const t of [0, 5, 10, 15]) {
   console.log(`  tilt ${String(t).padStart(2)}°  ${row.join("  ")}`);
 }
 
-// ---- 4. Candidate vernier tables on exact fired data.
-for (const notchDeg of [2, 2.5, 3]) {
-  const nMax = Math.round(45 / notchDeg);
-  console.log(`\n=== CANDIDATE ${notchDeg}°/notch × ${nMax} notches (45° total) ===`);
-  for (let clicks = 4; clicks <= 10; clicks++) {
-    let onCake = 0;
-    let maxGap = 0;
-    let gapAt = "";
-    let prev: Hit | undefined;
-    const marks: string[] = [];
-    for (let n = 0; n <= nMax; n++) {
-      const h = at(clicks, n * notchDeg);
-      if (!h) continue;
-      const cake = h.region.startsWith("T");
-      if (cake) onCake++;
-      marks.push(h.region.startsWith("T") ? h.region.trim() : h.region.trim().slice(0, 5));
-      if (prev) {
-        const d = Math.hypot(
-          h.pos.x - prev.pos.x,
-          h.pos.y - prev.pos.y,
-          h.pos.z - prev.pos.z,
-        );
-        // gap only matters inside the useful (non-backwards) band
-        if (h.pos.z < MACHINE_BASE.z && d > maxGap) {
-          maxGap = d;
-          gapAt = `n${n - 1}→n${n}`;
-        }
+// ---- 4. THE SHIPPED TABLE on exact fired data: per click, which notches
+// land on the dessert (the machine's real HUD ladder — the original run's
+// candidate comparison retired with its decision).
+console.log(`\n=== SHIPPED TABLE ${TILT_DEG_PER_NOTCH}°/notch × ${TILT_MAX_NOTCH} notches ===`);
+for (let clicks = 4; clicks <= 10; clicks++) {
+  let onCake = 0;
+  let maxGap = 0;
+  let gapAt = "";
+  let prev: Hit | undefined;
+  const marks: string[] = [];
+  for (let n = 0; n <= TILT_MAX_NOTCH; n++) {
+    const h = at(clicks, n * TILT_DEG_PER_NOTCH);
+    if (!h) continue;
+    const cake = h.region.startsWith("T");
+    if (cake) onCake++;
+    marks.push(cake ? h.region.trim() : h.region.trim().slice(0, 5));
+    if (prev) {
+      const d = Math.hypot(
+        h.pos.x - prev.pos.x,
+        h.pos.y - prev.pos.y,
+        h.pos.z - prev.pos.z,
+      );
+      // gap only matters inside the useful (non-backwards) band
+      if (h.pos.z < MACHINE_BASE.z && d > maxGap) {
+        maxGap = d;
+        gapAt = `n${n - 1}→n${n}`;
       }
-      prev = h;
     }
-    console.log(
-      `  c${String(clicks).padStart(2)}: on-cake ${String(onCake).padStart(2)}/${nMax + 1}  max-step ${maxGap.toFixed(2)}m @${gapAt}`,
-    );
-    console.log(`       ${marks.join(" ")}`);
+    prev = h;
   }
+  console.log(
+    `  c${String(clicks).padStart(2)}: on-cake ${String(onCake).padStart(2)}/${TILT_MAX_NOTCH + 1}  max-step ${maxGap.toFixed(2)}m @${gapAt}`,
+  );
+  console.log(`       ${marks.join(" ")}`);
+}
+
+// ---- 5. THE SUMMIT SHOT (RUNGS authoring view): every (click, notch) on
+// the shipped table whose first impact lands on the TOP tier — the crown
+// ask's honesty. "None" at every click = the envelope died at this spec.
+{
+  const topRegion = `T${spec.tiers.length}-top`;
+  const combos: string[] = [];
+  for (let clicks = 1; clicks <= 10; clicks++) {
+    for (let n = 0; n <= TILT_MAX_NOTCH; n++) {
+      const h = at(clicks, n * TILT_DEG_PER_NOTCH);
+      if (h && h.region.trim() === topRegion)
+        combos.push(`c${clicks}n${n}${h.speed < SPLAT_SPEED ? "·place" : "·splat"}`);
+    }
+  }
+  console.log(
+    `\n=== SUMMIT (${topRegion}) on the shipped table: ${combos.length === 0 ? "NONE — the envelope is dead at traverse 0" : combos.join(" ")} ===`,
+  );
 }

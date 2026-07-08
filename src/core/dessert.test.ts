@@ -8,7 +8,15 @@
  */
 import { describe, it, expect } from "vitest";
 import { CAKE_Z } from "./arena";
-import { CAKE_3, dessertGeometry, tierLabel } from "./dessert";
+import {
+  CAKE_1,
+  CAKE_2,
+  CAKE_3,
+  DESSERT_SPECS,
+  dessertGeometry,
+  specById,
+  tierLabel,
+} from "./dessert";
 
 const g = dessertGeometry(CAKE_3);
 const R1 = CAKE_3.tiers[0]!.radius; // 4
@@ -119,5 +127,56 @@ describe("cakeSurface (grip skin point + outward normal)", () => {
     // The record's pos IS the scoring truth — tierOf must accept it.
     const s = g.cakeSurface({ x: 0, y: 6, z: CAKE_Z });
     expect(g.distanceToCake(s.point)).toBeCloseTo(0, 6);
+  });
+});
+
+/**
+ * The ladder's candidate rows (plans/13 §4 + the cupcake amendment) —
+ * well-formedness only. Their DIFFICULTY numbers are the slice-3
+ * measurements' business (the re-pin law); these pins just make a
+ * malformed row impossible to author silently: the geometry oracles
+ * assume base-at-ground, contiguous stacking, and strictly shrinking
+ * radii (tierOf's topmost-disc scan reads through any violation wrong).
+ */
+describe("DESSERT_SPECS (the authored rows)", () => {
+  it("ids are unique and specById round-trips", () => {
+    const ids = DESSERT_SPECS.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const s of DESSERT_SPECS) expect(specById(s.id)).toBe(s);
+    expect(specById("cake-99")).toBeUndefined();
+  });
+
+  it("every row stacks: base at 0, contiguous tiers, strictly shrinking radii", () => {
+    for (const s of DESSERT_SPECS) {
+      expect(s.tiers.length).toBeGreaterThan(0);
+      expect(s.tiers[0]!.bottom).toBe(0);
+      for (let i = 0; i < s.tiers.length; i++) {
+        const t = s.tiers[i]!;
+        expect(t.top).toBeGreaterThan(t.bottom);
+        expect(t.radius).toBeGreaterThan(0);
+        if (i > 0) {
+          expect(t.bottom).toBe(s.tiers[i - 1]!.top);
+          expect(t.radius).toBeLessThan(s.tiers[i - 1]!.radius);
+        }
+      }
+    }
+  });
+
+  it("cake-1/2 are the anchor's own lower tiers (structural, not copies)", () => {
+    expect(CAKE_1.tiers[0]).toBe(CAKE_3.tiers[0]);
+    expect(CAKE_2.tiers[1]).toBe(CAKE_3.tiers[1]);
+    expect(CAKE_1.tiers).toHaveLength(1);
+    expect(CAKE_2.tiers).toHaveLength(2);
+  });
+
+  it("every row binds: census non-empty, summit oracle reads the top tier", () => {
+    for (const s of DESSERT_SPECS) {
+      const geom = dessertGeometry(s);
+      expect(geom.samples.length).toBeGreaterThan(0);
+      const summit = s.tiers[s.tiers.length - 1]!;
+      expect(geom.tierOf({ x: 0, y: summit.top + 0.3, z: CAKE_Z })).toBe(
+        geom.topTier,
+      );
+    }
   });
 });
