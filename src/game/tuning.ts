@@ -75,13 +75,16 @@ export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 
 /** MEASURED: what fraction of the census each firing line can EVER paint,
  * by town count (pinned a hair under — header note). Index by towns; [0]
- * is a guard (no towns, no reach). [1]/[2] re-measured at ≤9 clicks after
- * the clicks→10 bump (research/11's sweep: 55.7% / 84.4%; clicks 10–12
- * add nothing — 10 is the toll shot). [3]/[4] are STALE PRE-BUMP values
- * (research/06, ≤8 clicks) — RE-MEASURE before any 3-/4-town work; they
- * exist only so the table's shape survives. NEVER handed to orders —
- * that is TOWN_ASK_POTENTIAL's job below. */
-export const TOWN_POTENTIAL: readonly number[] = [0, 0.55, 0.84, 0.85, 0.93];
+ * is a guard (no towns, no reach). RE-MEASURED 2026-07-08 under the
+ * elevation vernier (research/11 re-run, tilt ladder riding
+ * TILT_MAX_NOTCH, at the SHIPPED ≤10-click envelope): fine tilt BRIDGES
+ * THE MOAT — the old permanent gap (ledge slots, mid-wall moats, ±x side
+ * slivers) is paintable, one line reaches 90.3%, and two towns reach
+ * EVERYTHING (union 100.0% at ≤8 clicks already). [3]/[4] are 1.0 by
+ * SUPERSET (any extra town's reach contains the two-town union), not by
+ * measurement. NEVER handed to orders — that is TOWN_ASK_POTENTIAL's
+ * job below. */
+export const TOWN_POTENTIAL: readonly number[] = [0, 0.9, 1.0, 1.0, 1.0];
 
 /** AUTHORED: the potential the standing order actually hands its frost
  * row, by ACTIVE town count — the deliberate difficulty knob (Option B,

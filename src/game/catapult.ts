@@ -26,13 +26,15 @@ export const TRAVERSE_DEG_PER_SECOND = 30;
  * repeatable, countable power settings, not an analog slider.
  *
  * 10 since the towns slice (DECISION 1, plans/11 §6): a GLOBAL FLAT power
- * increase whose purpose is TOLL GEOMETRY, not reach reward — click 9
- * reaches the shared cake's far hemisphere; click 10 adds ZERO coverage
- * (research/11) and exists purely as the overshoot/toll shot: centered
- * and untilted it parks on the OTHER town's plinth. Never purchased,
- * never per-rung; on a one-town table it is inert self-mess, honest.
- * The order's ask did NOT rise with it (Option B, 2026-07-07): the
- * authored ask table in game/tuning.ts held at today's workload. */
+ * increase whose purpose is TOLL GEOMETRY, not reach reward — centered
+ * and untilted, click 10 is the overshoot/toll shot that parks on the
+ * OTHER town's plinth. Never purchased, never per-rung; on a one-town
+ * table it is inert self-mess, honest. [AMENDED 2026-07-08: "click 10
+ * adds zero coverage" was true of the 15° tilt ladder; under the vernier
+ * (research/11 re-run) click 10 + fine tilt buys ~9pt of real one-town
+ * reach. The toll geometry and DECISION 1's purpose stand.] The order's
+ * ask did NOT rise with it (Option B, 2026-07-07): the authored ask
+ * table in game/tuning.ts held at today's workload. */
 export const TENSION_MAX_CLICKS = 10;
 /** Real seconds of cranking per click — winching is WORK; this pacing is
  * where the "takes real seconds" pressure comes from. Client enforces it. */
@@ -40,14 +42,22 @@ export const CRANK_SECONDS_PER_CLICK = 0.75;
 
 /** The elevation screw AT THE FRONT tilts the frame back in notches
  * (plans/04): notch 0 is the machine's natural throw — today's exact
- * feel — and each notch steepens the arc by 15°. Ballistics adds the tilt
- * to the arm's base elevation; notch 3 throws past vertical, gently
- * backwards over the crew. Mistakes execute. */
-export const TILT_DEG_PER_NOTCH = 15;
-export const TILT_MAX_NOTCH = 3;
-/** Real seconds of screwing per notch — quicker than the winch, still
- * held work. */
-export const SCREW_SECONDS_PER_NOTCH = 0.5;
+ * feel — and each notch steepens the arc by 2.5°. THE VERNIER (DECIDED
+ * 2026-07-07, measured research/13, blessed 2026-07-08): draw clicks
+ * stay COARSE — the click economy is load-bearing — and elevation is
+ * the FINE control. One notch moves the landing ~0.4–1.3m in the money
+ * band; adjacent clicks land 1.8–8m apart, so 3–7 notches walk one
+ * click gap. Ballistics adds the tilt to the arm's base elevation (55°);
+ * 18 notches keep the full 45° throw of the old table: notch 14 (el 90°)
+ * drops the shot on your own plinth, 15+ throw gently backwards over
+ * the crew. Mistakes execute. */
+export const TILT_DEG_PER_NOTCH = 2.5;
+export const TILT_MAX_NOTCH = 18;
+/** Real seconds of screwing per notch — the fine dial turns quick: a
+ * 2–4 notch correction is 0.3–0.6s, a full-ladder sweep 2.7s of held
+ * work (more total than the old 3×0.5s table, on purpose — the vernier
+ * is dialed in small moves). 9 ticks at 60Hz; the clunk survives. */
+export const SCREW_SECONDS_PER_NOTCH = 0.15;
 
 export interface CatapultState {
   /** Machine yaw in degrees, clamped to traverse limits. */
@@ -153,7 +163,7 @@ export function fire(state: CatapultState): {
 export const CRANK_TICKS_PER_CLICK = Math.round(
   CRANK_SECONDS_PER_CLICK / FIXED_DT,
 );
-/** Held ticks of screwing per tilt notch (30 at 60Hz / 0.5s). */
+/** Held ticks of screwing per tilt notch (9 at 60Hz / 0.15s). */
 export const SCREW_TICKS_PER_NOTCH = Math.round(
   SCREW_SECONDS_PER_NOTCH / FIXED_DT,
 );

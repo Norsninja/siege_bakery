@@ -770,11 +770,16 @@ describe("Room: the match, headless over protocol", () => {
       op(0, 0, false);
       run(room, 1);
     };
-    const screw = (dir: -1 | 1): void => {
-      op(0, dir, false);
-      run(room, SCREW_TICKS_PER_NOTCH + 2);
-      op(0, 0, false);
-      run(room, 1);
+    // One held stint per notch. VERNIER RE-PIN (2026-07-08, research/13):
+    // the script's arcs were cut at the old 15° notch; 15° = 6 × 2.5°
+    // exactly, so `notches: 6` reproduces the identical physics.
+    const screw = (dir: -1 | 1, notches = 1): void => {
+      for (let i = 0; i < notches; i++) {
+        op(0, dir, false);
+        run(room, SCREW_TICKS_PER_NOTCH + 2);
+        op(0, 0, false);
+        run(room, 1);
+      }
     };
     const turnTicks = (dir: -1 | 1, ticks: number): void => {
       op(dir, 0, false);
@@ -825,7 +830,7 @@ describe("Room: the match, headless over protocol", () => {
     fire("frosting", 6, 300);
     turnTo(5.5);
     fire("frosting", 7, 300);
-    screw(1); // the notch-1 half of the pick list
+    screw(1, 6); // +15° — the old notch-1 half of the pick list
     turnTo(10);
     fire("frosting", 8, 300);
     turnTo(8);
@@ -847,7 +852,7 @@ describe("Room: the match, headless over protocol", () => {
     // The sky is clear and every splat is down: NOW the sprinkles (burial
     // choreography above). Burst 1 on the center's rich paint, burst 2 on
     // the flank's — two good bursts IS the economy (game/tuning.ts).
-    screw(-1);
+    screw(-1, 6); // back level
     turnTo(-1.5);
     fire("sprinkles", 6, 650);
     // Burst 1 on the center's rich paint: 40/40 grip (pinned — with
@@ -871,7 +876,7 @@ describe("Room: the match, headless over protocol", () => {
     // a LOOK (12s cadence): the two burst waits span more than one look
     // window, so by here the demand has certainly landed.
     expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
-    screw(1);
+    screw(1, 6); // +15° again
     turnTo(0);
     fire("cherry", 8, 650); // the tier-clearing crown shot
     const end = a.all("order").find((m) => m.order.status === "won");

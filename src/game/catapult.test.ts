@@ -108,9 +108,11 @@ describe("catapult machine state", () => {
     let s = createCatapult();
     s = turnScrew(s, 1);
     expect(s.tiltNotch).toBe(1);
-    for (let i = 0; i < 10; i++) s = turnScrew(s, 1);
+    // Overshoot the ladder by 2 in each direction — the loop must clear
+    // the whole 19-position vernier, not a hardcoded count.
+    for (let i = 0; i < TILT_MAX_NOTCH + 2; i++) s = turnScrew(s, 1);
     expect(s.tiltNotch).toBe(TILT_MAX_NOTCH);
-    for (let i = 0; i < 10; i++) s = turnScrew(s, -1);
+    for (let i = 0; i < TILT_MAX_NOTCH + 2; i++) s = turnScrew(s, -1);
     expect(s.tiltNotch).toBe(0);
   });
 

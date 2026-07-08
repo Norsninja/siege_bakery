@@ -50,10 +50,20 @@ export const SHELF_TOPPING: Partial<Record<InteractableKind, string>> = {
 
 export type NetStatus = "loopback" | "connecting" | "open" | "closed";
 
-/** The arc position as a filled ladder — "notch 1/3" read as a THREE-
- * notch ladder in playtest; the glyph shows all four positions at once. */
-export const arcGlyph = (tiltNotch: number): string =>
-  "▮".repeat(tiltNotch + 1) + "▯".repeat(TILT_MAX_NOTCH - tiltNotch);
+/** The arc position as a filled ladder — the fill shows the whole scale
+ * at once (the notch-1/3 misread fix, kept through the vernier). 19
+ * positions since the 2.5° table (research/13): grouped in FOURS — one
+ * group is 10° — so a glance counts groups, not boxes. The numeric
+ * degrees always ride beside the glyph; this is the needle, not the
+ * readout. */
+export const arcGlyph = (tiltNotch: number): string => {
+  let out = "";
+  for (let i = 0; i <= TILT_MAX_NOTCH; i++) {
+    if (i > 0 && i % 4 === 0) out += "·";
+    out += i <= tiltNotch ? "▮" : "▯";
+  }
+  return out;
+};
 
 export function promptFor(
   kind: InteractableKind,

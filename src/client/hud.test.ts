@@ -67,17 +67,18 @@ describe("snapshotCaption — the photo speaks the Patron's voice (dessert repor
 });
 
 describe("arcGlyph", () => {
-  it("shows all four ladder positions at once (the notch-1/3 misread fix)", () => {
-    expect(arcGlyph(0)).toBe("▮▯▯▯");
-    expect(arcGlyph(1)).toBe("▮▮▯▯");
-    expect(arcGlyph(3)).toBe("▮▮▮▮");
+  it("shows all 19 vernier positions, grouped in 10° fours (re-pinned 2026-07-08)", () => {
+    expect(arcGlyph(0)).toBe("▮▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯");
+    expect(arcGlyph(1)).toBe("▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯");
+    expect(arcGlyph(6)).toBe("▮▮▮▮·▮▮▮▯·▯▯▯▯·▯▯▯▯·▯▯▯"); // 6 notches = the old 15°
+    expect(arcGlyph(18)).toBe("▮▮▮▮·▮▮▮▮·▮▮▮▮·▮▮▮▮·▮▮▮");
   });
 });
 
 describe("promptFor", () => {
   it("screw prompt carries degrees + the glyph", () => {
     expect(promptFor("screw", machine({ tiltNotch: 1 }), null)).toBe(
-      "hold E + W/S — elevation screw · +15° ▮▮▯▯",
+      "hold E + W/S — elevation screw · +2.5° ▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯",
     );
   });
 
@@ -194,7 +195,7 @@ describe("hudLines", () => {
       }),
     );
     expect(lines[lines.length - 1]).toBe(
-      "machine — traverse -12° · arc +15° ▮▮▯▯ · tension 6/10 · bucket: cherry · hands: lime",
+      "machine — traverse -12° · arc +2.5° ▮▮▯▯·▯▯▯▯·▯▯▯▯·▯▯▯▯·▯▯▯ · tension 6/10 · bucket: cherry · hands: lime",
     );
   });
 

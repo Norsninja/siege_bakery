@@ -153,9 +153,10 @@ describe("the lob, end to end (headless Rapier)", () => {
   });
 
   it("8 clicks at +15° tilt is the tier-clearing shot: rests on the top tier", () => {
-    // Full crank + one screw notch — the crown shot that CANNOT overshoot,
-    // because the winch clamps at 8 (plans/05 design finding). It arrives
-    // steep and hot: a splat, not a placement.
+    // Full crank + 15° of tilt (six 2.5° vernier notches since 2026-07-08)
+    // — the crown shot that CANNOT overshoot, because the winch clamps at 8
+    // (plans/05 design finding). It arrives steep and hot: a splat, not a
+    // placement.
     expect(tierOf(fireAndSettle(8, 15))).toBe(2);
     expect(fireAndLand(8, 15).speed).toBeGreaterThan(SPLAT_SPEED);
   });
@@ -324,10 +325,11 @@ describe("the lob, end to end (headless Rapier)", () => {
   it("the settle ladder, per tier × notch (round tiers, plans/07 study)", () => {
     // Scoring truth is final REST position (visionary's rule, 2026-07-02).
     // Level (notch 0), the click ladder reads one-click-per-tier; +15°
-    // (notch 1) trades reach for steepness — its 8-click ceiling drops onto
-    // the summit. The cylinder study confirmed these rungs survive the
-    // square→round change verbatim. If tuning moves these rows, move them
-    // on purpose and re-run research/04-cylinder-tier-study.mts.
+    // (six vernier notches since 2026-07-08) trades reach for steepness —
+    // its 8-click ceiling drops onto the summit. The cylinder study
+    // confirmed these rungs survive the square→round change verbatim. If
+    // tuning moves these rows, move them on purpose and re-run
+    // research/04-cylinder-tier-study.mts.
     expect(tierOf(fireAndSettle(5))).toBeNull(); // short, on the ground
     expect(tierOf(fireAndSettle(6))).toBe(1); // middle-tier ledge
     expect(tierOf(fireAndSettle(7))).toBe(2); // the flat crown

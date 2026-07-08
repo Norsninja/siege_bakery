@@ -131,7 +131,7 @@ describe("applyServerMsg", () => {
       h.fx,
     );
     expect(h.spawned).toEqual(["cherry"]);
-    expect(h.flashes[0]).toBe("LOOSED! cherry · 8 clicks · -10° · arc +15°");
+    expect(h.flashes[0]).toBe("LOOSED! cherry · 8 clicks · -10° · arc +2.5°");
   });
 
   it("machine broadcasts index by town — a town-1 update grows the array, never clobbers town 0", () => {

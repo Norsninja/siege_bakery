@@ -76,13 +76,40 @@
  * NOTE: splat/census constants MIRROR src/core/frosting.ts (law A on the
  * G1 area-honest grid) — keep in step after any splat ship, same as
  * research/06 and research/10.
+ *
+ * VERNIER AMENDMENT (2026-07-08): the tilt ladder now RIDES TILT_MAX_NOTCH
+ * (was hardcoded 0–3 — the research/06 H-D5 trap: a stale ladder re-pins
+ * BACKWARDS). Under the 2.5°×18 vernier (research/13) the swept envelope
+ * is a strict SUPERSET of the old 15°×3 table (15° = 6 × 2.5°), so
+ * TOWN_POTENTIAL can only rise. The SANITY PIN above (43.7/55.7) holds
+ * only for the historic 0–3×15° ladder — reproduce it by pinning the
+ * loop back to that ladder, not by trusting a vernier run to match.
+ *
+ * RE-RUN 2026-07-08 (vernier envelope, notch 0..18 × 2.5°, 11115 shots):
+ *   ONE TOWN: 79.0% (≤8) / 81.2% (≤9) / 90.3% (≤10) — click 10 now buys
+ *     real reach (+9.1pt); "clicks 10–12 add nothing" was a 15°-ladder
+ *     artifact, amended in game/catapult.ts.
+ *   UNION: 100.0% at ≤8 clicks ALREADY — THE PERMANENT GAP IS GONE. The
+ *     moat is bridged by trajectory diversity: direct tier-1 mid-wall
+ *     hits 12→57; ledge-slot impacts now land at EVERY azimuth including
+ *     the 85–100° side band that never took a ball.
+ *   OVERLAP (contested): 57.9% (≤8) / 62.9% (≤9) / 80.9% (≤10) — the two
+ *     economies now collide over MOST of the dessert.
+ *   TOWN_POTENTIAL re-pinned [0, 0.9, 1.0, 1.0, 1.0] at the shipped ≤10
+ *     envelope ([3]/[4] by superset). Asks UNCHANGED — Option B keeps
+ *     TOWN_ASK_POTENTIAL authored.
+ *   DESIGN READ: "parts one machine cannot reach are WHY towns exist"
+ *     no longer holds as reach arithmetic — the towns rationale shifts
+ *     to throughput + contested ground (overlap tripled). Campaign
+ *     (plans/13) and any Bite/integrity re-pin should start from THESE
+ *     numbers.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../../src/core/constants";
 import { launchOrigin, launchVelocity, SPLAT_SPEED } from "../../src/core/ballistics";
 import { ProjectileManager } from "../../src/core/projectiles";
 import { MACHINE_BASE, CAKE_TIERS, CAKE_Z, buildArenaColliders } from "../../src/core/arena";
-import { TILT_DEG_PER_NOTCH } from "../../src/game/catapult";
+import { TILT_DEG_PER_NOTCH, TILT_MAX_NOTCH } from "../../src/game/catapult";
 
 // Law A splats (shipped) on the G1 area-honest grid (0.45/0.45) —
 // verbatim from research/10 so the numbers are comparable.
@@ -151,7 +178,7 @@ interface Fired {
 const impacts: Fired[] = [];
 let fired = 0;
 for (let trav = -16; trav <= 16; trav += 0.5) {
-  for (let notch = 0; notch <= 3; notch++) {
+  for (let notch = 0; notch <= TILT_MAX_NOTCH; notch++) {
     for (let clicks = 4; clicks <= 12; clicks++) {
       const world = new RAPIER.World(GRAVITY);
       world.timestep = FIXED_DT;
