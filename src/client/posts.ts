@@ -4,10 +4,14 @@
  * crews were gunner, loader, and winch-men; our machine has exactly those
  * seams:
  *
- *   GUNNER'S POST — behind the frame, sighting down the throw. A/D wheel,
- *     W/S screw, F lever. The aiming instrument (arc ladder) lives on its
- *     HUD panel.
- *   WINCH POST — the machine's right flank, at the drum. Hold Space.
+ *   GUNNER'S POST — behind the frame, sighting down the throw. TWO flank
+ *     spots (feel test 2026-07-08: manning dead-center put the throwing
+ *     arm in your face) with a dead band behind the arm — the invitation
+ *     only lights where the view is clear. A/D wheel, W/S screw, F lever.
+ *     The aiming instrument (arc ladder) lives on its HUD panel.
+ *   WINCH POST — the machine's right flank, at the drum. W or Space
+ *     winds, S unwinds (the post grammar: W/S is always more/less; no
+ *     Ctrl — the browser owns Ctrl+W — and no chords, ever).
  *   The BUCKET stays a walk-up crosshair interaction — the loader is the
  *     runner, and the pantry loop is sacred.
  *
@@ -30,23 +34,29 @@ import type { HeldOp } from "../game/protocol";
 
 export type Post = "gunner" | "winch";
 
-/** Stand this close to a post anchor to man it (E). Comfortable greybox
- * zones; the two anchors sit ~2.6m apart so they can never both claim. */
-export const POST_RADIUS_M = 1.2;
-
-/** Post anchors in MACHINE-LOCAL space (traverse-0 fires -Z local; +X is
- * the machine's right flank seen from the gunner). Gunner behind the
- * frame on the throw axis; winch beside the drum (scene.ts puts the drum
- * at local +0.8, the handle outboard of it). */
-const LOCAL: readonly { post: Post; x: number; z: number }[] = [
-  { post: "gunner", x: 0, z: 1.6 },
-  { post: "winch", x: 1.5, z: -0.55 },
+/** Post spots in MACHINE-LOCAL space (traverse-0 fires -Z local; +X is
+ * the machine's right flank seen from the gunner), each with its OWN
+ * mannable radius. The gunner's two flank spots use a tight radius so a
+ * dead band survives behind the arm (|x| < ~0.4 gets no invitation —
+ * the view there is the arm, feel test 2026-07-08); the winch keeps the
+ * comfortable 1.2 the first test liked. scene.ts draws a flagstone per
+ * spot from this same table — zones you can SEE beat zones you remember. */
+export const POST_SPOTS: readonly {
+  post: Post;
+  x: number;
+  z: number;
+  r: number;
+}[] = [
+  { post: "gunner", x: -1.0, z: 1.6, r: 0.6 },
+  { post: "gunner", x: 1.0, z: 1.6, r: 0.6 },
+  { post: "winch", x: 1.5, z: -0.55, r: 1.2 },
 ];
 
 export interface PostAnchor {
   post: Post;
   x: number;
   z: number;
+  r: number;
 }
 
 /** World-space anchors for a town's machine: local offsets rotated by the
@@ -55,27 +65,28 @@ export function postAnchors(base: Vec3, facingDeg: number): PostAnchor[] {
   const rad = (facingDeg * Math.PI) / 180;
   const c = Math.cos(rad);
   const s = Math.sin(rad);
-  return LOCAL.map((l) => ({
+  return POST_SPOTS.map((l) => ({
     post: l.post,
     x: base.x + l.x * c + l.z * s,
     z: base.z - l.x * s + l.z * c,
+    r: l.r,
   }));
 }
 
-/** Which post (if any) a baker standing at (x, z) can man — nearest
- * anchor within POST_RADIUS_M. */
+/** Which post (if any) a baker standing at (x, z) can man — the anchor
+ * whose zone the baker is deepest inside (distance minus radius). */
 export function postAt(
   pos: { x: number; z: number },
   anchors: readonly PostAnchor[],
 ): Post | null {
   let best: Post | null = null;
-  let bestD2 = POST_RADIUS_M * POST_RADIUS_M;
+  let bestDepth = 0;
   for (const a of anchors) {
     const dx = pos.x - a.x;
     const dz = pos.z - a.z;
-    const d2 = dx * dx + dz * dz;
-    if (d2 <= bestD2) {
-      bestD2 = d2;
+    const depth = Math.sqrt(dx * dx + dz * dz) - a.r;
+    if (depth <= 0 && depth <= bestDepth) {
+      bestDepth = depth;
       best = a.post;
     }
   }
@@ -83,9 +94,14 @@ export function postAt(
 }
 
 /** Held machine intent from the manned post + held keys. Opposing keys
- * cancel (A+D, W+S) — the machine is honest, same as the grip law. The
- * gunner cannot crank and the winch cannot aim: one body, one job. */
+ * cancel (A+D, W+S, wind+unwind) — the machine is honest, same as the
+ * grip law. The gunner cannot crank and the winch cannot aim: one body,
+ * one job. The post grammar: W/S is always MORE/LESS — elevation at the
+ * gunner, tension at the winch (Space stays as wind, the habit the
+ * first feel test formed). */
 export function postOp(post: Post | null, keys: ReadonlySet<string>): HeldOp {
+  const wind = keys.has("Space") || keys.has("KeyW");
+  const unwind = keys.has("KeyS");
   return {
     turn:
       post === "gunner"
@@ -103,6 +119,7 @@ export function postOp(post: Post | null, keys: ReadonlySet<string>): HeldOp {
             ? -1
             : 0
         : 0,
-    crank: post === "winch" && keys.has("Space"),
+    crank:
+      post === "winch" ? (wind && !unwind ? 1 : unwind && !wind ? -1 : 0) : 0,
   };
 }

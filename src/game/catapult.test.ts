@@ -161,7 +161,7 @@ describe("catapult machine state", () => {
   it("holding the winch for CRANK_TICKS_PER_CLICK yields exactly one click", () => {
     let s = createCatapult();
     let progress = 0;
-    const crank = { ...IDLE_INTENT, crank: true };
+    const crank = { ...IDLE_INTENT, crank: 1 as const };
     for (let i = 0; i < CRANK_TICKS_PER_CLICK - 1; i++) {
       ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
       expect(s.tensionClicks).toBe(0); // not yet
@@ -174,7 +174,7 @@ describe("catapult machine state", () => {
   it("letting go of the winch loses partial crank progress", () => {
     let s = createCatapult();
     let progress = 0;
-    const crank = { ...IDLE_INTENT, crank: true };
+    const crank = { ...IDLE_INTENT, crank: 1 as const };
     for (let i = 0; i < CRANK_TICKS_PER_CLICK - 5; i++)
       ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
     // Walk away for one tick — the pawl drops, progress is gone.
@@ -194,10 +194,43 @@ describe("catapult machine state", () => {
       loaded: null,
     };
     let progress = 0;
-    const crank = { ...IDLE_INTENT, crank: true };
+    const crank = { ...IDLE_INTENT, crank: 1 as const };
     for (let i = 0; i < CRANK_TICKS_PER_CLICK * 2; i++)
       ({ state: s, crankTicks: progress } = tickMachine(s, progress, crank));
     expect(s.tensionClicks).toBe(TENSION_MAX_CLICKS);
+    expect(progress).toBe(0);
+  });
+
+  it("the unwind (plans/14): a held click DOWN costs the same seconds, clamps at slack", () => {
+    let s: CatapultState = {
+      traverseDeg: 0,
+      tiltNotch: 0,
+      tensionClicks: 2,
+      loaded: null,
+    };
+    let progress = 0;
+    const unwind = { ...IDLE_INTENT, crank: -1 as const };
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK - 1; i++) {
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, unwind));
+      expect(s.tensionClicks).toBe(2); // not yet — held work both ways
+    }
+    ({ state: s, crankTicks: progress } = tickMachine(s, progress, unwind));
+    expect(s.tensionClicks).toBe(1);
+    expect(progress).toBe(0);
+    // Reversing direction restarts the click: unwind progress does not
+    // bank toward winding (mirrors the screw's reversal law).
+    const wind = { ...IDLE_INTENT, crank: 1 as const };
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK - 5; i++)
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, unwind));
+    ({ state: s, crankTicks: progress } = tickMachine(s, progress, wind));
+    expect(progress).toBe(1); // restarted, one tick the other way
+    expect(s.tensionClicks).toBe(1);
+    // At slack the ratchet just clacks.
+    s = { ...s, tensionClicks: 0 };
+    progress = 0;
+    for (let i = 0; i < CRANK_TICKS_PER_CLICK * 2; i++)
+      ({ state: s, crankTicks: progress } = tickMachine(s, progress, unwind));
+    expect(s.tensionClicks).toBe(0);
     expect(progress).toBe(0);
   });
 
@@ -214,7 +247,7 @@ describe("catapult machine state", () => {
     const r = tickMachine(createCatapult(), 0, {
       turn: 0,
       screw: 0,
-      crank: false,
+      crank: 0,
       pullLever: true,
       load: "cherry",
     });

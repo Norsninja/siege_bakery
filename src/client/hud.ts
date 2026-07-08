@@ -195,6 +195,7 @@ export interface HudView {
 }
 
 export function hudLines(v: HudView): string[] {
+  // Signed since the unwind (plans/14): -N% is a click being let out.
   const crankPct = Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100);
   const secsLeft = Math.ceil(v.order.ticksLeft * FIXED_DT);
   const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
@@ -215,7 +216,7 @@ export function hudLines(v: HudView): string[] {
     v.locked
       ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
       : "Click to grab the mouse · WASD move · Shift sprint · E interact",
-    `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct > 0 ? ` +${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
+    `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct !== 0 ? ` ${crankPct > 0 ? "+" : ""}${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
   ];
   // The crew posts (plans/14). Manned = the post's own panel — the
   // gunner's carries the aiming instrument (the ladder's home, the
@@ -227,7 +228,7 @@ export function hudLines(v: HudView): string[] {
       `  arc ${arcGlyph(v.machine.tiltNotch)} +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° · traverse ${v.machine.traverseDeg.toFixed(1)}°`,
     );
   } else if (v.manned === "winch") {
-    lines.push("▸ WINCH POST — hold Space to crank · E step off");
+    lines.push("▸ WINCH POST — hold Space/W to wind · S to unwind · E step off");
   } else if (v.nearPost) {
     lines.push(
       v.nearPost === "gunner"

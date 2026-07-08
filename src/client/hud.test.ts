@@ -242,7 +242,7 @@ describe("hudLines", () => {
 
   it("winch panel and the on-foot invitations", () => {
     expect(hudLines(view({ manned: "winch" })).pop()).toBe(
-      "▸ WINCH POST — hold Space to crank · E step off",
+      "▸ WINCH POST — hold Space/W to wind · S to unwind · E step off",
     );
     expect(hudLines(view({ nearPost: "gunner" })).pop()).toBe(
       "▸ E — man the gunner's post",

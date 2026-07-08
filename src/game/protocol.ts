@@ -61,7 +61,7 @@ export type ClientMsg =
    * (towns, plans/11 §4): op/lever/load carry NO town — routing is
    * OWNER-IMPLICIT; the server derives the machine from the sender's
    * assigned town and never trusts a client-supplied one. */
-  | { t: "op"; turn: -1 | 0 | 1; screw: -1 | 0 | 1; crank: boolean }
+  | { t: "op"; turn: -1 | 0 | 1; screw: -1 | 0 | 1; crank: -1 | 0 | 1 }
   /** Edges: consumed by the room exactly once. */
   | { t: "lever" }
   | { t: "load"; topping: string }
@@ -190,19 +190,21 @@ export type ServerMsg =
 export interface HeldOp {
   turn: -1 | 0 | 1;
   screw: -1 | 0 | 1;
-  crank: boolean;
+  /** Signed since the unwind (plans/14): +1 winds, -1 unwinds. */
+  crank: -1 | 0 | 1;
 }
 
 // Frozen for the same reason as IDLE_INTENT (catapult.ts): spread it,
 // never write through the shared reference.
-export const IDLE_OP: HeldOp = Object.freeze({ turn: 0, screw: 0, crank: false });
+export const IDLE_OP: HeldOp = Object.freeze({ turn: 0, screw: 0, crank: 0 });
 
 /**
  * Many hands, one machine: merge every player's holds and queued edges into
  * the single intent tickMachine consumes. Opposite turns (and opposite
- * screwing) cancel; two people cranking is still one ratchet (it's the
- * same winch); any lever releases; first queued topping loads. Chaos is a
- * feature, but the machine is honest.
+ * screwing, and — since the unwind — opposite cranking) cancel; two
+ * people winding is still one ratchet (it's the same winch); any lever
+ * releases; first queued topping loads. Chaos is a feature, but the
+ * machine is honest: one winding against one unwinding is a stall.
  */
 export function mergeIntents(
   held: HeldOp[],
@@ -211,16 +213,16 @@ export function mergeIntents(
 ): MachineIntent {
   let turn = 0;
   let screw = 0;
-  let crank = false;
+  let crank = 0;
   for (const h of held) {
     turn += h.turn;
     screw += h.screw;
-    crank = crank || h.crank;
+    crank += h.crank;
   }
   return {
     turn: turn > 0 ? 1 : turn < 0 ? -1 : 0,
     screw: screw > 0 ? 1 : screw < 0 ? -1 : 0,
-    crank,
+    crank: crank > 0 ? 1 : crank < 0 ? -1 : 0,
     pullLever: leverPulls > 0,
     load: loads[0] ?? null,
   };

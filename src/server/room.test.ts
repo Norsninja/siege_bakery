@@ -94,20 +94,42 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
-    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     // A few extra ticks so the 15Hz machine broadcast lands after the click.
     run(room, CRANK_TICKS_PER_CLICK + 4);
     const m = a.last("machine");
     expect(m?.state.tensionClicks).toBe(1); // not 2
   });
 
+  it("the unwind over the wire: crank -1 lets a click out; wind against unwind stalls (plans/14)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    const b = connect(room, "bob");
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+    run(room, CRANK_TICKS_PER_CLICK * 2 + 4);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+    run(room, 1);
+    expect(a.last("machine")?.state.tensionClicks).toBe(2);
+    // Alice lets one click out — same held seconds down as up.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: -1 });
+    run(room, CRANK_TICKS_PER_CLICK + 4);
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+    run(room, 1);
+    expect(a.last("machine")?.state.tensionClicks).toBe(1);
+    // One winds, one unwinds: the ratchet fights to a stall — honest.
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: -1 });
+    run(room, CRANK_TICKS_PER_CLICK * 2 + 4);
+    expect(a.last("machine")?.state.tensionClicks).toBe(1);
+  });
+
   it("opposite traverse turns cancel out", () => {
     const room = new Room();
     const a = connect(room, "alice");
     const b = connect(room, "bob");
-    room.onMessage(a.id, { t: "op", turn: 1, screw: 0, crank: false });
-    room.onMessage(b.id, { t: "op", turn: -1, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 1, screw: 0, crank: 0 });
+    room.onMessage(b.id, { t: "op", turn: -1, screw: 0, crank: 0 });
     run(room, 120);
     expect(a.last("machine")?.state.traverseDeg).toBe(0);
   });
@@ -115,7 +137,7 @@ describe("Room: the match, headless over protocol", () => {
   it("the elevation screw works over the wire and tilts the frame", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 1, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 1, crank: 0 });
     run(room, SCREW_TICKS_PER_NOTCH + 4);
     expect(a.last("machine")?.state.tiltNotch).toBe(1);
   });
@@ -154,9 +176,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const b = connect(room, "bob");
     room.onMessage(a.id, { t: "load", topping: "cherry" });
-    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 1);
     const shotA = a.last("shot");
@@ -189,9 +211,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
       run(room, CRANK_TICKS_PER_CLICK * 6);
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
       room.onMessage(a.id, { t: "lever" });
       run(room, 600); // to rest (paint scores earlier; extra ticks harmless)
     };
@@ -243,9 +265,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
       run(room, CRANK_TICKS_PER_CLICK * 6);
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
       room.onMessage(a.id, { t: "lever" });
       run(room, 600);
     };
@@ -276,9 +298,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
       run(room, CRANK_TICKS_PER_CLICK * 6);
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
       room.onMessage(a.id, { t: "lever" });
       run(room, 600);
     };
@@ -319,9 +341,9 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       const fire = (topping: string): void => {
         room.onMessage(a.id, { t: "load", topping });
-        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
         run(room, CRANK_TICKS_PER_CLICK * 6);
-        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+        room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
         room.onMessage(a.id, { t: "lever" });
         run(room, 600);
       };
@@ -367,9 +389,9 @@ describe("Room: the match, headless over protocol", () => {
       // Fire town 1's 6-click frost at the RUNNING two-town order — the
       // real play situation, no linger-timing dependence.
       room.onMessage(a.id, { t: "load", topping: "frosting" });
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
       run(room, CRANK_TICKS_PER_CLICK * 6);
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
       room.onMessage(a.id, { t: "lever" });
       run(room, 600);
       return {
@@ -430,9 +452,9 @@ describe("Room: the match, headless over protocol", () => {
     expect(towns()[1]).toBe(second); // repeats never re-create it
     // Town 0's play is untouched by activation: cranking winds ITS winch;
     // the crewless town 1 idles (owner-implicit filtering is step 5).
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 3);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     expect(towns()[0]!.machine.tensionClicks).toBe(3);
     expect(towns()[1]!.machine.tensionClicks).toBe(0);
   });
@@ -507,11 +529,11 @@ describe("Room: the match, headless over protocol", () => {
     room.onMessage(a.id, { t: "pickTown", town: 1 });
     // Both crank at once — each winds ONLY their own winch; and bob turns
     // his traverse while alice holds hers straight.
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
-    room.onMessage(b.id, { t: "op", turn: 1, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+    room.onMessage(b.id, { t: "op", turn: 1, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 2);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
-    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+    room.onMessage(b.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     expect(towns()[0]!.machine.tensionClicks).toBe(2); // bob's, town 0
     expect(towns()[1]!.machine.tensionClicks).toBe(2); // alice's, town 1
     expect(towns()[0]!.machine.traverseDeg).toBeGreaterThan(0); // bob turned
@@ -541,9 +563,9 @@ describe("Room: the match, headless over protocol", () => {
     // ORDER_RESET_TICKS must stay above ~530 or this squeeze breaks — the
     // towns convergence test below covers the honest post-deal path).
     room.onMessage(a.id, { t: "load", topping: "cherry" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 1);
     const shot = a.last("shot");
@@ -588,15 +610,15 @@ describe("Room: the match, headless over protocol", () => {
     // and join Carol MID-FLIGHT: the welcome must carry the settled topping
     // and NOT the one still in the air (its own `shot` event announced it).
     room.onMessage(a.id, { t: "load", topping: "cherry" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 600); // flight + rest
     room.onMessage(a.id, { t: "load", topping: "lime" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 30); // the lime is airborne
     const carol = connect(room, "carol");
@@ -611,9 +633,9 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     room.onMessage(a.id, { t: "load", topping: "frosting" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 300); // flight to impact — no rest wait for paint
     const scored = a.last("scored");
@@ -634,9 +656,9 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     room.onMessage(a.id, { t: "load", topping: "fudge" });
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     room.onMessage(a.id, { t: "lever" });
     run(room, 300);
     const scored = a.last("scored");
@@ -651,9 +673,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
       run(room, CRANK_TICKS_PER_CLICK * 6);
-      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+      room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
       room.onMessage(a.id, { t: "lever" });
       run(room, 600);
     };
@@ -762,12 +784,12 @@ describe("Room: the match, headless over protocol", () => {
     // the only Room-level ending pinned before this was loss-by-clock.
     const room = new Room();
     const a = connect(room, "alice");
-    const op = (turn: -1 | 0 | 1, screw: -1 | 0 | 1, crank: boolean): void =>
+    const op = (turn: -1 | 0 | 1, screw: -1 | 0 | 1, crank: -1 | 0 | 1): void =>
       room.onMessage(a.id, { t: "op", turn, screw, crank });
     const crankTo = (clicks: number): void => {
-      op(0, 0, true);
+      op(0, 0, 1);
       run(room, CRANK_TICKS_PER_CLICK * clicks);
-      op(0, 0, false);
+      op(0, 0, 0);
       run(room, 1);
     };
     // One held stint per notch. VERNIER RE-PIN (2026-07-08, research/13):
@@ -775,16 +797,16 @@ describe("Room: the match, headless over protocol", () => {
     // exactly, so `notches: 6` reproduces the identical physics.
     const screw = (dir: -1 | 1, notches = 1): void => {
       for (let i = 0; i < notches; i++) {
-        op(0, dir, false);
+        op(0, dir, 0);
         run(room, SCREW_TICKS_PER_NOTCH + 2);
-        op(0, 0, false);
+        op(0, 0, 0);
         run(room, 1);
       }
     };
     const turnTicks = (dir: -1 | 1, ticks: number): void => {
-      op(dir, 0, false);
+      op(dir, 0, 0);
       run(room, ticks);
-      op(0, 0, false);
+      op(0, 0, 0);
       run(room, 1);
     };
     const fire = (topping: string, clicks: number, wait: number): void => {
@@ -923,9 +945,9 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     // Wind full tension while the order runs (tension persists), then let
     // the patience-burned clock kill it — the stale-glob test's recipe.
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     let guard = 0;
     while (
       (a.last("order")?.order.status ?? "running") === "running" &&
@@ -958,7 +980,7 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     room.onMessage(a.id, { t: "unlockTown2" });
     // Hands full at town 0: crank HELD (never released) + a crate queued.
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 2);
     room.onMessage(a.id, { t: "load", topping: "cherry" });
     // The patron burns the order out; the pick lands in the linger.
@@ -988,9 +1010,9 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     // Wind full tension while the order still runs — tension persists.
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: true });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 6);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: false });
+    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
     // Let the patience-burned clock kill the order.
     let guard = 0;
     while (

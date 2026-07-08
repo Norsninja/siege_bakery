@@ -60,7 +60,7 @@ export function deriveOp(
             ? -1
             : 0
         : 0,
-    crank: grip === "winch" && eHeld,
+    crank: grip === "winch" && eHeld ? 1 : 0,
   };
 }
 

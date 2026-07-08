@@ -1,9 +1,11 @@
 # Plan 14 — The Gun Crew: posts replace grips (EXPERIMENT, feel-test gated)
 
-**Status: BUILT 2026-07-08, awaiting the visionary's feel test. This is an
-experiment by explicit agreement — "we might need to re-evaluate our
-rollback. this requires trying it." Rollback = revert the one build commit;
-input.ts keeps the superseded grip law intact underneath.**
+**Status: BUILT 2026-07-08; FEEL TEST ROUND 1 PASSED same day — "the
+posts feel good" (visionary). Round-1 findings built same day: the
+UNWIND (S at the winch; signed crank on the wire) and the gunner FLANK
+SPOTS + flagstones (dead-center manning put the throwing arm in the
+view). Rollback provision stands — revert the build commits; input.ts
+keeps the superseded grip law intact underneath.**
 
 ## Where this came from (the 2026-07-08 discussion)
 
@@ -34,30 +36,46 @@ Discussion findings, agreed:
 
 Three stations, matching a real siege crew:
 
-- **GUNNER'S POST** — behind the frame (machine-local (0, +1.6), the
-  sightline). E mans it (feet plant), A/D wheel at the same 30°/s, W/S
+- **GUNNER'S POST** — behind the frame, TWO FLANK SPOTS since round 1
+  (machine-local (±1.0, +1.6), r 0.6 — manning dead-center put the
+  throwing arm in the view; the band behind the arm gives no
+  invitation). E mans it (feet plant), A/D wheel at the same 30°/s, W/S
   screw at the same 0.15s/notch, **F pulls the lever** (always executes;
   dry release keeps its comedy flash), E steps off. On manning: one gentle
   camera snap down the throw line (facing + traverse), then the head is
   free. The HUD panel carries the aiming instrument — the vernier ladder
   lives here now (the gauge-split call, moved with the screw).
-- **WINCH POST** — the right flank (machine-local (+1.5, −0.55), at the
-  drum). E mans, **hold Space** cranks, E steps off. Muscle, nothing else.
+- **WINCH POST** — the right flank (machine-local (+1.5, −0.55), r 1.2,
+  at the drum). E mans, **Space or W winds, S unwinds** (round 1: "we
+  need a key to unwind" — the post grammar is W/S = more/less
+  everywhere; Ctrl was REJECTED, the browser owns Ctrl+W; chords stay
+  dead). E steps off.
 - **BUCKET** — unchanged walk-up: carry a topping, E loads. The loader is
   the runner; the pantry loop is sacred.
+- **FLAGSTONES** — a stand-here marker per spot (gold = gunner, iron =
+  winch), drawn from posts.ts's own POST_SPOTS table so zones and stones
+  cannot drift; a facing-only SIBLING group (the rig root swings with
+  traverse; the crew's footing must not).
 
 Mechanics of record:
 
-- Zones: `POST_RADIUS_M` 1.2 around each anchor; anchors rotate with the
-  town's facing (client/posts.ts, pure + pinned). Your own town's machine
-  only (anchors ride `view.yourTown`).
+- Zones: per-spot radii in POST_SPOTS; anchors rotate with the town's
+  facing (client/posts.ts, pure + pinned). Your own town's machine only
+  (anchors ride `view.yourTown`). Nearest-by-depth claims; the gunner
+  flanks and the arm's dead band are pinned.
 - E precedence, one edge one meaning: step off > bucket/shelf crosshair
   interaction > man the zone you stand in.
 - Auto-unman: any tick the baker is outside the manned zone (carry-home,
   the fresh deal, future shoves) — feet planted means E is otherwise the
   only exit.
-- **The wire is untouched.** Posts derive the same `MachineIntent` the
-  grips did; server/core/game unchanged. Crosshair prompts for
+- **THE UNWIND is the slice's one game-law change** (round 1): `crank`
+  went SIGNED (−1|0|1) through MachineIntent/HeldOp/the op wire msg,
+  mirroring the screw — same held seconds per click both directions,
+  reversal restarts the click, slack clacks, roster validates like
+  turn/screw, and mergeIntents STALLS a winder against an unwinder (the
+  honest ratchet — pinned at unit and Room level). Everything else on
+  the wire is untouched: posts still derive the same `MachineIntent` the
+  grips did. Crosshair prompts for
   wheel/screw/winch/lever now REDIRECT to the posts; interactions.ts's
   lever branch is unreachable while the experiment runs (main filters
   edge targets to bucket/shelves).

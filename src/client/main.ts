@@ -217,7 +217,7 @@ async function main(): Promise<void> {
   input.yaw = (homeTown.facingDeg * Math.PI) / 180;
 
   // --- Fixed-timestep loop, rendering decoupled ---
-  let lastOp: HeldOp = { turn: 0, screw: 0, crank: false };
+  let lastOp: HeldOp = { turn: 0, screw: 0, crank: 0 };
   /** The post this baker mans (plans/14) — the whole "hands on machine"
    * state now. Null = on foot. */
   let manned: Post | null = null;

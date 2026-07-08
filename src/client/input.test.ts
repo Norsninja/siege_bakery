@@ -48,16 +48,16 @@ describe("deriveOp", () => {
     expect(deriveOp("wheel", true, keys("KeyA", "KeyD")).turn).toBe(0);
     expect(deriveOp("screw", true, keys("KeyS")).screw).toBe(-1);
     expect(deriveOp("screw", true, keys("KeyW", "KeyS")).screw).toBe(0);
-    expect(deriveOp("winch", true, keys()).crank).toBe(true);
+    expect(deriveOp("winch", true, keys()).crank).toBe(1);
   });
 
   it("no grip (or no E) = idle hands, whatever the keys say", () => {
     expect(deriveOp(null, true, keys("KeyA", "KeyW"))).toEqual({
       turn: 0,
       screw: 0,
-      crank: false,
+      crank: 0,
     });
-    expect(deriveOp("winch", false, keys("KeyW")).crank).toBe(false);
+    expect(deriveOp("winch", false, keys("KeyW")).crank).toBe(0);
   });
 });
 

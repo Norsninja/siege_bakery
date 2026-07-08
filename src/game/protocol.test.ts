@@ -9,31 +9,47 @@ describe("mergeIntents", () => {
     expect(mergeIntents([], 0, [])).toEqual({
       turn: 0,
       screw: 0,
-      crank: false,
+      crank: 0,
       pullLever: false,
       load: null,
     });
-    expect(mergeIntents([IDLE_OP, IDLE_OP], 0, []).crank).toBe(false);
+    expect(mergeIntents([IDLE_OP, IDLE_OP], 0, []).crank).toBe(0);
   });
 
   it("two people cranking is still ONE winch", () => {
     const m = mergeIntents(
       [
-        { turn: 0, screw: 0, crank: true },
-        { turn: 0, screw: 0, crank: true },
+        { turn: 0, screw: 0, crank: 1 },
+        { turn: 0, screw: 0, crank: 1 },
       ],
       0,
       [],
     );
-    expect(m.crank).toBe(true); // boolean, not double-rate
+    expect(m.crank).toBe(1); // one ratchet, not double-rate
+  });
+
+  it("the winch merges like the wheel since the unwind (plans/14): wind vs unwind stalls", () => {
+    expect(
+      mergeIntents(
+        [
+          { turn: 0, screw: 0, crank: 1 },
+          { turn: 0, screw: 0, crank: -1 },
+        ],
+        0,
+        [],
+      ).crank,
+    ).toBe(0);
+    expect(mergeIntents([{ turn: 0, screw: 0, crank: -1 }], 0, []).crank).toBe(
+      -1,
+    );
   });
 
   it("opposite turns cancel; same-direction turns don't double", () => {
     expect(
       mergeIntents(
         [
-          { turn: 1, screw: 0, crank: false },
-          { turn: -1, screw: 0, crank: false },
+          { turn: 1, screw: 0, crank: 0 },
+          { turn: -1, screw: 0, crank: 0 },
         ],
         0,
         [],
@@ -42,8 +58,8 @@ describe("mergeIntents", () => {
     expect(
       mergeIntents(
         [
-          { turn: 1, screw: 0, crank: false },
-          { turn: 1, screw: 0, crank: false },
+          { turn: 1, screw: 0, crank: 0 },
+          { turn: 1, screw: 0, crank: 0 },
         ],
         0,
         [],
@@ -55,8 +71,8 @@ describe("mergeIntents", () => {
     expect(
       mergeIntents(
         [
-          { turn: 0, screw: 1, crank: false },
-          { turn: 0, screw: -1, crank: false },
+          { turn: 0, screw: 1, crank: 0 },
+          { turn: 0, screw: -1, crank: 0 },
         ],
         0,
         [],
@@ -65,8 +81,8 @@ describe("mergeIntents", () => {
     expect(
       mergeIntents(
         [
-          { turn: 0, screw: -1, crank: false },
-          { turn: 0, screw: -1, crank: false },
+          { turn: 0, screw: -1, crank: 0 },
+          { turn: 0, screw: -1, crank: 0 },
         ],
         0,
         [],

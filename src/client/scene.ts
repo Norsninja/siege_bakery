@@ -33,6 +33,7 @@ import {
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
 import type { InteractableKind } from "./hud";
+import { POST_SPOTS } from "./posts";
 
 export const TOPPING_COLORS: Record<string, number> = {
   cherry: 0xc23b4e,
@@ -137,6 +138,25 @@ export class MachineRig {
     // visible in the bucket.
     this.group.rotation.y = this.facingRad;
     scene.add(this.group);
+
+    // CREW FLAGSTONES (plans/14): a stand-here marker per post spot,
+    // drawn from posts.ts's own table so zones and stones cannot drift.
+    // A SIBLING group, facing-only — this.group swings with TRAVERSE,
+    // and the crew's footing must not swing with the wheel.
+    const stones = new THREE.Group();
+    stones.position.set(base.x, base.y, base.z);
+    stones.rotation.y = this.facingRad;
+    scene.add(stones);
+    for (const spot of POST_SPOTS) {
+      const stone = new THREE.Mesh(
+        new THREE.CylinderGeometry(spot.r, spot.r, 0.04, 24),
+        new THREE.MeshStandardMaterial({
+          color: spot.post === "gunner" ? 0xb5a06b : 0x8f8f9a,
+        }),
+      );
+      stone.position.set(spot.x, 0.02, spot.z);
+      stones.add(stone);
+    }
 
     // The FRAME tilts; its pivot sits at the REAR ground contact so the
     // tail stays planted on the plinth and the NOSE visibly lifts (a

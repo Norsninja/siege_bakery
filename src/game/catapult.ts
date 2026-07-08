@@ -103,6 +103,17 @@ export function crankTension(state: CatapultState): CatapultState {
   };
 }
 
+/** One controlled click DOWN — the unwind (plans/14 feel test: a 1-click
+ * overshoot needed a remedy gentler than the dry-fire reset). Clamped at
+ * zero — unwinding a slack machine just clacks. Committed work stays
+ * symmetric: the CLICK costs the same held seconds in both directions. */
+export function uncrankTension(state: CatapultState): CatapultState {
+  return {
+    ...state,
+    tensionClicks: Math.max(0, state.tensionClicks - 1),
+  };
+}
+
 /** One notch of the elevation screw, clamped at both ends. */
 export function turnScrew(state: CatapultState, dir: -1 | 1): CatapultState {
   return {
@@ -179,8 +190,9 @@ export interface MachineIntent {
   turn: -1 | 0 | 1;
   /** Elevation screw: -1 (lower), 0, +1 (raise), while engaged. */
   screw: -1 | 0 | 1;
-  /** Winch engaged this tick (hold-to-crank). */
-  crank: boolean;
+  /** Winch: -1 (unwind), 0, +1 (wind), while engaged — signed like the
+   * screw since the gun-crew feel test (plans/14, 2026-07-08). */
+  crank: -1 | 0 | 1;
   /** Release lever pulled this tick (edge, not hold). */
   pullLever: boolean;
   /** Topping shoved into the bucket this tick (edge), or null. */
@@ -193,15 +205,16 @@ export interface MachineIntent {
 export const IDLE_INTENT: MachineIntent = Object.freeze({
   turn: 0,
   screw: 0,
-  crank: false,
+  crank: 0,
   pullLever: false,
   load: null,
 });
 
 export interface MachineTickResult {
   state: CatapultState;
-  /** Progress toward the next tension click, 0..CRANK_TICKS_PER_CLICK-1.
-   * Thread this back into the next tick; render it as winch motion. */
+  /** SIGNED progress toward the next tension click (positive winding,
+   * negative unwinding), |value| < CRANK_TICKS_PER_CLICK. Thread this
+   * back into the next tick; render it as winch motion. */
   crankTicks: number;
   /** SIGNED progress toward the next tilt notch (positive raising,
    * negative lowering). Thread back like crankTicks; render as the screw
@@ -215,11 +228,13 @@ export interface MachineTickResult {
  * Advance the machine by one fixed tick of operator intent.
  *
  * Crank law: letting go of the winch mid-click LOSES the partial progress —
- * winching is committed work, not a resumable meter. A full machine stops
- * accumulating (the ratchet just clacks).
+ * winching is committed work, not a resumable meter. SIGNED since the
+ * unwind (plans/14): winding and unwinding cost the same held seconds per
+ * click, reversing direction restarts the click, and at either limit the
+ * ratchet just clacks.
  *
- * Screw law mirrors it: letting go drops partial progress, reversing
- * direction restarts it, and at either limit the screw just clacks.
+ * Screw law is the same shape: letting go drops partial progress,
+ * reversing restarts it, limits clack.
  */
 export function tickMachine(
   state: CatapultState,
@@ -245,10 +260,15 @@ export function tickMachine(
   }
 
   let progress = 0;
-  if (intent.crank && s.tensionClicks < TENSION_MAX_CLICKS) {
-    progress = crankTicks + 1;
-    if (progress >= CRANK_TICKS_PER_CLICK) {
-      s = crankTension(s);
+  const crankCanMove =
+    intent.crank > 0
+      ? s.tensionClicks < TENSION_MAX_CLICKS
+      : s.tensionClicks > 0;
+  if (intent.crank !== 0 && crankCanMove) {
+    progress =
+      (Math.sign(crankTicks) === intent.crank ? crankTicks : 0) + intent.crank;
+    if (Math.abs(progress) >= CRANK_TICKS_PER_CLICK) {
+      s = intent.crank > 0 ? crankTension(s) : uncrankTension(s);
       progress = 0;
     }
   }

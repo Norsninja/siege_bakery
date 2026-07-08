@@ -153,7 +153,7 @@ export class Roster {
         m.held = {
           turn: msg.turn === 1 || msg.turn === -1 ? msg.turn : 0,
           screw: msg.screw === 1 || msg.screw === -1 ? msg.screw : 0,
-          crank: msg.crank === true,
+          crank: msg.crank === 1 || msg.crank === -1 ? msg.crank : 0,
         };
         break;
       case "lever":
