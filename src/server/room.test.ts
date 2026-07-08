@@ -1203,6 +1203,42 @@ describe("Room: the match, headless over protocol", () => {
       run(room, 2);
       expect(a.last("run")?.phase).toBe("lobby");
     });
+
+    it("a LEAVER mid-countdown does not cancel — the gate needs everyone PRESENT, and the count holds for those who stayed", () => {
+      // The gate reads the CONNECTED roster (review 2026-07-08 session 3):
+      // a dropped friend must not hold the run hostage — the count holds,
+      // the run starts, and the party law hands them a mid-run rejoin.
+      // (Cancel-on-leave would only re-arm from 3s anyway; holding is the
+      // same gate, smoother.) The LAST leaver still cancels: an empty
+      // circle is nobody ready, not everybody.
+      const room = new Room();
+      const a = connect(room, "alice");
+      const b = connect(room, "bob");
+      room.onMessage(a.id, { t: "pose", pose: inCircle });
+      room.onMessage(b.id, { t: "pose", pose: inCircle });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("countdown");
+      room.leave(b.id);
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("countdown");
+      run(room, READY_COUNTDOWN_TICKS + 3);
+      expect(a.last("run")?.phase).toBe("running");
+      expect(a.last("run")?.rung).toBe(1);
+    });
+
+    it("the LAST leaver mid-countdown cancels — an empty room never starts a run", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      room.onMessage(a.id, { t: "pose", pose: inCircle });
+      run(room, 2);
+      expect(a.last("run")?.phase).toBe("countdown");
+      room.leave(a.id);
+      run(room, READY_COUNTDOWN_TICKS + 3);
+      // Nobody's left to hear a broadcast; ask the next joiner's welcome.
+      const late = connect(room, "late");
+      expect(late.last("welcome")?.run.phase).toBe("lobby");
+      expect(late.last("welcome")?.run.rung).toBe(0);
+    });
   });
 
   // The wire is typed but the internet is not (checkpoint audit 2026-07-03):

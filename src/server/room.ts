@@ -416,7 +416,9 @@ export class Room {
       if (ev === "start") this.startRun();
       else if (ev === "countdown" || ev === "cancel") this.broadcastRun();
       else if (this.run.phase === "countdown") {
-        // The countdown's 1Hz word — clients predict between beats.
+        // The countdown's 1Hz word — the beats ARE the display: the HUD
+        // renders the last beat raw (no client prediction), and 180/120/60
+        // read as 3…2…1.
         if (this.run.countdownLeft % 60 === 0) this.broadcastRun();
       } else {
         // Lobby: speak the ready census when it changes (n/m in).
