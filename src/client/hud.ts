@@ -142,6 +142,19 @@ export function bannerText(
   return `${text}\n\n${coming}`;
 }
 
+/** The photograph's caption (the dessert report, snapshot form — plans/09
+ * §1's promoted hook, visionary-shaped 2026-07-07): the verdict in the
+ * Patron's voice, caption-sized. The banner still carries the checklist;
+ * the photo carries the feeling. */
+export function snapshotCaption(verdict: Judgment | null): string {
+  const head = "the dessert, as the Giant saw it";
+  if (!verdict) return head;
+  if (!verdict.met) return `${head}\n— and he goes hungry`;
+  if (!verdict.accepted)
+    return `${head}\n— "it is TERRIBLE." (${verdict.score}/100)`;
+  return `${head}\n${"★".repeat(verdict.stars)} delighted — ${verdict.score}/100`;
+}
+
 export interface HudView {
   order: OrderState;
   checks: readonly RequirementCheck[];

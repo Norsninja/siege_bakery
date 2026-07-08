@@ -14,6 +14,7 @@ import {
   hudLines,
   promptFor,
   SHELF_TOPPING,
+  snapshotCaption,
   type HudView,
 } from "./hud";
 
@@ -42,6 +43,27 @@ const judgment = (over: Partial<Judgment> = {}): Judgment => ({
   mess: 0,
   waste: 1,
   ...over,
+});
+
+describe("snapshotCaption — the photo speaks the Patron's voice (dessert report, 2026-07-07)", () => {
+  it("delight: stars and the score under the photo", () => {
+    expect(snapshotCaption(judgment({ stars: 2, score: 81 }))).toBe(
+      "the dessert, as the Giant saw it\n★★ delighted — 81/100",
+    );
+  });
+  it("gate-2 refusal keeps the insult", () => {
+    expect(snapshotCaption(judgment({ accepted: false, score: 42, stars: 0 }))).toBe(
+      'the dessert, as the Giant saw it\n— "it is TERRIBLE." (42/100)',
+    );
+  });
+  it("gate-1 hunger", () => {
+    expect(snapshotCaption(judgment({ met: false, accepted: false, stars: 0 }))).toBe(
+      "the dessert, as the Giant saw it\n— and he goes hungry",
+    );
+  });
+  it("no verdict yet (the broadcast races the status flip): just the head", () => {
+    expect(snapshotCaption(null)).toBe("the dessert, as the Giant saw it");
+  });
 });
 
 describe("arcGlyph", () => {

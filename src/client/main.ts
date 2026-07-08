@@ -30,8 +30,10 @@ import {
   arcGlyph,
   bannerText,
   hudLines,
+  snapshotCaption,
   type InteractableKind,
 } from "./hud";
+import { DessertSnapshot } from "./snapshot";
 import {
   InputTracker,
   updateGrip,
@@ -98,6 +100,12 @@ async function main(): Promise<void> {
 
   const hud = document.getElementById("hud");
   const banner = document.getElementById("banner");
+  // The dessert report (client/snapshot.ts): the tripod, its corner frame,
+  // and the caption slot. Photo taken on the banner-show edge below.
+  const snapshot = new DessertSnapshot(renderer);
+  const snapEl = document.getElementById("snapshot");
+  const snapImg = snapEl?.querySelector("img") ?? null;
+  const snapCaption = snapEl?.querySelector("figcaption") ?? null;
   let bannerShown = false;
   let flashMsg = "";
   let flashUntil = 0;
@@ -299,10 +307,19 @@ async function main(): Promise<void> {
           // server already is; the carry-home below still fires on time.
           lingerTicks = ORDER_RESET_TICKS;
           banner.style.display = "flex";
+          // THE SHUTTER (dessert report): one photo of the dessert as the
+          // Giant judged it, hung in the corner for the linger. Taken on
+          // the show edge — linger shots happen AFTER the photo, exactly
+          // as they happen after the frozen verdict.
+          if (snapEl && snapImg) {
+            snapImg.src = snapshot.take(scene);
+            snapEl.style.display = "block";
+          }
         } else if (b === "hide") {
           // The room dealt a fresh order — clear the slate.
           bannerShown = false;
           banner.style.display = "none";
+          if (snapEl) snapEl.style.display = "none"; // the photo comes down
           // THE CARRY-HOME LAW (visionary, 2026-07-07): the deal PLACES a
           // baker who isn't in his town at his town's spawn — the linger
           // banner warned him first. Client-side like all baker movement
@@ -321,6 +338,9 @@ async function main(): Promise<void> {
             seconds: Math.ceil(lingerTicks / 60),
             away: depthIntoTown(view.yourTown, baker.position()) <= 0,
           });
+          // Caption rides the same cadence: the verdict can land a beat
+          // after the show edge (its broadcast races the status flip).
+          if (snapCaption) snapCaption.textContent = snapshotCaption(view.verdict);
         }
       }
       accumulator -= FIXED_DT;
