@@ -42,6 +42,13 @@ export const TOPPING_COLORS: Record<string, number> = {
   fudge: 0x4a2c17,
 };
 
+/** Town identity colors (visionary, 2026-07-07): town 0 flies red, town 1
+ * blue — the FIRST distinguishing feature between the forts. Indexed like
+ * TOWNS. The color-by-town seam plans/11 §9 reserves (trails, splats,
+ * ghost tint) should read THIS table when it lands, so identity stays one
+ * definition. */
+export const TOWN_COLORS = [0xd8452e, 0x3a6ed8] as const;
+
 const box = (
   w: number,
   h: number,
@@ -122,6 +129,13 @@ export class MachineRig {
     this.facingRad = (facingDeg * Math.PI) / 180;
     this.group = new THREE.Group();
     this.group.position.set(base.x, base.y, base.z);
+    // BORN FACING ITS THROW (playtest 2026-07-07): a dormant town's rig
+    // gets no update() until its machine broadcasts exist, so the
+    // constructor must leave an honest idle machine — faced like its
+    // ballistics, dish empty. Before this, town 1's rig stood cockeyed
+    // (rotation 0 = backwards) with the construction-default red ball
+    // visible in the bucket.
+    this.group.rotation.y = this.facingRad;
     scene.add(this.group);
 
     // The FRAME tilts; its pivot sits at the REAR ground contact so the
@@ -138,6 +152,7 @@ export class MachineRig {
     box(0.12, 1.5, 0.12, 0x8a6b45, 0, 0.75, 0, this.armPivot); // throwing arm
     this.bucketMesh = box(0.34, 0.16, 0.34, 0x4a4a55, 0, 1.5, 0, this.armPivot);
     this.toppingMesh = sphere(0.16, 0xc23b4e, 0, 1.66, 0, this.armPivot);
+    this.toppingMesh.visible = false; // an idle machine's dish is empty
 
     this.wheelMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.3, 0.3, 0.08, 20),
@@ -310,15 +325,18 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // left" holds for the furniture too (plans/11 §3).
   const rigs: MachineRig[] = [];
   const townInteractables: Array<Record<InteractableKind, THREE.Mesh[]>> = [];
-  for (const t of TOWNS) {
+  for (let ti = 0; ti < TOWNS.length; ti++) {
+    const t = TOWNS[ti]!;
     const rig = new MachineRig(scene, t.base, t.facingDeg);
     rigs.push(rig);
     const s = t.facingDeg === 0 ? 1 : -1; // rotate local offsets with the fort
     // The pennant stands BESIDE THE MACHINE (visionary, 2026-07-03): the
     // wind instrument you read from the firing position — when wind
-    // arrives, this flag is the forecast.
+    // arrives, this flag is the forecast. It flies the TOWN'S color
+    // (TOWN_COLORS — red home, blue away): the one distinguishing feature
+    // between the forts until the art pass.
     box(0.06, 2.4, 0.06, 0xefe3d0, t.plinth.x + 1.8 * s, 1.2, t.plinth.z - 0.6 * s, scene);
-    box(0.7, 0.3, 0.02, 0xd8452e, t.plinth.x + 2.18 * s, 2.2, t.plinth.z - 0.6 * s, scene);
+    box(0.7, 0.3, 0.02, TOWN_COLORS[ti] ?? TOWN_COLORS[0], t.plinth.x + 2.18 * s, 2.2, t.plinth.z - 0.6 * s, scene);
     // Pantry crates — the ammo. E takes ONE; you carry it by hand. Five
     // crates since the projectile pass (plans/10): frosting first (the
     // base layer), fudge beside the garnish, the lime decoy LAST — never
