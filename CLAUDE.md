@@ -80,36 +80,37 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE LADDER MEASURED (2026-07-08, fourth session): plans/13 slice 3 is
-BUILT (307 tests, both tsc legs). The re-pin tools are SPEC-
-PARAMETERIZED with zero drift proven (research/11 imports the REAL
-buildCensus/splatSamples — its mirror is deleted; both tool headers
-carry the pins to reproduce after any splat/census/ballistics
-change). THE CLAMP landed gated (plans/15 item 2 DONE):
-TILT_MAX_NOTCH 18→12 after cake-3 at maxNotch 12 reproduced every
-envelope number; sim/HUD/scene read the constant symbolically and
-scene.test.ts pins the render contract (shown frame tilt = sim
-tilt). ALL SEVEN ROWS MEASURED under the shipped ladder: summit
-combos 22/16/12/8/7/4/0 across cake-1/2/3, cupcake, cake-4/5/6;
-union frost coverage 100.0% on EVERY row (frost never gates the
-ladder); TOWN_POTENTIAL's 0.9/1.0 generalize — one table, no
-per-spec rows. THE RUNGS TABLE (game/campaign.ts, 7 rows, the
-measurement record in its header; pins in campaign.test.ts): rung 3
-= THE ANCHOR verbatim; THE CUPCAKE is rung 4 (§1 amendment: the
-ladder is authored spec rows, harder not necessarily TALLER; random
-insertion rejected); cake-6 is the top — its summit takes ZERO
-shipped combos (windows exist in physics but fall between notches:
-death by QUANTIZATION) and KEEPS its crown ask anyway: THE
-IMPOSSIBLE TRAGEDY (visionary ruling — the run's story ends at the
-top; the future power-up economy sells the key; the ONE sanctioned
-impossible ask, every other crown must be measured reachable). THE
-SLICE-3 BOUNDARY IS PINNED: specForRung still deals cake-3 every
-rung — slice 4 flips deal + asks + clock TOGETHER, never spec alone.
-Standing ledger: plans/15 (items 1/3/4 unclaimed pre-friend-test;
-claim, don't re-triage); snapshot tripod framing dies on tall specs
-(goes LIVE the moment slice 4 deals cake-4+); cupcake crown arrivals
-all HOT (may bounce — feel pass); audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin ownerless. NEXT: review, DISCUSS
-slice 4 (mandatory — the flip, per-rung ask/clock wiring into order
-rows, the rung-7-win ruling), then build; the friend test (plans/12)
-inherits everything. Port map: research/01-port-gap-analysis.md.
+THE LADDER LIVE (2026-07-08, fifth session): plans/13 slice 4 is
+BUILT (313 tests, both tsc legs, live-verified — HEAD ab966c9 +
+docs). Every rung deals its OWN spec/asks/clock/par — specForRung
+reads the RUNGS table, one function on both replicas; the lobby's
+dormant cake is a humble single-tier cake-1 now. THE FLOURISH
+AMENDMENT (plans/13 §1, the session's ruling — AMENDS the impossible
+tragedy): the crown is an optional FLOURISH ("fatality" — style on a
+decided outcome), never a requirement; it lives IN the order (never
+the linger), fires at COVERAGE_GOOD, and is per-patron desire data.
+Rung 7 is winnable by WORKLOAD = MASTER BAKER (👑 banner skeleton
+shipped; fanfare/credits = content pass, no audio pipeline yet); the
+flourish on cake-6's dead summit = ULTRA MASTER BAKER, sold by the
+future economy. SLICE 4 SHIPPED CROWN-SHELVED: patron rule 3 DELETED
+(a required greatness-trigger punishes good play), NO cherry in the
+live game until slice 4b builds the desire. THE DEAL LAW: OrderFlow
+never self-deals — orderConcluded runs FIRST, then the Room deals
+dealFresh(rungRow) + redealDessert (a flow self-deal would price the
+OLD rung's asks over the NEW rung's cake). PAR PER RUNG: authored
+{solo,duo} column (campaign.ts header formula; the anchor forces
+solo rung 3 = 24); tuning's FROST_FRAC/SPRINKLES_NEEDED/
+ORDER_SECONDS/ORDER_PAR_SHOTS are ANCHOR REFERENCES — edit the
+ladder, not tuning. The tripod places itself per spec (tall-spec
+ledger item PAID); predictClock is phase-gated (the lobby view no
+longer free-runs a clock nothing corrects). ZERO DRIFT: the WIN
+script re-anchored to rung 3 (the anchor IS today's standing order)
+plays beat for beat; its win deals THE CUPCAKE, pinned on the wire.
+Standing ledger: plans/15 items 1/3/4 unclaimed pre-friend-test;
+cupcake hot-arrival note now reads on the FLOURISH; audit tranche C
+post-friend-test; wind plan and Bite/integrity re-pin ownerless.
+NEXT: review slice 4, DISCUSS slice 4b (the flourish — desire shape,
+trigger-at-look vs at-landing, verdict coda, Ultra; agenda in the
+handoff §6), build it, then slice 5 (purse/shop); the friend test
+(plans/12) inherits everything. Port map:
+research/01-port-gap-analysis.md.
