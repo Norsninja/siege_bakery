@@ -7,19 +7,22 @@ built, live-verified, and visionary-approved ("it is all working as
 we intended"). Projectile trails (plans/15 item 4), the post-local
 HUD (item 5, promoted), background music with a mood-keyed playlist
 table (new item 10), lobby songs + a mute button. The no-preview-arc
-design boundary is recorded (item 9). 386 tests, both tsc legs,
-ending 9a41398. Every pre-friend-test ledger item is now DONE. The
-friend test (plans/12) runs on the WEEKEND. Next session, per the
-visionary's explicit agenda: (1) review this session's work, (2)
-hunt tech debt, (3) discuss what else can land before the friend
-test — every improvement makes the test less likely to fail or be
-misinterpreted.
+design boundary is recorded (item 9). A PARALLEL SESSION (the
+visionary runs a second chat with its own dev server) then caught
+and fixed THE GROUND-PLANE BOOT BUG the jukebox introduced — see §2.
+389 tests, both tsc legs, ending 2f3f182 (+ this handoff). Every
+pre-friend-test ledger item is now DONE. The friend test (plans/12)
+runs on the WEEKEND. Next session, per the visionary's explicit
+agenda: (1) review this session's work, (2) hunt tech debt, (3)
+discuss what else can land before the friend test — every
+improvement makes the test less likely to fail or be misinterpreted.
 
-Four commits:
+Five commits (the fifth from the parallel session):
 - 6328366 side quest 4 (trails) + item 9 boundary
 - 176b5f9 side quest 5 (post HUD + pink/cyan tone)
 - cc8bbdc the jukebox (music.ts, order songs)
 - 9a41398 lobby songs + mute button
+- 2f3f182 the ground-plane boot bug fix (music.fadeStep)
 
 ## 2. What changed this session
 
@@ -113,6 +116,21 @@ M mute):
   song seamless at volume, fade 0.35→0→0.35 both ramps, mute both
   ways without stealing focus, lobby handoff alternates.
 
+THE GROUND-PLANE BOOT BUG (2f3f182 — fixed by the PARALLEL session,
+visionary-sighted; recorded here because the cause was this
+session's jukebox): the first rAF timestamp can PRECEDE the
+performance.now() captured when the frame loop was armed → frame
+one's dt arrives NEGATIVE → the fade-in computed volume −0.03 →
+HTMLMediaElement.volume THROWS outside [0,1] (it does not clamp) →
+the uncaught throw killed the rAF chain on frame one: baker spawned,
+camera never followed, the player stared at the boot camera inside
+the ground plane. Vsync-phase roulette, intermittent per boot. FIX:
+music.fadeStep — pure and pinned (±dt, range): ALL volume math flows
+through it; negative dt moves nothing; the result never leaves
+[0,1]. Tests 386 → 389. Full record appended to the plans/15 item 10
+block; driver lesson in memory (the preview console does not surface
+uncaught page errors — arm a window 'error' listener).
+
 ## 3. Architecture and invariants (new this session)
 
 - Trails: client-only juice in shots-view.ts; samples on the fixed
@@ -137,6 +155,11 @@ M mute):
   public/audio is the shipped copy of record; project/files/audio is
   gitignored. MusicBox is deliberately untested (Node has no <audio>);
   keep decidable logic in the pure functions.
+- THE VOLUME LAW (2f3f182): ALL volume math flows through
+  music.fadeStep (pure, pinned) — HTMLMediaElement.volume THROWS
+  outside [0,1] and a first-frame throw kills the whole rAF chain.
+  Never assign el.volume from raw arithmetic; never trust a frame dt
+  to be positive.
 - The determinism law is untouched: everything this session is
   client/ presentation; core/game unchanged.
 

@@ -82,7 +82,11 @@ power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
 THE AESTHETIC PASS (2026-07-09, ninth session): four slices BUILT,
 live-verified, visionary-approved ("all working as we intended") —
-386 tests, both tsc legs, ending 9a41398. (1) TRAILS (plans/15 item
+389 tests, both tsc legs, ending 2f3f182 (that fifth commit is the
+PARALLEL session's GROUND-PLANE BOOT BUG fix: the first rAF dt can
+be NEGATIVE and HTMLMediaElement.volume THROWS outside [0,1] — ALL
+volume math now flows through music.fadeStep, pure + pinned; never
+assign el.volume raw). (1) TRAILS (plans/15 item
 4): TrailRibbon comet in shots-view.ts — fixed-tick samples,
 camera-billboarded strip, RGBA vertex fade, topping-colored; grains
 never trail; a ribbon releases when its arc dissolves AND its body
