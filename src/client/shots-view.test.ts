@@ -20,7 +20,7 @@ import { CAKE_Z } from "../core/arena";
 import { CAKE_3, dessertGeometry } from "../core/dessert";
 import type { StepEvents } from "../core/projectiles";
 import { TOPPINGS } from "../game/toppings";
-import { ShotsView } from "./shots-view";
+import { packShotTag, unpackShotTag, ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";
 
@@ -86,5 +86,59 @@ describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
     setEvents({ ...empty, impacts: [coveringImpact] }); // tick 2: the glob
     shotsView.step(GEOM, noop);
     expect(count()).toBe(0); // buried — the record is IN the cake now
+  });
+});
+
+describe("landing rings: one per catapult (plans/15 item 1)", () => {
+  const rings = (v: ShotsView): Map<number, THREE.Mesh> =>
+    (v as unknown as { markers: Map<number, THREE.Mesh> }).markers;
+  const impactAt = (town: number, x: number, deal = 0) => ({
+    pos: { x, y: 2, z: CAKE_Z },
+    speed: 20,
+    topping: "frosting",
+    tag: packShotTag(deal, town),
+  });
+
+  it("the tag round-trips (deal, town) — and the fixtures' tag 0 IS deal 0, town 0", () => {
+    expect(unpackShotTag(packShotTag(0, 0))).toEqual({ deal: 0, town: 0 });
+    expect(unpackShotTag(packShotTag(3, 1))).toEqual({ deal: 3, town: 1 });
+    expect(unpackShotTag(packShotTag(7, 0))).toEqual({ deal: 7, town: 0 });
+    expect(packShotTag(0, 0)).toBe(0);
+  });
+
+  it("a gun's next lob replaces ITS ring; a teammate's never does — and the lobby can't pile up", () => {
+    const { shotsView, setEvents } = harness();
+    // Five lobby test shots from town 0: one ring stands, the newest.
+    for (let i = 0; i < 5; i++) {
+      setEvents({ ...empty, impacts: [impactAt(0, i)] });
+      shotsView.step(GEOM, noop);
+    }
+    expect(rings(shotsView).size).toBe(1);
+    expect(rings(shotsView).get(0)!.position.x).toBe(4); // the last lob's x
+    // Town 1 fires: its own ring appears; town 0's correction ring HOLDS.
+    const town0Ring = rings(shotsView).get(0)!;
+    setEvents({ ...empty, impacts: [impactAt(1, 9)] });
+    shotsView.step(GEOM, noop);
+    expect(rings(shotsView).size).toBe(2);
+    expect(rings(shotsView).get(0)).toBe(town0Ring); // untouched, same mesh
+    expect(rings(shotsView).get(1)!.position.x).toBe(9);
+  });
+
+  it("a stale-deal shot still rings (it visibly landed) but its town key is honest", () => {
+    const { shotsView, setEvents } = harness();
+    shotsView.bumpDeal(); // the client is on deal 1 now
+    setEvents({ ...empty, impacts: [impactAt(1, 5, 0)] }); // deal-0 straggler
+    shotsView.step(GEOM, noop);
+    expect(rings(shotsView).size).toBe(1);
+    expect(rings(shotsView).get(1)).toBeDefined();
+  });
+
+  it("the fresh deal clears every gun's ring (fresh-cake law unchanged)", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [impactAt(0, 1), impactAt(1, 2)] });
+    shotsView.step(GEOM, noop);
+    expect(rings(shotsView).size).toBe(2);
+    shotsView.clearLandingMarkers();
+    expect(rings(shotsView).size).toBe(0);
   });
 });

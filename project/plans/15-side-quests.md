@@ -17,7 +17,20 @@ DISCUSSION** (needs a design session after plans/13 economy exists) ·
 
 ## 1. Landing rings: last shot PER CATAPULT — PRE-FRIEND-TEST
 
-**Status: unclaimed.**
+**Status: DONE 2026-07-09 (eighth session). shots-view.ts only, per
+the scope note: core's Impact echoes one `tag` number, so the client
+packs (deal, town) into its own tag namespace (packShotTag /
+unpackShotTag, exported + pinned — the Room's tags are a separate
+namespace and never meet these; the old fixtures' tag 0 IS deal 0
+town 0, so nothing drifted). markers: THREE.Mesh[] FIFO-30 →
+Map<town, mesh>: a gun's next lob disposes and replaces ITS ring
+only. Stale-deal shots still ring (they visibly land, they just
+can't paint — unchanged). clearLandingMarkers (fresh-cake law) and
+quiet grains unchanged. Pinned (shots-view.test.ts, +4): tag
+round-trip, five lobby shots = one ring at the newest lob, town 1's
+ring appears while town 0's held SAME MESH, stale straggler rings
+honestly, fresh deal clears all. LIVE (worker-shim): two lobs one
+gun = ring count 0 → 1 → 1.**
 
 Decision of record: one ring per catapult, replaced by that gun's next
 lob. NOT last-shot-global (a teammate's shot must never erase your

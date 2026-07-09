@@ -30,9 +30,18 @@ import type { RestingTopping } from "../game/protocol";
 import type { ShotMsg } from "./net-handlers";
 import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
 
-/** Landing rings are breadcrumbs, not a permanent record: FIFO-capped like
- * the ground splats (audit 2026-07-03 — they used to accumulate forever). */
-const LANDING_MARKER_MAX = 30;
+/** THE RING'S RETURN ADDRESS (plans/15 item 1, 2026-07-09): landing rings
+ * are ONE PER CATAPULT — each gun's last lob, replaced by its next. Core
+ * echoes a single `tag` number per impact, so the client packs (deal,
+ * town) into its own tag namespace. This namespace is ShotsView's alone:
+ * the Room's ProjectileManager tags carry its deal generation and the two
+ * managers never share events. */
+export const packShotTag = (deal: number, town: number): number =>
+  deal * TOWNS.length + town;
+export const unpackShotTag = (tag: number): { deal: number; town: number } => ({
+  deal: Math.floor(tag / TOWNS.length),
+  town: tag % TOWNS.length,
+});
 
 /** Burst grains are MULTICOLOR (plans/10 — color-variety judgment stays
  * deferred; the confetti is the point). In-flight grains take the palette by
@@ -46,7 +55,10 @@ export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
     [];
-  private readonly markers: THREE.Mesh[] = [];
+  /** One ring per firing town (plans/15 item 1): a teammate's shot must
+   * never erase YOUR walk-the-fall correction, and lobby test shots must
+   * not pile up — the old FIFO-30 breadcrumb trail did both. */
+  private readonly markers = new Map<number, THREE.Mesh>();
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). The topping
    * rides along: fudge paints under its own splat law and renders dark. */
@@ -90,7 +102,8 @@ export class ShotsView {
       // the body; sync() sweeps the orphaned mesh.
       {
         consumeOnImpact: isPaint(msg.topping),
-        tag: this.deal,
+        // (deal, town) packed — the ring's return address (header note).
+        tag: packShotTag(this.deal, msg.town),
         seed: msg.seed,
         ...(burst ? { burst } : {}),
       },
@@ -181,9 +194,12 @@ export class ShotsView {
       // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
       // and 40 rings — the burst already told the story.
       if (im.grain) continue;
+      const { deal, town } = unpackShotTag(im.tag);
       const splat = im.speed >= SPLAT_SPEED;
-      this.addLandingMarker(im.pos.x, im.pos.y, im.pos.z, splat);
-      if (isPaint(im.topping) && im.tag === this.deal)
+      // The firing gun's ring moves to its newest lob — a stale-deal shot
+      // still visibly lands (it always did), it just can't paint.
+      this.addLandingMarker(town, im.pos.x, im.pos.y, im.pos.z, splat);
+      if (isPaint(im.topping) && deal === this.deal)
         this.onPaintImpact?.(im.topping, im.pos, im.speed);
       flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
@@ -231,16 +247,21 @@ export class ShotsView {
    * at paint and toppings that are gone. All of them come down with the
    * dessert (playtest 2026-07-07); the physical floor litter stays. */
   clearLandingMarkers(): void {
-    for (const m of this.markers) removeAndDispose(m);
-    this.markers.length = 0;
+    for (const m of this.markers.values()) removeAndDispose(m);
+    this.markers.clear();
   }
 
+  /** One ring per town (plans/15 item 1): this gun's next lob replaces
+   * its own ring and nobody else's. */
   private addLandingMarker(
+    town: number,
     x: number,
     y: number,
     z: number,
     splat: boolean,
   ): void {
+    const old = this.markers.get(town);
+    if (old) removeAndDispose(old);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.25, splat ? 0.55 : 0.4, 24),
       new THREE.MeshBasicMaterial({
@@ -251,8 +272,6 @@ export class ShotsView {
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, Math.max(0.02, y - PROJECTILE_RADIUS + 0.03), z);
     this.scene.add(ring);
-    this.markers.push(ring);
-    if (this.markers.length > LANDING_MARKER_MAX)
-      removeAndDispose(this.markers.shift()!);
+    this.markers.set(town, ring);
   }
 }
