@@ -4,7 +4,15 @@
  * two functions carry everything decidable: the pick law and the mood map.
  */
 import { describe, expect, it } from "vitest";
-import { deriveMood, nextTrack, PLAYLISTS } from "./music";
+import {
+  BG_VOLUME,
+  deriveMood,
+  FADE_IN_MS,
+  FADE_OUT_MS,
+  fadeStep,
+  nextTrack,
+  PLAYLISTS,
+} from "./music";
 
 describe("nextTrack — random, but never the song that just played", () => {
   it("two songs ALTERNATE (the visionary's spec): whatever rand says, the other plays", () => {
@@ -38,6 +46,28 @@ describe("deriveMood — the match state the HUD already renders by", () => {
     expect(deriveMood("runover", "lost")).toBe("runover");
     expect(deriveMood("lobby", "running")).toBe("lobby");
     expect(deriveMood("countdown", "running")).toBe("lobby");
+  });
+});
+
+describe("fadeStep — the volume law (THE GROUND-PLANE BOOT BUG, 2026-07-09)", () => {
+  it("REGRESSION: a NEGATIVE dt moves nothing — the first rAF timestamp can precede the armed clock, and volume < 0 THROWS in the browser, killing the frame loop at boot", () => {
+    expect(fadeStep(0, BG_VOLUME, -5)).toBe(0);
+    expect(fadeStep(0.2, 0, -16)).toBe(0.2);
+  });
+
+  it("never leaves [0, 1], however huge the step", () => {
+    expect(fadeStep(0, BG_VOLUME, 1e9)).toBe(BG_VOLUME);
+    expect(fadeStep(BG_VOLUME, 0, 1e9)).toBe(0);
+    expect(fadeStep(0.9, 1, 1e9)).toBe(1);
+  });
+
+  it("ramps: a full fade window closes the gap; half a window closes half", () => {
+    expect(fadeStep(0, BG_VOLUME, FADE_IN_MS)).toBe(BG_VOLUME);
+    expect(fadeStep(BG_VOLUME, 0, FADE_OUT_MS)).toBe(0);
+    expect(fadeStep(0, BG_VOLUME, FADE_IN_MS / 2)).toBeCloseTo(
+      BG_VOLUME / 2,
+      10,
+    );
   });
 });
 

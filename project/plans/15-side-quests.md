@@ -309,4 +309,18 @@ its pointer-events: none regardless); BLURRED after every click —
 a focused button turns Space into "click", and Space WINDS the winch.
 Icon follows the state from BOTH paths (key and click). Live: click
 muted 🔇 without stealing focus, M unmuted 🔊, lobby played
-hearth-harvest and handed off to hearthside-yeast on ended.**
+hearth-harvest and handed off to hearthside-yeast on ended.
+THE GROUND-PLANE BOOT BUG (same session, visionary-sighted, FIXED):
+the first rAF timestamp can PRECEDE the performance.now() captured
+when the loop was armed → frame one's dt arrives NEGATIVE → the
+fade-in computed volume −0.03 → HTMLMediaElement.volume THROWS
+outside [0,1] (it does not clamp) → the uncaught throw killed the
+rAF chain on frame one: baker spawned, camera never followed, the
+player stared at the boot camera INSIDE THE GROUND PLANE. Vsync-
+phase roulette — intermittent per boot. FIX: fadeStep (pure, PINNED
+±dt and range): all volume math goes through it; negative dt moves
+nothing; result never leaves [0,1]. Verified: four consecutive
+in-page reboots, zero errors, camera at eye height every time.
+Driver lesson in memory: the preview console does NOT capture
+uncaught page errors — arm a window 'error' listener and re-import
+main with a cache-bust to catch a first-frame death.**

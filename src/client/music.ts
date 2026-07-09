@@ -55,6 +55,23 @@ export function nextTrack(
   return (last + step) % count;
 }
 
+/** One fade tick, pure and PINNED (the ground-plane boot bug,
+ * 2026-07-09): volume moves toward target and NEVER leaves [0, 1] —
+ * HTMLMediaElement.volume THROWS outside that range instead of
+ * clamping, and an uncaught throw inside frame() kills the rAF chain:
+ * the baker spawns, the camera never follows, and the player stares at
+ * the boot camera inside the ground plane. The trigger: the FIRST rAF
+ * timestamp can precede the performance.now() captured when the loop
+ * was armed, so dt arrives NEGATIVE — a negative dt moves nothing. */
+export function fadeStep(v: number, target: number, dtMs: number): number {
+  const dt = Math.max(0, dtMs);
+  const next =
+    v < target
+      ? Math.min(target, v + (dt / FADE_IN_MS) * BG_VOLUME)
+      : Math.max(target, v - (dt / FADE_OUT_MS) * BG_VOLUME);
+  return Math.min(1, Math.max(0, next));
+}
+
 /** Which mood the match is in — pure off the broadcast state the HUD
  * already renders by. The finish-it window keeps the ORDER's music
  * (status stays "running" — peak excitement is not an interlude);
@@ -128,24 +145,16 @@ export class MusicBox {
     }
   }
 
-  /** Run the fades — call once per rendered frame. */
+  /** Run the fades — call once per rendered frame. All volume math goes
+   * through fadeStep (pure, pinned): the raw setter throws out of range. */
   step(dtMs: number): void {
     const v = this.el.volume;
-    if (v < this.target) {
-      this.el.volume = Math.min(
-        this.target,
-        v + (dtMs / FADE_IN_MS) * BG_VOLUME,
-      );
-    } else if (v > this.target) {
-      this.el.volume = Math.max(
-        this.target,
-        v - (dtMs / FADE_OUT_MS) * BG_VOLUME,
-      );
-      if (this.el.volume === 0 && this.pendingMood !== null) {
-        const next = this.pendingMood;
-        this.pendingMood = null;
-        this.begin(next, true);
-      }
+    const next = fadeStep(v, this.target, dtMs);
+    if (next !== v) this.el.volume = next;
+    if (next === 0 && this.pendingMood !== null) {
+      const mood = this.pendingMood;
+      this.pendingMood = null;
+      this.begin(mood, true);
     }
   }
 
