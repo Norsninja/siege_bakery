@@ -12,6 +12,7 @@ import { buildCensus, FrostingField } from "../core/frosting";
 import { SPLAT_SPEED } from "../core/ballistics";
 import {
   checkRequirements,
+  crownedWith,
   describeProgress,
   describeRequirement,
   judge,
@@ -61,6 +62,34 @@ describe("zones are tiers", () => {
     expect(GEOM.isInZone(0, { x: 3.5, y: LEDGE_Y, z: CAKE_Z })).toBe(true);
     expect(GEOM.isInZone(1, { x: 2.6, y: MID_Y, z: CAKE_Z })).toBe(true);
     expect(GEOM.isInZone("cake", { x: 0, y: 0.35, z: CAKE_Z + 5 })).toBe(false); // the floor
+  });
+});
+
+describe("crownedWith (the desire's predicate — slice 4b, crown semantics as one function)", () => {
+  it("true exactly when the crown holder is the named topping on the summit", () => {
+    expect(crownedWith(GEOM, [at("cherry", 0, TOP_Y)], "cherry")).toBe(true);
+    // On the cake but below the summit: the desire is placement, not presence.
+    expect(crownedWith(GEOM, [at("cherry", 3.5, LEDGE_Y)], "cherry")).toBe(false);
+    // Nothing settled at all.
+    expect(crownedWith(GEOM, [], "cherry")).toBe(false);
+  });
+
+  it("decoy-proof both ways: a lime can usurp the summit but never impersonate the cherry", () => {
+    // The lime lands HIGHER — it is the crown holder now, so the cherry
+    // is not crowned (knock it away through play, the live-truth law)…
+    const usurped = [at("cherry", 0, TOP_Y), at("lime", 0.2, TOP_Y + 0.4)];
+    expect(crownedWith(GEOM, usurped, "cherry")).toBe(false);
+    // …but a lime alone up there never reads as the cherry.
+    expect(crownedWith(GEOM, [at("lime", 0, TOP_Y)], "cherry")).toBe(false);
+  });
+
+  it("garnish never crowns: a wild sprinkle atop the summit cannot usurp (plans/10 §3)", () => {
+    const sprinkled = [at("cherry", 0, TOP_Y), at("sprinkles", 0.2, TOP_Y + 0.4)];
+    expect(crownedWith(GEOM, sprinkled, "cherry")).toBe(true);
+  });
+
+  it("a floor cherry counts for nothing — on-cake is the gate", () => {
+    expect(crownedWith(GEOM, [at("cherry", 8, 0.3, false)], "cherry")).toBe(false);
   });
 });
 

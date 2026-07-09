@@ -167,6 +167,8 @@ async function main(): Promise<void> {
   const wsUrl = pickWsUrl(location, import.meta.env.PROD);
   let transport: Transport;
   let tickRoom: (() => void) | null = null;
+  /** Loopback only — the DEV verification seam (net.ts LoopbackConnection). */
+  let loopRoom: import("../server/room").Room | null = null;
   if (wsUrl) {
     view.netStatus = "connecting";
     transport = connectWs(wsUrl, handleServerMsg, (s) => {
@@ -185,6 +187,7 @@ async function main(): Promise<void> {
     const loop = connectLoopback(handleServerMsg);
     transport = loop.transport;
     tickRoom = loop.tickRoom;
+    loopRoom = loop.room;
   }
 
   // --- Input: pointer-lock mouse look + WASD/Shift + E (input.ts) ---
@@ -398,7 +401,11 @@ async function main(): Promise<void> {
           // loss's photo stays hung — the filthy floor is the trophy.
           bannerShown = true;
           banner.style.display = "flex";
-          banner.textContent = runOverText(view.run.rung, view.run.won ?? false);
+          banner.textContent = runOverText(
+            view.run.rung,
+            view.run.won ?? false,
+            view.run.ultra ?? false,
+          );
         } else if (view.run.phase !== "running") {
           // The lobby (or the countdown): everything comes down. No deal
           // edge fired here — the run start deals fresh and the latch
@@ -597,6 +604,11 @@ async function main(): Promise<void> {
       // applies authoritatively, not a module mutation — which is what
       // the dev-toggle friend test needs.
       unlockTown2: () => transport.send({ t: "unlockTown2" }),
+      // THE LOOPBACK ROOM SEAM (slice 4b live-verify; jumpToRung culture):
+      // solo/dev only — null over ws. Lets a verification script BUILD
+      // state (paint, ledger entries, a rung jump) the way the room tests'
+      // private seams do, while play itself still speaks protocol.
+      room: loopRoom,
     };
   }
 }

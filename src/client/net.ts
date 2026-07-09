@@ -50,6 +50,12 @@ export interface LoopbackConnection {
   transport: Transport;
   /** Advance the in-process room one fixed tick. Call from the sim loop. */
   tickRoom: () => void;
+  /** The in-process room itself — exposed for the DEV `__game.room`
+   * verification seam (main.ts; the jumpToRung culture, live): solo-only
+   * by construction, never a thing over ws. Play still speaks protocol —
+   * the seam is for building STATE mid-verification, exactly like the
+   * room tests' private seams. */
+  room: Room;
 }
 
 export function connectLoopback(
@@ -69,6 +75,7 @@ export function connectLoopback(
       close: () => room.leave(id),
     },
     tickRoom: () => room.tick(),
+    room,
   };
 }
 

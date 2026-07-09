@@ -162,8 +162,12 @@ export function bannerText(
     : "";
   let text: string;
   if (order.status === "won" && verdict) {
-    // Both gates cleared: tiered delight.
-    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}\n${list}\n${scoreLine}`;
+    // Both gates cleared: tiered delight. THE CODA (plans/13 §1, slice
+    // 4b): the flourish landed — the verdict upgrades, never gates.
+    const coda = verdict.flourish
+      ? `\n✨ AND THE FLOURISH — A ${(order.desire?.topping ?? "flourish").toUpperCase()} ON THE VERY TOP ✨`
+      : "";
+    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}${coda}\n${list}\n${scoreLine}`;
   } else if (verdict?.met) {
     // Gate 2 refusal — the insulting kind: every box ticked, badly.
     text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
@@ -194,7 +198,7 @@ export function snapshotCaption(verdict: Judgment | null): string {
   if (!verdict.met) return `${head}\n— and he goes hungry`;
   if (!verdict.accepted)
     return `${head}\n— "it is TERRIBLE." (${verdict.score}/100)`;
-  return `${head}\n${"★".repeat(verdict.stars)} delighted — ${verdict.score}/100`;
+  return `${head}\n${"★".repeat(verdict.stars)} delighted — ${verdict.score}/100${verdict.flourish ? " — WITH A FLOURISH ✨" : ""}`;
 }
 
 /** The run report's one fact (plans/13): how far the crew climbed.
@@ -212,9 +216,11 @@ export function runOverLine(rung: number, won = false): string {
  * filthy floor is the trophy, and the lobby circle is the next move.
  * TRIUMPH (§1 flourish amendment): the MASTER BAKER banner — the
  * skeleton of the moment; trophy/fanfare/credits are a content pass. */
-export function runOverText(rung: number, won = false): string {
+export function runOverText(rung: number, won = false, ultra = false): string {
   if (won)
-    return `👑 MASTER BAKER 👑\n${runOverLine(rung, true)}\n— gather in the gold circle to bake again`;
+    // ULTRA (§1 finish-it amendment): the triumph's verdict wore the coda —
+    // the title upgrades; the ceremony rides the MASTER BAKER content pass.
+    return `${ultra ? "👑 ULTRA MASTER BAKER OF THE REALMS 👑" : "👑 MASTER BAKER 👑"}\n${runOverLine(rung, true)}\n— gather in the gold circle to bake again`;
   return `THE RUN IS OVER\n${runOverLine(rung)}\n— gather in the gold circle to run again`;
 }
 
@@ -275,15 +281,27 @@ export function hudLines(v: HudView): string[] {
         : v.run.phase === "runover"
           ? [
               v.run.won
-                ? `👑 MASTER BAKER — ${runOverLine(v.run.rung, true)}   [${who}]`
+                ? `👑 ${v.run.ultra ? "ULTRA MASTER BAKER OF THE REALMS" : "MASTER BAKER"} — ${runOverLine(v.run.rung, true)}   [${who}]`
                 : `RUN OVER — ${runOverLine(v.run.rung)}   [${who}]`,
             ]
           : [
-              `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
+              // THE FINISH IT WINDOW (plans/13 §1, slice 4b): the outcome
+              // is decided — the header swaps the dead order clock for the
+              // window's own countdown; the golden row below names the ask.
+              v.order.finishTicksLeft > 0
+                ? `RUNG ${v.run.rung} · ⭐ FINISH IT! ${Math.ceil(v.order.finishTicksLeft * FIXED_DT)}s ⭐   [${who}]`
+                : `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
               ...v.checks.map(
                 (c) =>
                   `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,
               ),
+              // THE GOLDEN ROW: the revealed desire — style, never a
+              // requirement (it renders only once the patron names it).
+              ...(v.order.desire?.revealed
+                ? [
+                    `  ★ THE FLOURISH: a ${v.order.desire.topping} on the very top${v.order.desire.met ? " ✓" : " — style, not required"}`,
+                  ]
+                : []),
             ];
   const lines = [
     ...top,

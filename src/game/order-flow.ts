@@ -16,7 +16,7 @@
  * deterministic (the whim rng is seeded and persists across deals).
  */
 import { mulberry32 } from "../core/rng";
-import { rungRow, type Rung } from "./campaign";
+import { RUNGS, rungRow, type Rung } from "./campaign";
 import {
   weighedMess,
   type Requirement,
@@ -26,6 +26,7 @@ import {
 import { createOrder, tickOrder, type OrderState } from "./order";
 import { createGiant, type Patron } from "./patron";
 import {
+  FINISH_WINDOW_TICKS,
   ORDER_RESET_TICKS,
   PATRON_LOOK_EVERY,
   TOWN_ASK_POTENTIAL,
@@ -69,6 +70,28 @@ export function standardRequirements(activeTowns = 1): Requirement[] {
   return requirementsFor(rungRow(3), activeTowns);
 }
 
+/** THE TOPPERS LAW's tripwire (plans/13 §1 finish-it amendment,
+ * 2026-07-09): a desire's topping must NEVER appear in any orderable row —
+ * desires draw from toppers (cherry, lime: the shelf nobody orders), so
+ * the one-number law holds STRUCTURALLY (a desire can't double-book a
+ * topping the order counts). Checked against every RUNGS row at both ask
+ * tables; runs at Room boot beside validateRungs. Trivially true today —
+ * load-bearing the day a patron's desire rolls an orderable topping. */
+export function validateDesires(): void {
+  const desire = createGiant().desire;
+  if (!desire) return;
+  for (const row of RUNGS) {
+    for (const towns of [1, 2]) {
+      for (const req of requirementsFor(row, towns)) {
+        if ("topping" in req && req.topping === desire.topping)
+          throw new Error(
+            `desire topping "${desire.topping}" appears in an orderable row (spec ${row.spec}) — the toppers law`,
+          );
+      }
+    }
+  }
+}
+
 /** What one tick of the lifecycle asks the Room to do, in order. */
 export type FlowEvent =
   /** The clock just died: gate 1 fails — broadcast the verdict. */
@@ -78,7 +101,12 @@ export type FlowEvent =
    * rung's asks — the rung climbs in orderConcluded, which the Room
    * must run FIRST. The Room answers with dealFresh(the right row) +
    * the physical resets + the broadcast, every path. */
-  | "lingerOver";
+  | "lingerOver"
+  /** THE FINISH IT WINDOW's countdown died with the flourish unlanded
+   * (plans/13 §1, 2026-07-09): the Room closes the window — completes
+   * the frozen verdict (one last ledger read; a shoved cherry is honest)
+   * and broadcasts the ending. */
+  | "finishOver";
 
 export class OrderFlow {
   /** The live order. The Room writes evaluateOrder results and patron
@@ -111,10 +139,21 @@ export class OrderFlow {
 
   /** One rung's ticket: rows, clock, and par all from the RUNGS row
    * (the ladder live, plans/13 slice 4). Par picks the authored column
-   * by crew shape — the duo workload is strictly bigger (campaign.ts). */
+   * by crew shape — the duo workload is strictly bigger (campaign.ts).
+   * Flourish rungs (asks.crown) carry the patron's DESIRE (§1 amendment,
+   * slice 4b) — per-patron data, never a requirement row. */
   private freshOrder(row: Rung): OrderState {
     return createOrder(requirementsFor(row, this.activeTowns), row.clockSeconds * 60, {
       parShots: this.activeTowns >= 2 ? row.parShots.duo : row.parShots.solo,
+      ...(row.asks.crown && this.patron.desire
+        ? {
+            desire: {
+              topping: this.patron.desire.topping,
+              revealed: false,
+              met: false,
+            },
+          }
+        : {}),
     });
   }
 
@@ -135,6 +174,9 @@ export class OrderFlow {
    * patience lands on the clock the same tick, exactly as pre-decomp). */
   shouldLook(): boolean {
     if (this.order.status !== "running") return false;
+    // The finish-it window is its own beat: the patron holds his breath
+    // (a look could burn patience into a clock that isn't moving).
+    if (this.order.finishTicksLeft > 0) return false;
     this.orderTicks++;
     return this.orderTicks % PATRON_LOOK_EVERY === 0;
   }
@@ -192,6 +234,23 @@ export class OrderFlow {
     this.order = this.freshOrder(row);
   }
 
+  /** THE FINISH IT WINDOW opens (plans/13 §1, 2026-07-09): the Room
+   * decided the rows-met outcome qualifies (accepted + flourish rung +
+   * revealed + desire unmet) and holds the frozen base verdict; the flow
+   * holds the countdown. Status stays "running" — decided, not ended:
+   * gates shut, banner suppressed, clocks held (tickClock below). */
+  openFinishWindow(): void {
+    this.order = { ...this.order, finishTicksLeft: FINISH_WINDOW_TICKS };
+  }
+
+  /** The window's end — early on the landed flourish, or at "finishOver":
+   * the decided win formally ends NOW (S-MED-1 as amended: base frozen at
+   * the decided tick, verdict COMPLETE here). The Room completes the coda
+   * and broadcasts; the linger starts counting from this tick. */
+  closeFinishWindow(): void {
+    this.order = { ...this.order, status: "won", finishTicksLeft: 0 };
+  }
+
   /** Advance the lifecycle one tick: the clock, the transition, the
    * linger. Events come back in the order they happened — on the
    * transition tick the linger ALSO counts (pre-decomp behavior, pinned
@@ -199,6 +258,14 @@ export class OrderFlow {
    * deals NOTHING — the Room answers with dealFresh(the right row)
    * every path (see FlowEvent), which zeroes the linger count. */
   tickClock(): FlowEvent[] {
+    // The finish-it window holds every other clock: the outcome is
+    // decided, so the order clock is irrelevant (plans/13 §1) — only the
+    // window's own countdown runs, and its death asks the Room to close.
+    if (this.order.finishTicksLeft > 0) {
+      const left = this.order.finishTicksLeft - 1;
+      this.order = { ...this.order, finishTicksLeft: left };
+      return left <= 0 ? ["finishOver"] : [];
+    }
     const events: FlowEvent[] = [];
     const before = this.order.status;
     this.order = tickOrder(this.order);

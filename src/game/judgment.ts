@@ -83,6 +83,42 @@ export function weighedMess(settled: readonly SettledTopping[]): number {
   return weight > 0 ? off / weight : 0;
 }
 
+/** The crown's holder: the uppermost on-cake settled CROWN-CLASS solid
+ * (strictly greatest rest y; ledger order breaks exact ties). Paint
+ * entries are mess bookkeeping, not crown contenders; grains are garnish
+ * and NEVER crown (plans/10 §3 — a wild sprinkle atop the summit must not
+ * usurp the cherry). Shared by crown rows and the DESIRE machinery
+ * (plans/13 §1 flourish — the ledger-judged fatality). */
+export function crownHolder(
+  settled: readonly SettledTopping[],
+): SettledTopping | null {
+  let uppermost: SettledTopping | null = null;
+  for (const s of settled) {
+    if (!canCrown(s.topping)) continue;
+    if (s.onCake && (uppermost === null || s.pos.y > uppermost.pos.y))
+      uppermost = s;
+  }
+  return uppermost;
+}
+
+/** "The summit is claimed by THIS topping" — crown semantics as one
+ * predicate: the crown holder is `topping` AND rests on the top tier.
+ * Decoy-proof both ways (a lime can knock the cherry off but never
+ * impersonate it). The desire's eligibility check (plans/13 §1): applied
+ * to the LIVE ledger at each conclusion point, whenever it was thrown. */
+export function crownedWith(
+  dessert: DessertGeometry,
+  settled: readonly SettledTopping[],
+  topping: string,
+): boolean {
+  const u = crownHolder(settled);
+  return (
+    u !== null &&
+    u.topping === topping &&
+    dessert.tierOf(u.pos) === dessert.topTier
+  );
+}
+
 /** Census every row against everything at rest and the frosting field.
  * Pure; called by the Room after each delivery and each Patron amendment.
  * `dessert` is the deal's geometry (spec refactor, plans/13 §3) — the
@@ -93,18 +129,9 @@ export function checkRequirements(
   settled: readonly SettledTopping[],
   frosting: FrostingField,
 ): RequirementCheck[] {
-  // The crown cares about the WHOLE cake, not just its own topping: the
-  // uppermost on-cake settled CROWN-CLASS solid (strictly greatest rest y;
-  // ledger order breaks exact ties) — computed once, shared by every crown
-  // row. Paint entries are mess bookkeeping, not crown contenders; grains
-  // are garnish and NEVER crown (plans/10 §3 — a wild sprinkle atop the
-  // summit must not usurp the cherry).
-  let uppermost: SettledTopping | null = null;
-  for (const s of settled) {
-    if (!canCrown(s.topping)) continue;
-    if (s.onCake && (uppermost === null || s.pos.y > uppermost.pos.y))
-      uppermost = s;
-  }
+  // The crown cares about the WHOLE cake, not just its own topping —
+  // computed once, shared by every crown row.
+  const uppermost = crownHolder(settled);
   return reqs.map((req) => {
     if (req.kind === "crown") {
       const met =
@@ -168,6 +195,12 @@ export interface Judgment {
   integrity: number;
   mess: number;
   waste: number;
+  /** THE FLOURISH (plans/13 §1 finish-it amendment, 2026-07-09): the
+   * desire landed — the coda. Stamped by the ROOM at each conclusion
+   * point from the live ledger (accepted verdicts only), never computed
+   * by judge(): on the window path the flourish is judged at the
+   * WINDOW'S end, after this base froze. */
+  flourish?: true;
 }
 
 /**

@@ -105,6 +105,36 @@ describe("RunFlow — the ladder and the run's end", () => {
     expect(r.rung).toBe(0);
   });
 
+  it("ULTRA (§1 finish-it amendment): the top-rung triumph WITH the flourish", () => {
+    const r = running();
+    for (let i = 1; i < RUNGS.length; i++)
+      expect(r.orderConcluded(true, true)).toBe("nextRung"); // mid-ladder codas…
+    expect(r.ultra).toBe(false); // …never set the flag (only the top consumes it)
+    expect(r.orderConcluded(true, true)).toBe("runWon");
+    expect(r.won).toBe(true);
+    expect(r.ultra).toBe(true);
+    // The lobby starts clean, ultra included.
+    let toLobby = 0;
+    for (let i = 0; i < RUNOVER_TICKS; i++)
+      if (r.tickRunover() === "lobby") toLobby++;
+    expect(toLobby).toBe(1);
+    expect(r.ultra).toBe(false);
+  });
+
+  it("a plain top-rung triumph is MASTER BAKER only — no coda, no ultra", () => {
+    const r = running();
+    for (let i = 1; i < RUNGS.length; i++) r.orderConcluded(true);
+    expect(r.orderConcluded(true, false)).toBe("runWon");
+    expect(r.won).toBe(true);
+    expect(r.ultra).toBe(false);
+  });
+
+  it("a LOST order never wears ultra, coda or not (won && flourish, both)", () => {
+    const r = running();
+    expect(r.orderConcluded(false, true)).toBe("runOver");
+    expect(r.ultra).toBe(false);
+  });
+
   it("a lost run never wears the crown — won stays false through its runover", () => {
     const r = running();
     r.orderConcluded(false);

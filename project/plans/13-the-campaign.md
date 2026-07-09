@@ -72,7 +72,9 @@ progressively harder until they reach near impossible. Rulings:
     - Meeting the desire NEVER gates the win; it upgrades the
       verdict (a coda field, purse bonus in slice 5, report flair).
       The frozen-verdict law (S-MED-1) is untouched — the verdict is
-      complete at the win tick.
+      complete at the win tick. [AMENDED 2026-07-09 by the FINISH IT
+      ruling below: the BASE verdict freezes at the decided tick; the
+      verdict COMPLETES at the window's end.]
     - CONSEQUENCE, ruled deliberately: rung 7 becomes winnable by
       WORKLOAD alone (~44–49 human two-town shots vs a crew ceiling
       of ~30–44 — almost impossible, occasionally beaten). Beating
@@ -93,6 +95,65 @@ progressively harder until they reach near impossible. Rulings:
       sprinkles only; patron rule 3 deleted; the Giant keeps his
       thunder and his nag). The flourish is **slice 4b**, its own
       coherent build right after the flip.
+- **THE FINISH IT AMENDMENT (2026-07-09, sixth session — the 4b
+  discussion's rulings of record; extends the flourish amendment).**
+  The visionary's Mortal Kombat instinct, translated onto the real
+  mechanics: our "all hitpoints removed" moment is not clock-zero
+  (which is only ever the LOSING end — a won order ends the instant
+  its last row is met, order.ts evaluateOrder) but THE ROWS-MET TICK.
+  Today that moment and the formal end are the same tick; the fatality
+  needs the beat between them. Ruled:
+    - **THE FINISH IT WINDOW** — the spine of 4b. At the rows-met
+      tick the BASE judgment computes and FREEZES exactly as today
+      (stars, waste, acceptance — untouchable). If the window opens,
+      the verdict COMPLETES at the window's end with the coda; style
+      shots during the window are free BY CONSTRUCTION (nothing can
+      tax a frozen score). S-MED-1 is hereby amended: "the base
+      verdict is frozen at the decided tick; the verdict is complete
+      at the window's end."
+    - **The window opens ONLY when ALL hold**: the judgment ACCEPTED
+      (a gate-2 refusal gets no fatality), the rung's asks.crown flag
+      is true, the reveal fired (live coverage reached goodFrac), and
+      the desire is still unmet. Every other win renders instantly,
+      as today: rungs 1–2, sub-GOOD wins, refusals — and a PRE-MET
+      desire, which skips the window straight to verdict + coda (the
+      fatality already happened; foresight is its own reward).
+    - **The window's clock**: its own countdown, one authored
+      constant, GENEROUS (~12–15s to open — an un-staged cherry needs
+      a real pantry ferry loop; the feel pass moves the number). It
+      ends EARLY the moment the desire settles — landing the fatality
+      cuts to the payoff. The order clock is irrelevant once the
+      outcome is decided.
+    - **LEDGER-JUDGED DESIRE**: eligibility is PHYSICAL — the desire
+      is judged against the settled ledger (scoring truth stays
+      physical, the standing law). A cherry resting on the summit
+      counts WHENEVER it was thrown; players lobbing cherries early
+      because they want to is play, not a rules problem. The reveal
+      and the window are presentation and room-to-act; they never
+      gate the coda.
+    - **THE TOPPERS CLASS**: desires draw ONLY from toppers — the
+      pantry shelf of things nobody orders and everybody wants to
+      throw (lime, now cherry; others later). The cherry joins the
+      pantry under the LIME'S GRAMMAR: fires anyway, lands anyway,
+      counts as mess unless it is the desire met. The one-number law
+      becomes STRUCTURAL (a desire topping can never collide with an
+      ordered row) plus a boot validation beside validateRungs; the
+      original flourish text's "an Ent wants fudge or sprinkles up
+      there" flavor is DROPPED — desires are toppers, full stop.
+    - **Desire data**: a separate field on OrderState — never a
+      requirement row; the "all rows met = win" invariant stays
+      total. Reveal at COVERAGE_GOOD via the patron's LOOK (golden
+      HUD row + character voice; the offer channel is the look, no
+      new event path). A sub-GOOD win never sees the offer and never
+      gets the window — but a pre-landed cherry still earns the coda
+      (physical truth outranks presentation).
+    - **ULTRA, skeleton only**: the coda + the runover report's title
+      line upgrades MASTER BAKER → ULTRA MASTER BAKER OF THE REALMS
+      (same wire-flag idiom as `won`). No bespoke ceremony: nothing
+      can reach cake-6's summit until the economy sells the key, and
+      Ultra's full ceremony rides the MASTER BAKER content pass,
+      designed when someone can actually earn it.
+    - Purse bonus for the flourish: slice 5, as already ruled.
 
 ## 2. Foundations this plan is authored against (do not re-derive)
 
@@ -446,12 +507,70 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    clock frozen at 9000, ready-up deals rung 1 (150s clock, par 11,
    ONE row — frost 0.4, no sprinkles), live clock ticks, a 6-click
    splat paints cake-1's own census (frost row 0 → 3.3%).]**
-4b. **The flourish** (the §1 amendment's build): greatness trigger at
-   COVERAGE_GOOD on a patron look, the optional desire (kept OUT of
-   the requirements array — the "all rows met" invariant stays
-   total), verdict coda + HUD golden row, the Giant's cherry-on-top
-   as v1 content, ULTRA MASTER BAKER on rung 7. DISCUSS the desire
-   mechanics before building, per the standing sequence.
+4b. **The flourish** (the §1 amendments' build — DISCUSSED 2026-07-09,
+   sixth session; rulings in §1 THE FINISH IT AMENDMENT, all of
+   record). Build order: the WINDOW is the spine, built first; the
+   cherry is its content.
+   - The finish-it window: base judgment frozen at the rows-met tick,
+     verdict completes at window end (S-MED-1 amended per §1); opens
+     only on accepted + asks.crown + reveal-fired + desire-unmet;
+     authored countdown constant (~12–15s), early-out when the desire
+     settles; pre-met desire and every non-qualifying win render
+     instantly as today.
+   - The desire: separate OrderState field (topping + placement,
+     v1 "cherry on the top tier"), judged from the settled ledger at
+     verdict time. Toppers class + boot validation (no desire topping
+     may appear in any orderable row).
+   - THE CHERRY end-to-end under the lime's grammar: pantry crate,
+     carry, shot, settle, visuals, mess accounting — both replicas.
+   - Reveal at COVERAGE_GOOD via the patron look (golden HUD row +
+     voice line); FINISH IT banner + countdown on the HUD.
+   - Verdict coda (wire + report flair); rung-7 title line upgrade →
+     ULTRA MASTER BAKER OF THE REALMS (skeleton — content pass later).
+   - Zero-drift guard: every existing win path that doesn't qualify
+     for the window must render beat-for-beat as today (the WIN
+     script must not move).
+   **[BUILT 2026-07-09 (sixth session), under the §1 finish-it
+   rulings. OrderState gains `desire` ({topping, revealed, met} —
+   dealt by freshOrder exactly on asks.crown rungs, from
+   Patron.desire: the Giant's cherry) and `finishTicksLeft` (both
+   ride every order-carrying msg for free — welcome included, so
+   mid-window joiners just work; status stays "running" through the
+   window, which keeps all seven status-keyed client seams correct
+   unchanged). Patron rule 3 reborn as THE REVEAL (in-place desire
+   mutation at a look when the frost check's current ≥ goodFrac;
+   patience 0 — the offer is a gift). judgment.ts: crownHolder/
+   crownedWith extracted (the crown row and the desire share one
+   decoy-proof predicate); Judgment.flourish. The Room owns the
+   window: qualification at the rows-met tick (accepted + desire +
+   revealed + unmet) holds the base verdict in pendingVerdict
+   unbroadcast and opens the flow's countdown (FINISH_WINDOW_TICKS,
+   15s); landings during the window early-out via the live desire.met
+   census; finishOver and the early-out both close through
+   concludeFinishWindow — one last ledger read stamps the coda, the
+   ending broadcast is the same atomic word as ever ("judgment rides
+   exactly when the msg ENDS the order" stays true verbatim);
+   stampFlourish also runs on every instant conclusion (pre-met =
+   instant verdict + coda). runWon consumes lingerVerdict.flourish →
+   RunFlow.ultra → RunWire.ultra → ULTRA MASTER BAKER OF THE REALMS
+   title swap (skeleton). validateDesires (the toppers law) runs at
+   Room boot beside validateRungs. Client: predictClock predicts the
+   window's own countdown (order clock held); HUD golden row (★ THE
+   FLOURISH, revealed-only, ✓ when met), ⭐ FINISH IT! header swap,
+   banner + caption coda, ULTRA in runover header/report. The cherry
+   needed ZERO topping plumbing — crate/carry/shot/settle/color all
+   shipped dormant since the pantry pass. 337 tests (from 313), both
+   tsc legs; the WIN script untouched except three additive
+   zero-drift asserts (its 0.566 win sits under goodFrac — no reveal,
+   no window, beat for beat). LIVE-VERIFIED (loopback, via the new
+   DEV `__game.room` seam — net.ts exposes the loopback Room for
+   jumpToRung-style state building): real-look reveal → golden row;
+   window open (probe: 900 ticks counting, pendingVerdict held,
+   status running, gates shut) on a real landing; timeout close →
+   linger → the ladder climbed to the cupcake; the frozen-verdict law
+   held live (a cherry seamed in AFTER the close changed nothing);
+   pre-met path → instant ★★ verdict wearing "✨ AND THE FLOURISH — A
+   CHERRY ON THE VERY TOP ✨" on the banner.]**
 5. **Purse + pay + shop stall** with town-2 and fudge purchases
    (+ flourish purse bonus once 4b exists).
 6. **Feel pass** (visionary runs the ladder), then the campaign's own

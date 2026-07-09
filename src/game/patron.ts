@@ -58,6 +58,12 @@ export interface PatronAct {
 
 export interface Patron {
   readonly name: string;
+  /** THE PATRON'S DESIRE (plans/13 §1 flourish amendment, 2026-07-09):
+   * what this patron wants as the flourish — per-patron data, the v1 of
+   * the desire table. TOPPERS-class only (never orderable — the toppers
+   * law, validateDesires at Room boot). The deal copies it onto flourish
+   * rungs' orders; absent means this patron offers no fatality. */
+  readonly desire?: { topping: string };
   act(ctx: PatronContext): PatronAct;
 }
 
@@ -65,6 +71,7 @@ export function createGiant(): Patron {
   let nagged = false; // the Giant repeats himself, but only tightens once
   return {
     name: "The Giant",
+    desire: { topping: "cherry" }, // a cherry, on the very top
     act(ctx: PatronContext): PatronAct {
       // 1. NEW mess on the floor? Thunder. (The Bite arrives with cake
       //    deformation — until then the complaint carries the sting.)
@@ -97,13 +104,25 @@ export function createGiant(): Patron {
         }
       }
 
-      // 3. [SHELVED — the flourish amendment, plans/13 §1, slice 4.]
-      //    The progress-triggered REQUIRED-crown demand lived here and was
-      //    condemned: a demand that appends a requirement punishes good
-      //    play (and on cake-6 would make playing WELL the run-ending
-      //    mistake). The cherry returns in slice 4b as the Giant's DESIRE —
-      //    an optional flourish offered when coverage turns great, never a
-      //    gate. The one-number law's topping guard moves there with it.
+      // 3. THE REVEAL (rule 3 reborn — the flourish amendment, plans/13
+      //    §1, built slice 4b 2026-07-09): coverage turned GREAT and his
+      //    desire is still a secret? He names it — once, as an OFFER, in
+      //    place of the condemned required-crown demand that lived here
+      //    (a greatness trigger must never punish good play). The desire
+      //    never gates the win; it upgrades the verdict (the fatality).
+      //    No patience burn: the offer invites style — it must not
+      //    shorten the room to attempt it. The frost row's `current` IS
+      //    effectiveCoverage (judgment.ts), so goodFrac reads directly.
+      if (ctx.order.desire && !ctx.order.desire.revealed) {
+        const frost = ctx.checks.find((c) => c.req.kind === "frost-coverage");
+        if (frost && frost.current >= ctx.order.goodFrac) {
+          ctx.order.desire.revealed = true;
+          return {
+            utterance: `it looks... GOOD. hm. GOOD IS NOT PERFECT. one more thing: A ${ctx.order.desire.topping.toUpperCase()}. ON THE VERY TOP.`,
+            patienceDeltaSeconds: 0,
+          };
+        }
+      }
 
       // 4. The clock runs low and a box is still empty? A pointed reminder.
       //    Urgency outranks whimsy, so this sits before the whim.

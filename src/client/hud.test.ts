@@ -13,6 +13,7 @@ import {
   bannerText,
   hudLines,
   promptFor,
+  runOverText,
   SHELF_TOPPING,
   snapshotCaption,
   type HudView,
@@ -63,6 +64,12 @@ describe("snapshotCaption — the photo speaks the Patron's voice (dessert repor
   });
   it("no verdict yet (the broadcast races the status flip): just the head", () => {
     expect(snapshotCaption(null)).toBe("the dessert, as the Giant saw it");
+  });
+
+  it("the flourish rides the caption (slice 4b)", () => {
+    expect(snapshotCaption(judgment({ stars: 2, score: 81, flourish: true }))).toBe(
+      "the dessert, as the Giant saw it\n★★ delighted — 81/100 — WITH A FLOURISH ✨",
+    );
   });
 });
 
@@ -171,6 +178,21 @@ describe("bannerText — three endings, culprit always named", () => {
     expect(text).toContain("HURRY!");
   });
 
+  it("THE CODA (slice 4b): a flourished win upgrades the delight, naming the desire", () => {
+    const order = {
+      ...createOrder([], 100, {
+        desire: { topping: "cherry", revealed: true, met: true },
+      }),
+      status: "won" as const,
+    };
+    const text = bannerText(order, rows, judgment({ stars: 2, flourish: true }), 2);
+    expect(text).toContain("THE PATRON IS DELIGHTED! ★★");
+    expect(text).toContain("✨ AND THE FLOURISH — A CHERRY ON THE VERY TOP ✨");
+    // No coda without the flag — the plain win reads exactly as ever.
+    const plain = bannerText(order, rows, judgment({ stars: 2 }), 2);
+    expect(plain).not.toContain("FLOURISH");
+  });
+
   it("a run-ending loss promises NO new order — the run ends (plans/13)", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
     const text = bannerText(order, rows, null, 2, {
@@ -181,6 +203,19 @@ describe("bannerText — three endings, culprit always named", () => {
     expect(text).toContain("the run ends in 6s");
     expect(text).not.toContain("a new order");
     expect(text).not.toContain("carried home");
+  });
+});
+
+describe("runOverText — the run report banner", () => {
+  it("ULTRA upgrades the title line only; the plain triumph is untouched (skeleton law)", () => {
+    expect(runOverText(7, true, true)).toContain(
+      "👑 ULTRA MASTER BAKER OF THE REALMS 👑",
+    );
+    expect(runOverText(7, true)).toContain("👑 MASTER BAKER 👑");
+    expect(runOverText(7, true)).not.toContain("ULTRA");
+    // Ultra never dresses a loss (the wire never sends it without won,
+    // and the words agree).
+    expect(runOverText(3, false, true)).toContain("THE RUN IS OVER");
   });
 });
 
@@ -245,6 +280,48 @@ describe("hudLines", () => {
     expect(lines[0]).toContain("MASTER BAKER");
     expect(lines[0]).toContain("all 7 rungs conquered");
     expect(lines[0]).not.toContain("RUN OVER");
+  });
+
+  it("THE GOLDEN ROW (slice 4b): the revealed desire renders after the checklist — style, not required", () => {
+    const desire = { topping: "cherry", revealed: true, met: false };
+    const lines = hudLines(view({ order: createOrder([], 71 * 60, { desire }) }));
+    expect(lines[2]).toBe(
+      "  ★ THE FLOURISH: a cherry on the very top — style, not required",
+    );
+    // Landed: the golden checkmark replaces the disclaimer.
+    const met = hudLines(
+      view({
+        order: createOrder([], 71 * 60, { desire: { ...desire, met: true } }),
+      }),
+    );
+    expect(met[2]).toBe("  ★ THE FLOURISH: a cherry on the very top ✓");
+    // Unrevealed: the desire is the patron's secret — no row.
+    const secret = hudLines(
+      view({
+        order: createOrder([], 71 * 60, { desire: { ...desire, revealed: false } }),
+      }),
+    );
+    expect(secret.join("\n")).not.toContain("THE FLOURISH");
+  });
+
+  it("FINISH IT (slice 4b): the window swaps the dead order clock for its own countdown", () => {
+    const order = {
+      ...createOrder([], 71 * 60, {
+        desire: { topping: "cherry", revealed: true, met: false },
+      }),
+      finishTicksLeft: 300,
+    };
+    const lines = hudLines(view({ order }));
+    expect(lines[0]).toBe("RUNG 1 · ⭐ FINISH IT! 5s ⭐   [solo bakery]");
+    expect(lines.join("\n")).not.toContain("THE ORDER ·");
+  });
+
+  it("ULTRA (slice 4b): the runover header upgrades when the wire says so", () => {
+    const lines = hudLines(
+      view({ run: { phase: "runover", rung: 7, won: true, ultra: true } }),
+    );
+    expect(lines[0]).toContain("ULTRA MASTER BAKER OF THE REALMS");
+    expect(lines[0]).toContain("all 7 rungs conquered");
   });
 
   it("machine line: traverse, arc glyph, tension, bucket, hands", () => {

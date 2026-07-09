@@ -8,11 +8,13 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
+  FINISH_WINDOW_TICKS,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   READY_COUNTDOWN_TICKS,
   RUNOVER_TICKS,
+  TOWN_ASK_POTENTIAL,
 } from "../game/tuning";
 import {
   CRANK_TICKS_PER_CLICK,
@@ -1008,6 +1010,13 @@ describe("Room: the match, headless over protocol", () => {
     // is a PASS — one star. The upper tiers are the ceiling's asymptote.
     expect(end?.judgment?.stars).toBe(1);
     expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
+    // SLICE 4B'S ZERO-DRIFT GUARD: this win never saw the greatness bar
+    // (effective ~0.566 < goodFrac 0.7), so the desire stayed the Giant's
+    // secret — no reveal, no FINISH IT window (the ending is the same
+    // atomic tick as ever), no coda. The anchor plays beat for beat.
+    expect(end?.order.desire).toMatchObject({ revealed: false, met: false });
+    expect(end?.order.finishTicksLeft).toBe(0);
+    expect(end?.judgment?.flourish).toBeUndefined();
     // The linger passes; the fresh deal starts honestly unmet — and the
     // WON order climbs the ladder: the same run, rung 4 — THE CUPCAKE
     // (the ladder live, plans/13 slice 4: the deal carries the climbed
@@ -1329,6 +1338,184 @@ describe("Room: the match, headless over protocol", () => {
       expect(m?.state.traverseDeg).toBe(0);
       expect(m?.state.tiltNotch).toBe(0);
       expect(m?.state.tensionClicks).toBe(0);
+    });
+  });
+
+  describe("THE FINISH IT WINDOW (plans/13 §1 finish-it amendment, slice 4b)", () => {
+    // THE SEAM (jumpToRung's cousins): these tests build the STATE the
+    // window rules on — coverage past the greatness bar, a met sprinkle
+    // row, a cherry at rest on the summit — through privates, because
+    // driving each physically re-runs the whole WIN script per test. The
+    // TRIGGERS stay real: every evaluation below happens on a genuine
+    // landing tick (one weak lime lob), and the reveal on a genuine
+    // patron look. Physics truth for these rules lives in the unit pins
+    // (judgment/order-flow/patron); this pins the Room's orchestration.
+    interface Vec {
+      x: number;
+      y: number;
+      z: number;
+    }
+    interface RoomSeams {
+      frosting: {
+        paint(pos: Vec, speed: number): number;
+        coverage(): number;
+        snapshot(): number[];
+      };
+      dessert: {
+        samples: ReadonlyArray<{ pos: Vec }>;
+        tierOf(pos: Vec): number | null;
+        topTier: number;
+      };
+      settled: Array<{ topping: string; pos: Vec; onCake: boolean; stuck?: true }>;
+    }
+    const seams = (room: Room): RoomSeams => room as unknown as RoomSeams;
+
+    /** Paint the deal's cake to `frac` of the SOLO ask potential. */
+    function seamPaint(room: Room, frac: number): void {
+      const s = seams(room);
+      for (const sample of s.dessert.samples) {
+        if (s.frosting.coverage() / TOWN_ASK_POTENTIAL[1]! >= frac) return;
+        s.frosting.paint(sample.pos, 20);
+      }
+    }
+
+    /** Rest `n` sprinkle grains on painted skin (meets on-frosting rows). */
+    function seamSprinkles(room: Room, n: number): void {
+      const s = seams(room);
+      const coats = s.frosting.snapshot();
+      const spots = s.dessert.samples.filter((_, i) => coats[i]! > 0).slice(0, n);
+      for (const spot of spots)
+        s.settled.push({ topping: "sprinkles", pos: { ...spot.pos }, onCake: true, stuck: true });
+    }
+
+    /** Rest a cherry on the deal's summit. */
+    function seamCherry(room: Room): void {
+      const s = seams(room);
+      const summit = s.dessert.samples.find(
+        (sm) => s.dessert.tierOf(sm.pos) === s.dessert.topTier,
+      )!;
+      s.settled.push({ topping: "cherry", pos: { ...summit.pos }, onCake: true });
+    }
+
+    /** One weak lime lob — the REAL landing tick every evaluation needs
+     * (the decoy fires anyway, lands anyway: floor mess, honest trigger). */
+    function fireLime(room: Room, c: FakeClient, wait = 400): void {
+      room.onMessage(c.id, { t: "load", topping: "lime" });
+      run(room, 1);
+      room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+      run(room, CRANK_TICKS_PER_CLICK);
+      room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+      run(room, 1);
+      room.onMessage(c.id, { t: "lever" });
+      run(room, wait);
+    }
+
+    it("the window opens on a qualifying win, holds the ending, and closes honest at finishOver", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3);
+      // Coverage past the greatness bar with the sprinkle row honest-unmet:
+      // the order keeps running, and the Giant's next look REVEALS.
+      seamPaint(room, 0.75);
+      run(room, 3 * PATRON_LOOK_EVERY + 5);
+      expect(
+        a.all("patron").some((m) => m.text.includes("A CHERRY. ON THE VERY TOP.")),
+      ).toBe(true);
+      expect(a.last("order")?.order.desire?.revealed).toBe(true);
+      // Meet the sprinkle row (70 covers the nag's +1), then a REAL
+      // landing concludes gate 1: accepted + revealed + unmet → THE
+      // WINDOW, not the verdict. Status holds "running"; no judgment
+      // crosses the wire; the countdown rides the order.
+      seamSprinkles(room, 70);
+      fireLime(room, a);
+      const opened = a.all("scored").find((m) => m.order.finishTicksLeft > 0);
+      expect(opened).toBeDefined();
+      expect(opened!.order.status).toBe("running");
+      expect(a.all("order").some((m) => m.order.status === "won")).toBe(false);
+      expect(a.all("order").some((m) => m.judgment)).toBe(false);
+      // The countdown dies unlanded: the frozen base completes WITHOUT
+      // the coda — same atomic ending word as every conclusion.
+      run(room, FINISH_WINDOW_TICKS + 5);
+      const end = a.all("order").find((m) => m.order.status === "won");
+      expect(end).toBeDefined();
+      expect(end?.judgment?.accepted).toBe(true);
+      expect(end?.judgment?.flourish).toBeUndefined();
+      // The ladder climbs from the close as ever: linger, then the cupcake.
+      run(room, ORDER_RESET_TICKS + 100);
+      const wonAt = a.inbox.indexOf(end!);
+      const fresh = a.inbox
+        .slice(wonAt)
+        .find((m) => m.t === "order" && m.fresh) as
+        | Extract<ServerMsg, { t: "order" }>
+        | undefined;
+      expect(fresh?.rung).toBe(4);
+    });
+
+    it("the fatality: a cherry ferried DURING the window cuts to the payoff — coda, early", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3);
+      seamPaint(room, 0.75);
+      run(room, 3 * PATRON_LOOK_EVERY + 5);
+      seamSprinkles(room, 70);
+      fireLime(room, a);
+      expect(a.all("scored").some((m) => m.order.finishTicksLeft > 0)).toBe(true);
+      // The cherry lands mid-window (seam-rested; the next real landing
+      // is the census that sees it) — the window ends EARLY: the run so
+      // far burned well under FINISH_WINDOW_TICKS, and the verdict is
+      // already out when we look.
+      seamCherry(room);
+      fireLime(room, a, 350);
+      const end = a.all("order").find((m) => m.order.status === "won");
+      expect(end).toBeDefined();
+      expect(end?.judgment?.flourish).toBe(true);
+      expect(end?.order.desire?.met).toBe(true);
+    });
+
+    it("a PRE-MET desire skips the window: instant verdict + coda (physical truth beats presentation)", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3);
+      // Sub-GOOD coverage: the reveal never fires — but the cherry is
+      // already resting on the summit when the rows meet.
+      seamPaint(room, 0.55);
+      seamCherry(room);
+      seamSprinkles(room, 70);
+      fireLime(room, a);
+      const end = a.all("order").find((m) => m.order.status === "won");
+      expect(end).toBeDefined();
+      expect(end?.judgment?.flourish).toBe(true);
+      expect(end?.order.desire?.met).toBe(true);
+      expect(end?.order.desire?.revealed).toBe(false); // the offer never fired
+      // No window ever opened — the ending was the same tick as the win.
+      expect(a.all("scored").every((m) => m.order.finishTicksLeft === 0)).toBe(true);
+    });
+
+    it("ULTRA MASTER BAKER OF THE REALMS: the top-rung triumph with the coda, on the wire", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 7); // cake-6 — the summit no shipped combo reaches
+      seamPaint(room, 0.75); // past cake-6's 0.7 ask
+      seamCherry(room); // …but the seam rests the impossible cherry
+      seamSprinkles(room, 90);
+      fireLime(room, a);
+      const end = a.all("order").find((m) => m.order.status === "won");
+      expect(end?.judgment?.flourish).toBe(true);
+      // The linger passes: the TOP rung won → runover in TRIUMPH, and the
+      // coda upgrades the crown (§1: same wire idiom as `won`).
+      run(room, ORDER_RESET_TICKS + 50);
+      const over = a.all("run").find((m) => m.phase === "runover");
+      expect(over?.won).toBe(true);
+      expect(over?.ultra).toBe(true);
+      // The report ends: the lobby starts clean — no lingering crown.
+      run(room, RUNOVER_TICKS + 50);
+      const lobby = a.all("run").filter((m) => m.phase === "lobby").pop();
+      expect(lobby?.won).toBeUndefined();
+      expect(lobby?.ultra).toBeUndefined();
     });
   });
 });

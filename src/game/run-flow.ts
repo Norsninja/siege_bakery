@@ -53,6 +53,12 @@ export class RunFlow {
    * TRIUMPH — the crew won the top rung; the report crowns instead of
    * mourning. False on every lost run and outside runover. */
   won = false;
+  /** THE ULTRA FLAG (§1 finish-it amendment, 2026-07-09): the top-rung
+   * triumph landed WITH the flourish — ULTRA MASTER BAKER OF THE REALMS.
+   * Skeleton like `won` (title-line upgrade only; ceremony rides the
+   * MASTER BAKER content pass). Impossible on today's machine — cake-6's
+   * summit takes zero shipped combos — until the economy sells the key. */
+  ultra = false;
   /** Ticks left on the ready countdown (countdown phase only). */
   countdownLeft = 0;
   /** Ticks left on the run-over report (runover phase only). */
@@ -90,14 +96,21 @@ export class RunFlow {
    * the run ends in triumph (§1 flourish amendment: rung 7 is winnable
    * by workload, and a silent replay would be the worst payoff for
    * beating the near-impossible). Lost: the run is over — the Room
-   * deals NOTHING; the sad cake stays on display under the report. */
-  orderConcluded(won: boolean): "nextRung" | "runOver" | "runWon" {
+   * deals NOTHING; the sad cake stays on display under the report.
+   * `flourish` = the concluded order's verdict wore the coda (the Room
+   * reads its frozen verdict) — only the top-rung triumph consumes it:
+   * MASTER BAKER upgrades to ULTRA (§1 finish-it amendment). */
+  orderConcluded(
+    won: boolean,
+    flourish = false,
+  ): "nextRung" | "runOver" | "runWon" {
     if (won && this.rung < RUNGS.length) {
       this.rung++;
       return "nextRung";
     }
     this.phase = "runover";
     this.won = won;
+    this.ultra = won && flourish;
     this.runoverLeft = RUNOVER_TICKS;
     return won ? "runWon" : "runOver";
   }
@@ -110,6 +123,7 @@ export class RunFlow {
     this.phase = "lobby";
     this.rung = 0;
     this.won = false; // the triumph is the RUN's story; the lobby starts clean
+    this.ultra = false;
     return "lobby";
   }
 }

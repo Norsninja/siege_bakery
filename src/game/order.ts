@@ -28,9 +28,37 @@ import {
 } from "./judgment";
 import { COVERAGE_EXCELLENT, COVERAGE_GOOD } from "./tuning";
 
+/** THE DESIRE (plans/13 §1, the flourish + finish-it amendments,
+ * 2026-07-09): the patron's optional flourish — the fatality, style on a
+ * decided outcome. NEVER a requirement row: the "all rows met = win"
+ * invariant stays total. Its topping is TOPPERS-class (never orderable —
+ * validateDesires at Room boot); its placement is crown semantics (the
+ * summit claimed — judgment's crown scan). Eligibility is PHYSICAL:
+ * judged from the settled ledger at each conclusion, whenever the
+ * topping was thrown; `revealed`/`met` are live presentation state the
+ * Room writes in place (the patron-amendment idiom). */
+export interface Desire {
+  /** What the patron wants on the very top (the Giant: a cherry). */
+  topping: string;
+  /** The offer fired — a patron look found coverage ≥ goodFrac. */
+  revealed: boolean;
+  /** Ledger truth as of the last census — the HUD's golden checkmark.
+   * The verdict never trusts this; it re-reads the ledger. */
+  met: boolean;
+}
+
 export interface OrderState {
   /** MUTABLE: the Patron appends and tightens rows mid-order. */
   requirements: Requirement[];
+  /** The patron's desire — present exactly on flourish rungs (asks.crown);
+   * absent means this order offers no fatality. */
+  desire?: Desire;
+  /** THE FINISH IT WINDOW's countdown, in ticks (0 = no window). While
+   * positive the outcome is DECIDED but not formally ended: status stays
+   * "running" (gates shut, banner suppressed), the order clock holds, and
+   * the frozen base verdict waits in the Room (plans/13 §1 finish-it
+   * amendment). OrderFlow ticks it; the Room opens and closes it. */
+  finishTicksLeft: number;
   /** Shots for full waste credit (gate 2, Step 2 — carried on the wire now). */
   parShots: number;
   /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
@@ -51,10 +79,13 @@ export function createOrder(
     passScore?: number;
     goodFrac?: number;
     excellentFrac?: number;
+    desire?: Desire;
   },
 ): OrderState {
   return {
     requirements,
+    ...(opts?.desire ? { desire: opts.desire } : {}),
+    finishTicksLeft: 0,
     parShots: opts?.parShots ?? 6,
     passScore: opts?.passScore ?? 50,
     goodFrac: opts?.goodFrac ?? COVERAGE_GOOD,
@@ -77,6 +108,10 @@ export function tickOrder(state: OrderState): OrderState {
  * while running, the Judgment renders on the spot: accepted → won,
  * refused → lost (an empty order can't win — nothing was asked).
  * A finished order never un-finishes; late landings still show in checks.
+ * THE FINISH IT GUARD (plans/13 §1, 2026-07-09): while the window is open
+ * the outcome is already decided and its base verdict FROZEN in the Room —
+ * a decided order never re-judges (style landings would drift the score
+ * S-MED-1 froze); landings keep flowing through checks only.
  */
 export function evaluateOrder(
   dessert: DessertGeometry,
@@ -88,6 +123,7 @@ export function evaluateOrder(
   const checks = checkRequirements(dessert, state.requirements, settled, frosting);
   if (
     state.status === "running" &&
+    state.finishTicksLeft === 0 &&
     checks.length > 0 &&
     checks.every((c) => c.met)
   ) {

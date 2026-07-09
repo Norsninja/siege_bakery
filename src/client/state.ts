@@ -65,6 +65,12 @@ export function myMachine(view: MatchView): TownMachine {
  */
 export function predictClock(order: OrderState): OrderState {
   if (order.status !== "running") return order;
+  // THE FINISH IT WINDOW (plans/13 §1, slice 4b): the outcome is decided
+  // and the server holds the ORDER clock — predict the window's own
+  // countdown instead, same advisory clamp (the 1Hz correction carries
+  // the true count on the order; the server's ending word closes it).
+  if (order.finishTicksLeft > 0)
+    return { ...order, finishTicksLeft: Math.max(1, order.finishTicksLeft - 1) };
   return { ...order, ticksLeft: Math.max(1, order.ticksLeft - 1) };
 }
 

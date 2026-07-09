@@ -80,37 +80,41 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE LADDER LIVE (2026-07-08, fifth session): plans/13 slice 4 is
-BUILT (313 tests, both tsc legs, live-verified — HEAD ab966c9 +
-docs). Every rung deals its OWN spec/asks/clock/par — specForRung
-reads the RUNGS table, one function on both replicas; the lobby's
-dormant cake is a humble single-tier cake-1 now. THE FLOURISH
-AMENDMENT (plans/13 §1, the session's ruling — AMENDS the impossible
-tragedy): the crown is an optional FLOURISH ("fatality" — style on a
-decided outcome), never a requirement; it lives IN the order (never
-the linger), fires at COVERAGE_GOOD, and is per-patron desire data.
-Rung 7 is winnable by WORKLOAD = MASTER BAKER (👑 banner skeleton
-shipped; fanfare/credits = content pass, no audio pipeline yet); the
-flourish on cake-6's dead summit = ULTRA MASTER BAKER, sold by the
-future economy. SLICE 4 SHIPPED CROWN-SHELVED: patron rule 3 DELETED
-(a required greatness-trigger punishes good play), NO cherry in the
-live game until slice 4b builds the desire. THE DEAL LAW: OrderFlow
-never self-deals — orderConcluded runs FIRST, then the Room deals
-dealFresh(rungRow) + redealDessert (a flow self-deal would price the
-OLD rung's asks over the NEW rung's cake). PAR PER RUNG: authored
-{solo,duo} column (campaign.ts header formula; the anchor forces
-solo rung 3 = 24); tuning's FROST_FRAC/SPRINKLES_NEEDED/
-ORDER_SECONDS/ORDER_PAR_SHOTS are ANCHOR REFERENCES — edit the
-ladder, not tuning. The tripod places itself per spec (tall-spec
-ledger item PAID); predictClock is phase-gated (the lobby view no
-longer free-runs a clock nothing corrects). ZERO DRIFT: the WIN
-script re-anchored to rung 3 (the anchor IS today's standing order)
-plays beat for beat; its win deals THE CUPCAKE, pinned on the wire.
-Standing ledger: plans/15 items 1/3/4 unclaimed pre-friend-test;
-cupcake hot-arrival note now reads on the FLOURISH; audit tranche C
+THE FLOURISH LIVE (2026-07-09, sixth session): plans/13 slice 4b is
+BUILT (337 tests, both tsc legs, live-verified). THE FINISH IT
+AMENDMENT (plans/13 §1, the session's ruling — extends the flourish
+amendment): our "FINISH HIM" moment is the ROWS-MET TICK, not
+clock-zero (a won order ends the instant its last row is met; the
+clock only ever ends losses). THE WINDOW: on a qualifying win
+(accepted + flourish rung + reveal fired + desire unmet) the base
+verdict FREEZES unbroadcast (Room.pendingVerdict), status stays
+"running" (gates shut, banner suppressed, order clock + patron
+held), and the crew gets FINISH_WINDOW_TICKS (15s, a feel-pass
+number) to land the fatality — early-out the moment it settles.
+S-MED-1 AS AMENDED: base frozen at the decided tick, verdict
+COMPLETE at the window's end; style shots free by construction.
+LEDGER-JUDGED DESIRE: OrderState.desire ({topping, revealed, met} —
+from Patron.desire, dealt on asks.crown rungs; the Giant wants a
+cherry); eligibility is PHYSICAL (judgment.crownedWith on the
+settled ledger at each conclusion — pre-styled cherries count; the
+reveal is presentation, never eligibility). THE TOPPERS LAW: desires
+draw only from toppers (cherry, lime — never orderable);
+validateDesires at Room boot. The reveal is patron rule 3 REBORN (a
+look at coverage ≥ goodFrac names the desire once, patience 0).
+Coda: Judgment.flourish → banner/caption "✨ AND THE FLOURISH ✨";
+the top-rung triumph with the coda = RunWire.ultra → ULTRA MASTER
+BAKER OF THE REALMS (skeleton, like won). The cherry needed ZERO
+plumbing — dormant since the pantry pass. NO new wire msgs: desire +
+finishTicksLeft ride OrderState everywhere (a mid-window welcome
+just works). DEV seam: __game.room (loopback only) for
+jumpToRung-style live state building. ZERO DRIFT: the WIN script
+untouched but for three additive asserts (its 0.566 win sits under
+goodFrac — no reveal, no window, beat for beat). Standing ledger:
+plans/15 items 1/3/4 unclaimed pre-friend-test; cupcake hot-arrival
+note reads on the flourish (its 8 summit windows all arrive hot —
+crowns may bounce; feel-pass watch); audit tranche C
 post-friend-test; wind plan and Bite/integrity re-pin ownerless.
-NEXT: review slice 4, DISCUSS slice 4b (the flourish — desire shape,
-trigger-at-look vs at-landing, verdict coda, Ultra; agenda in the
-handoff §6), build it, then slice 5 (purse/shop); the friend test
-(plans/12) inherits everything. Port map:
-research/01-port-gap-analysis.md.
+NEXT: the visionary's ladder feel run (slices 4+4b in preview — rung
+pacing AND the window's 15s), then slice 5 (purse/pay/shop stall, +
+the flourish purse bonus); the friend test (plans/12) inherits
+everything. Port map: research/01-port-gap-analysis.md.

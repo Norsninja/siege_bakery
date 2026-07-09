@@ -42,6 +42,7 @@ import {
 } from "../game/catapult";
 import {
   checkRequirements,
+  crownedWith,
   judge,
   type Judgment,
   type RequirementCheck,
@@ -49,7 +50,11 @@ import {
 } from "../game/judgment";
 import { rungRow, specForRung, validateRungs } from "../game/campaign";
 import { evaluateOrder } from "../game/order";
-import { OrderFlow, standardRequirements } from "../game/order-flow";
+import {
+  OrderFlow,
+  standardRequirements,
+  validateDesires,
+} from "../game/order-flow";
 import { RunFlow } from "../game/run-flow";
 import type { ClientMsg, RunWire, ServerMsg } from "../game/protocol";
 import { Roster } from "./roster";
@@ -155,6 +160,13 @@ export class Room {
    * everyone else is celebrating. Served in the welcome; cleared at the
    * redeal. */
   private lingerVerdict: Judgment | null = null;
+  /** THE FINISH IT WINDOW's frozen base (plans/13 §1, 2026-07-09): the
+   * judgment computed at the rows-met tick of a QUALIFYING win, held here
+   * unbroadcast while the window runs — S-MED-1 as amended: base frozen
+   * at the decided tick, verdict COMPLETE (coda stamped, lingerVerdict
+   * set, ending broadcast) at the window's end. Null whenever no window
+   * is open. */
+  private pendingVerdict: Judgment | null = null;
   /** Mints the per-shot seed S (plans/10): a burst's scatter is drawn from
    * mulberry32(seed) on every replica — the wire carries the seed, never
    * the grains. The stream itself is seeded, so a headless re-run of the
@@ -164,8 +176,10 @@ export class Room {
   constructor() {
     // The ladder's authoring tripwire (slice 4): every RUNGS row must
     // name a real spec row before anything deals — fails loud at boot,
-    // not undefined at rung 5.
+    // not undefined at rung 5. The toppers law rides beside it (slice
+    // 4b): no desire topping may be orderable.
     validateRungs();
+    validateDesires();
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
@@ -339,6 +353,7 @@ export class Room {
     this.frosting = new FrostingField(this.dessert.samples);
     this.settled = [];
     this.lingerVerdict = null; // the fresh deal owes nobody a verdict
+    this.pendingVerdict = null; // no window survives a deal (defensive)
   }
 
   /** Step physics; landings become scored deliveries (stale tags litter,
@@ -408,6 +423,13 @@ export class Room {
     // dormant order must not advance before the run starts. startRun's
     // fresh deal wipes the cake and the ledger anyway.
     if (this.run.phase !== "running") return;
+    // THE DESIRE'S LIVE CHECKMARK (slice 4b): ledger truth for the HUD's
+    // golden row, refreshed before this tick's broadcasts carry the order.
+    // Presentation only — every VERDICT re-reads the ledger at its own
+    // conclusion tick (the stamp below; physical truth, never this cache).
+    const desire = this.flow.order.desire;
+    if (desire && this.flow.order.status === "running")
+      desire.met = crownedWith(this.dessert, this.ledger(), desire.topping);
     const r = evaluateOrder(
       this.dessert,
       this.flow.order,
@@ -415,7 +437,18 @@ export class Room {
       this.frosting,
       this.flow.shotsFired,
     );
-    this.flow.order = r.state;
+    if (r.judgment && r.judgment.accepted && desire && desire.revealed && !desire.met) {
+      // THE FINISH IT WINDOW OPENS (plans/13 §1, 2026-07-09): accepted +
+      // flourish rung (the desire exists) + reveal fired + desire unmet.
+      // r.state's status flip is NOT applied — the outcome is DECIDED,
+      // not ended: the base verdict freezes here unbroadcast, status
+      // stays "running" (gates shut, banner suppressed, clocks held),
+      // and the countdown rides the order onto this tick's `scored`.
+      this.pendingVerdict = r.judgment;
+      this.flow.openFinishWindow();
+    } else {
+      this.flow.order = r.state;
+    }
     for (const g of groups.values())
       this.roster.broadcast({
         t: "scored",
@@ -425,8 +458,18 @@ export class Room {
         order: this.flow.order,
         checks: r.checks,
       });
+    if (this.flow.order.finishTicksLeft > 0) {
+      // Landings while the window runs (evaluateOrder's finish guard
+      // yields checks only): the one question is the fatality — the
+      // moment the desire rests met, the window cuts to the payoff.
+      if (desire?.met) this.concludeFinishWindow();
+      return;
+    }
     if (r.judgment) {
-      this.lingerVerdict = r.judgment; // the WIN path freezes its verdict
+      // The instant conclusion — every non-qualifying win/refusal renders
+      // exactly as it always has, coda stamped from the live ledger (a
+      // PRE-MET desire skips the window straight to verdict + flourish).
+      this.lingerVerdict = this.stampFlourish(r.judgment);
       // The met-order Judgment is how WINS conclude (a won order never
       // transitions through tickClock, so the "ended" event never fires
       // for it) — capture the run container's answer here (plans/13).
@@ -436,9 +479,43 @@ export class Room {
         t: "order",
         order: this.flow.order,
         checks: r.checks,
-        judgment: r.judgment,
+        judgment: this.lingerVerdict,
       });
     }
+  }
+
+  /** THE CODA STAMP (plans/13 §1 finish-it amendment): accepted verdicts
+   * wear the flourish exactly when the desire rests met on the LIVE
+   * ledger at the conclusion tick — physical truth, whenever the topping
+   * was thrown (pre-styling counts; the reveal is presentation, never
+   * eligibility). Also settles the golden row's checkmark so the ending
+   * broadcast carries it. */
+  private stampFlourish(j: Judgment): Judgment {
+    const desire = this.flow.order.desire;
+    if (!j.accepted || !desire) return j;
+    if (!crownedWith(this.dessert, this.ledger(), desire.topping)) return j;
+    desire.met = true;
+    return { ...j, flourish: true };
+  }
+
+  /** The window's end — the flourish landed (the scoring early-out) or
+   * the countdown died ("finishOver"): the decided win formally ends NOW.
+   * One last ledger read stamps the coda (a shoved cherry is honest both
+   * ways), the frozen base completes into lingerVerdict, and the ending
+   * broadcast is the same atomic word as every conclusion — `judgment`
+   * rides exactly when the order message ENDS the order, unchanged. */
+  private concludeFinishWindow(): void {
+    const base = this.pendingVerdict!; // set with the window, always
+    this.pendingVerdict = null;
+    this.flow.closeFinishWindow();
+    this.lingerVerdict = this.stampFlourish(base);
+    this.endedWon = true; // the window only ever opens on an accepted win
+    this.roster.broadcast({
+      t: "order",
+      order: this.flow.order,
+      checks: this.currentChecks(),
+      judgment: this.lingerVerdict,
+    });
   }
 
   /** The lifecycle, phase-driven since the run container (plans/13):
@@ -490,7 +567,13 @@ export class Room {
     }
 
     for (const event of this.flow.tickClock()) {
-      if (event === "ended") {
+      if (event === "finishOver") {
+        // The window's countdown died with the flourish unlanded — the
+        // close still reads the ledger once (concludeFinishWindow's
+        // stamp): a cherry shoved onto the summit between landings is
+        // honest, and so is one shoved off.
+        this.concludeFinishWindow();
+      } else if (event === "ended") {
         // The clock died first: gate 1 fails — the patron goes hungry.
         // (Wins never pass here — a met order concludes in the scoring
         // phase, which captured endedWon there; this transition is the
@@ -503,7 +586,14 @@ export class Room {
           checks: this.currentChecks(),
           judgment: this.lingerVerdict,
         });
-      } else if (this.run.orderConcluded(this.endedWon) === "nextRung") {
+      } else if (
+        this.run.orderConcluded(
+          this.endedWon,
+          // The concluded order's coda (§1 finish-it amendment): only the
+          // top-rung triumph consumes it — MASTER BAKER turns ULTRA.
+          this.lingerVerdict?.flourish === true,
+        ) === "nextRung"
+      ) {
         // "lingerOver" on a WON order below the top: the ladder climbs.
         // THE DEAL DECISION IS THE ROOM'S (plans/13 slice 4): the rung
         // incremented in orderConcluded ABOVE, so the deal prices the
@@ -573,8 +663,13 @@ export class Room {
       phase: this.run.phase,
       rung: this.run.rung,
       // The triumph flag (§1 flourish amendment): only a runover that
-      // CONQUERED the top rung wears it — MASTER BAKER.
+      // CONQUERED the top rung wears it — MASTER BAKER. `ultra` rides
+      // only with it (§1 finish-it amendment): the triumph's verdict
+      // wore the coda — ULTRA MASTER BAKER OF THE REALMS.
       ...(this.run.phase === "runover" && this.run.won ? { won: true as const } : {}),
+      ...(this.run.phase === "runover" && this.run.ultra
+        ? { ultra: true as const }
+        : {}),
       ...(this.run.phase === "countdown"
         ? { countdownTicks: this.run.countdownLeft }
         : {}),

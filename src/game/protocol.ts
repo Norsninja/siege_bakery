@@ -26,6 +26,10 @@ export interface RunWire {
    * won the top rung — MASTER BAKER. The report crowns instead of
    * mourning; absent means the run died on `rung`. */
   won?: true;
+  /** rides only WITH `won` (§1 finish-it amendment, 2026-07-09): the
+   * top-rung triumph landed the flourish too — ULTRA MASTER BAKER OF
+   * THE REALMS. Same skeleton idiom as `won`. */
+  ultra?: true;
   /** countdown only: ticks until rung 1 deals (clients may predict a
    * local count between broadcasts, predictClock-style). */
   countdownTicks?: number;
