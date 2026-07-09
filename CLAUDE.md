@@ -108,14 +108,16 @@ cycle 23.5s measured (12–18s retired), workload math restated as
 REACH × LABOR. TEST LAW: room.test's jumpToRung anchor seam deals
 FULL labor (pinned physics predate the handicap); towns-law tests
 took a second baker; the convergence test is the lone hero's
-teaching arc (her two 3★ wins fund the fort, deal priced 0.375
-over honest wire, hands stamped). Slice 5 (economy/stall/purse)
+teaching arc (her two 3★ wins fund the fort, the deal priced
+REACH × LABOR over honest wire, hands stamped). Slice 5 (economy/stall/purse)
 context: plans/13 §5 amendment + §8.5 BUILT record. Standing
 ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; item 8
 run-points deferred post-campaign; cupcake hot-arrival watch;
 fudge-counts-toward-frost watch; audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin ownerless. NEXT: the
-visionary's feel run continues (solo is now honest — rung pacing
-above rung 1 wants data); then the friend test (plans/12) measures
-the duo cycle the clocks assume. Port map:
-research/01-port-gap-analysis.md.
+wind plan and Bite/integrity re-pin ownerless. FEEL-APPROVED at
+0.35 by the visionary's own run (rung 1 passed, rung 2 reached,
+sprinkles sendable — lost only to a wrong-crate grab, the decoy
+comedy working): THE LONE HERO IS PLAYABLE AND APPROVED. NEXT: the
+friend test (plans/12) measures the duo cycle the clocks assume;
+plans/15 items 1/3/4 are its unclaimed pre-test side quests. Port
+map: research/01-port-gap-analysis.md.

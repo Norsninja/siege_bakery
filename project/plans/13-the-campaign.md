@@ -476,7 +476,11 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
     design's reference play: it trades coverage decay for cycle
     speed, and the dial prices the trade the visionary actually
     found. Solo grain asks at 0.35: rung 2 = 14, rung 3 = 21,
-    cupcake = 11 (ceil law).]**
+    cupcake = 11 (ceil law). FEEL-APPROVED (2026-07-09, the
+    visionary's own run at 0.35): rung 1 passed, rung 2 reached,
+    the sprinkle ask judged sendable — the run failed only on a
+    wrong-crate grab under pressure, which is the pantry decoy
+    comedy working as designed. THE LONE HERO IS PLAYABLE.]**
 
 ## 6. THE RUN CONTAINER — states and wire
 
