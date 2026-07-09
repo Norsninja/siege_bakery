@@ -80,52 +80,50 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE LONE HERO LIVE (2026-07-09, eighth session): plans/13 §5's LONE
-HERO AMENDMENT is BUILT (367 tests, both tsc legs, live-verified on
-the worker-shim harness) after the standing-sequence discussion —
-full record + the build's six rulings in the §5 BUILT block. The
-law: every deal prices ask = REACH (TOWN_ASK_POTENTIAL, towns) ×
-LABOR (CREW_LABOR [—,0.35,1,1,1], tuning.ts one dial), from
-roster.count() at DEAL TIME (Room.dealAt wraps all three dealFresh
-sites; joiners/leavers never retro-change a ticket — towns law
-verbatim). LABOR [1] IS MEASURED, NOT HYPOTHESIZED: 0.5 fell to the
-visionary's same-day feel run, replicated in-harness — the optimized
-solo line (power 6, ±8° sweep, 6 shots, no re-crank) SATURATES at
-6.7% absolute (band overlap decays late shots ~1.4%→0.9%), so 0.35
-prices the pass at 5.88%: his measured best passes ON its sixth
-shot (~14% headroom). Saturation study in the tuning.ts CREW_LABOR
-comment + plans/13 §5 BUILT block. SPRINKLES SCALE TOO (build ruling: the 23.5s cycle
-prices hands whatever the payload) — needed = ceil(grains × labor);
-crown/desire/window/clocks/pay untouched; crew 2+ deals today's
-numbers VERBATIM (friend test inherits zero drift). Judgment grades
-the scaled potential off the dealt row (no gate-2 insult for one
-dwarf, honest stars — a lone hero can now fund town 2, scenery
-until the turntable, by design). The ticket WEARS its pricing:
-OrderState.hands? stamped at deal (absent = full labor), rides
-every order wire free; the HUD's "🖐 one pair of hands" tag reads
-the STAMP, never live headcount. tuning.ts header re-pinned: solo
-cycle 23.5s measured (12–18s retired), workload math restated as
-REACH × LABOR. TEST LAW: room.test's jumpToRung anchor seam deals
-FULL labor (pinned physics predate the handicap); towns-law tests
-took a second baker; the convergence test is the lone hero's
-teaching arc (her two 3★ wins fund the fort, the deal priced
-REACH × LABOR over honest wire, hands stamped). Slice 5 (economy/stall/purse)
-context: plans/13 §5 amendment + §8.5 BUILT record. Standing
-ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; item 8
-run-points deferred post-campaign; cupcake hot-arrival watch;
-fudge-counts-toward-frost watch; audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin ownerless. FEEL-APPROVED at
-0.35 by the visionary's own run (rung 1 passed, rung 2 reached,
-sprinkles sendable — lost only to a wrong-crate grab, the decoy
-comedy working): THE LONE HERO IS PLAYABLE AND APPROVED. SAME
-SESSION: an external audit was ruled on (4 accepted + built: silent-
-server watchdog, #hud pointer-events, npm run preview removed, the
-runbook re-taught; 4 declined with reasons — handoff §2), and side
-quests 3 (the banner yields the photo its column — index.html
-overlay geometry, measured at four viewports) and 1 (one landing
-ring per catapult — packShotTag namespace, shots-view.ts) are DONE
-with full records in plans/15. NEXT: DISCUSS side quest 4 (trails)
-before building — the visionary's explicit sequence; the friend
-test (plans/12, runbook current) runs on the WEEKEND and measures
-the duo cycle the clocks assume. Port map:
+THE AESTHETIC PASS (2026-07-09, ninth session): four slices BUILT,
+live-verified, visionary-approved ("all working as we intended") —
+386 tests, both tsc legs, ending 9a41398. (1) TRAILS (plans/15 item
+4): TrailRibbon comet in shots-view.ts — fixed-tick samples,
+camera-billboarded strip, RGBA vertex fade, topping-colored; grains
+never trail; a ribbon releases when its arc dissolves AND its body
+is gone/at rest (no idle pile-up — the rings lesson); eye-passed
+"beautiful". Item 9 RECORDED: the pre-shot preview arc is a DESIGN
+BOUNDARY — trivially computable (pure parabola), deliberately
+unbuilt: trails are feedback, a preview is an answer key. (2) POST
+HUD (item 5, promoted): winch panel DEAD CENTER and BIG (giant neon
+count, live click fill), gunner cluster BOTTOM-LEFT (center owns the
+aim), bucket chip unmissable in topping color; posts.POST_KEYS is
+THE ONE KEY TABLE (postOp reads it, panels render it, hud.test pins
+them EQUAL); LastShot firing memory client-side off shot broadcasts
+(no wire change); manned lines left the corner block; TONE SET:
+bright pink/cyan fantasy, Vegas energy (index.html CSS vocabulary:
+keycaps, glow, pop). (3+4) THE JUKEBOX (item 10): music.ts PLAYLISTS
+mood table — order [kitchen-chaos, kitchen-mayhem] + lobby
+[hearth-harvest, hearthside-yeast] filled; linger/runover rows named
+and waiting (visionary composing); future songs are DROP-INS (file →
+public/audio + one row; public/audio is the COPY OF RECORD, ships in
+dist/; project/files/audio is the gitignored inbox). nextTrack never
+repeats (n=2 alternates); deriveMood off run.phase/order.status (the
+finish-it window keeps the order's music); fade out 1.5s / in 0.8s;
+BG_VOLUME 0.35 one dial; autoplay unlocks on first real gesture; M
+mute + upper-right #mute-btn — the ONE pointer-events overlay,
+painted under #snapshot, BLURRED after click (a focused button turns
+Space into "click", and Space winds the winch). Clients unsynced by
+design; core/game untouched — all client/ presentation. Flash toasts
+DEFERRED (next aesthetics slice; the CSS vocabulary is ready). THE
+LONE HERO stands as built (plans/13 §5 BUILT block, eighth session):
+ask = REACH × LABOR (CREW_LABOR [—,0.35,1,1,1], measured saturation
+study) at deal time via Room.dealAt; sprinkles scale (ceil);
+OrderState.hands stamps the ticket; crew 2+ verbatim; anchor seam
+deals full labor. NEXT SESSION (visionary's agenda): review the four
+commits → TECH-DEBT hunt (post-hud.ts, music.ts, trail lifecycle,
+main.ts growth) → discuss further pre-friend-test improvements —
+every one de-risks the WEEKEND friend test (plans/12, runbook
+current). Pending ear/eye passes: music volume/fades, winch-panel
+coverage while cranking, fudge chip, item-3 banner composition,
+lone-hero tag. Standing ledger: plans/15 items 6/8 post-campaign
+discussion; items 7/9 are recorded boundaries; audit tranche C
+post-friend-test (snapshot-encode hitch, litter growth); wind plan +
+Bite/integrity re-pin ownerless; cupcake hot-arrival +
+fudge-counts-toward-frost watches. Port map:
 research/01-port-gap-analysis.md.
