@@ -32,11 +32,26 @@ random per tunnel run: mint it fresh each session.
 
 Host plays at `http://localhost:5174/?join=ws://localhost:5175` — the
 vite dev page explicitly joined to the room server: same room as the
-friend, zero tunnel hop, AND the DEV-only `__game` handle. Unlock the
-second town from the console: `__game.unlockTown2()` (a Room INPUT —
-net-safe by design). Requires `npm run dev` also running; if you'd
-rather not, play the built page at `http://localhost:5175` and unlock
-from a second throwaway dev tab joined the same way.
+friend, zero tunnel hop, AND the DEV-only `__game` handle. Requires
+`npm run dev` also running; if you'd rather not, play the built page
+at `http://localhost:5175`.
+
+TOWN 2 IS BOUGHT IN-GAME now (plans/13 §5, slice 5 — the
+`__game.unlockTown2()` console seam is RETIRED): win an order, walk
+to the stall (side wall, halfway pantry↔machine), E with 50 coins in
+the shared purse. Two decent wins fund it — the campaign teaches the
+purchase; no console needed. Dev shortcut if a test wants town 2
+FAST: in a `__game` tab, seam the purse then buy inside a won
+linger — `__game.room.run.purse = 50; __game.room.broadcastRun()`
+(loopback `room` is null over ws — over the wire, earn it honestly)
+or send the input directly: `__game.send({t:"buy", item:"town2"})`
+in the won separator with a funded purse.
+
+NOTE: `npm run preview` was REMOVED (independent audit 2026-07-09):
+a BUILT page auto-joins its serving origin (the tunnel-gate law,
+net.ts), and vite's preview server hosts no room — that command
+manufactured a guaranteed dead join. The room server IS the preview:
+`npm run server` serves `dist/`.
 
 ## Rehearsal evidence (2026-07-07)
 

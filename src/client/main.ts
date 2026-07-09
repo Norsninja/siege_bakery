@@ -227,6 +227,20 @@ async function main(): Promise<void> {
   // wait the netStatus line already narrates.
   if (hud) hud.textContent = "joining the bakery…";
   renderer.render(scene, camera); // the arena on screen while we wait
+  // THE SILENT-SERVER TRUTH (independent audit 2026-07-09 — C-HIGH-1's
+  // surviving sibling): the dead-link line above words a socket that
+  // CLOSES pre-welcome, but a socket that OPENS and never welcomes (a
+  // wrong service at the URL, a hung server) starved this await forever
+  // on the same "joining…" text. Same law, third layer: no welcome in
+  // 20s = say so, in words a friend can act on.
+  if (wsUrl) {
+    const watchdog = setTimeout(() => {
+      if (welcomeSeen && view.netStatus !== "closed" && hud)
+        hud.textContent =
+          "the bakery is not answering — the link may point at the wrong server; ask the host for a fresh one, then refresh";
+    }, 20_000);
+    void firstWelcome.then(() => clearTimeout(watchdog));
+  }
   await firstWelcome;
   const homeTown = TOWNS[view.yourTown] ?? TOWNS[0]!;
   const baker = new Baker(physics, homeTown.spawn);

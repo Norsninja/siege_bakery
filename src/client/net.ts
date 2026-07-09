@@ -94,7 +94,19 @@ export function connectWs(
     queue.length = 0;
   });
   ws.addEventListener("message", (e) => {
-    onMsg(JSON.parse(String(e.data)) as ServerMsg);
+    // A frame that isn't our JSON (a proxy's noise, a wrong service at the
+    // URL) must read as a WARN with the payload in view, not an uncaught
+    // red error a friend screenshots in alarm (independent audit,
+    // 2026-07-09). One bad frame never poisons the pipe either way — the
+    // parse happens before any state is touched.
+    let msg: ServerMsg;
+    try {
+      msg = JSON.parse(String(e.data)) as ServerMsg;
+    } catch {
+      console.warn("bakery wire: dropped an unparseable frame", e.data);
+      return;
+    }
+    onMsg(msg);
   });
   ws.addEventListener("close", () => {
     open = false; // sends now drop instead of hitting a CLOSED socket
