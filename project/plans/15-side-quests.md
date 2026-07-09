@@ -70,7 +70,22 @@ angle, players learn the machine wrong even though the sim is right
 
 ## 3. Order-report inset frame: responsive — PRE-FRIEND-TEST
 
-**Status: unclaimed.**
+**Status: DONE 2026-07-09 (eighth session). MEASURED, not guessed:
+the frame's own sizing (min(27vw, 48vh), 2026-07-07) was fine — the
+sighting was the fixed-overlay collision. At 1280×800 the BANNER's
+centered verdict text ran under the snapshot frame (text y181–619
+full-width vs frame x860+, y≤351), and the frame paints later — the
+report covered its own words; at narrow widths the HUD's long lines
+ran under it too. THE FIX (index.html only): the proclamation YIELDS
+THE PHOTO ITS COLUMN — #banner reserves padding-right
+calc(min(27vw,48vh) + 48px) (+48 = the frame's own padding, border,
+and 1.6°-tilt bbox growth), #hud caps max-width off the same column,
+the banner font is clamp(20px, min(3.4vw, 5vh), 42px), and
+#snapshot's UA <figure> margin (which shoved it ~40px off its
+right:12px anchor) is zeroed. VERIFIED frozen-linger geometry at
+1280×800, 1366×768, 768×1024, 375×812: no banner/HUD-under-frame
+overlap, banner fits vertically, caption never clips, 18–36px gap.
+Visual eye pass: the visionary's next run.**
 
 The end-of-order report's inset frame covers its own text at some
 viewport sizes (seen in the web interface). Decision: the inset is

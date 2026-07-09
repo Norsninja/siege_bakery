@@ -30,6 +30,10 @@
            or the pointer-lock click dies on the HUD text (independent
            audit, 2026-07-09). */
         pointer-events: none;
+        /* THE REPORT'S COLUMN (plans/15 item 3, measured 2026-07-09): the
+           snapshot frame owns the top-right min(27vw, 48vh); on narrow
+           viewports the HUD's long lines ran under it. Wrap instead. */
+        max-width: calc(100vw - min(27vw, 48vh) - 48px);
       }
       #banner {
         position: fixed;
@@ -38,11 +42,22 @@
         align-items: center;
         justify-content: center;
         color: #fff;
-        font: 700 42px/1.3 system-ui, sans-serif;
+        /* Shrink the proclamation before it collides (plans/15 item 3):
+           3.4vw ties it to width, 5vh to short screens; 42px is the
+           full-size voice it had since birth. */
+        font: 700 clamp(20px, min(3.4vw, 5vh), 42px)/1.3 system-ui, sans-serif;
         text-shadow: 0 2px 8px #000;
         text-align: center;
         white-space: pre-line;
         pointer-events: none;
+        /* THE PROCLAMATION YIELDS THE PHOTO ITS COLUMN (plans/15 item 3,
+           measured 2026-07-09 at 1280×800: the centered verdict ran under
+           the snapshot frame, which paints later — the report covered its
+           own words). The banner and the photo share every linger; the
+           text centers in what the frame leaves. */
+        /* +48px: the frame is fatter than its width — 16px own padding,
+           2px border, and the 1.6° tilt's bounding growth. */
+        padding: 0 calc(min(27vw, 48vh) + 48px) 0 24px;
       }
       /* The dessert report (plans/09 §1, snapshot form 2026-07-07): a
          framed photo in the corner during the linger — the player keeps
@@ -51,6 +66,9 @@
         position: fixed;
         top: 12px;
         right: 12px;
+        /* A <figure>'s default UA margin shoved the frame ~40px off its
+           own `right: 12px` anchor (measured, plans/15 item 3). */
+        margin: 0;
         display: none;
         /* ~10% of a 16:9 screen's area (visionary, 2026-07-07): the trophy
            can afford confidence — it lives only in the linger. The vh cap
