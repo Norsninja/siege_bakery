@@ -80,34 +80,36 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE DESSERTSPEC LANDED (2026-07-08, third session): plans/13 slice 2
-is BUILT under §3's rulings of record, ZERO-DRIFT PROVEN (every
-pinned number — 661/218/443 census, WIN path, two-rooms-converge,
-settle ladder — reproduced with assertions untouched; 293 tests, both
-tsc legs) and live-verified through ready-up → rung 1 → scored splat
-→ run over → auto-restart. The cake is a DATA ROW now: core/dessert.
-ts holds DessertSpec + the CAKE_3 anchor + dessertGeometry(spec) —
-THE ONE PUBLIC FORM (tier math private; the old zero-arg oracles are
-DELETED, never aliased). GEOMETRY IS AN ARGUMENT, never a field, on
-core/ classes (step(world, geom), clearCakeSolids(world, OUTGOING
-geom)); THE REDEAL ORDERING (clear with old → tear down colliders →
-bind rung's spec → build → fresh field) lives in Room.redealDessert()
-and the client's fresh-deal branch, both pinned; the wire carries the
-RUNG, never geometry (specForRung in game/campaign.ts — the slice-3
-stand-in deals cake-3 every rung); clients bind the dessert BEFORE
-snapshot adoption (boot-order law; frosting-view's length guard
-tripwires it). Also this session: the slice-1 review found no bugs
-(two pins added: a LEAVER mid-countdown does not cancel, the LAST
-leaver does). Ready-circle/run-container laws unchanged (grep
-run.phase before adding order-status behavior); vernier/gun-crew laws
-unchanged (plans/14). KNOWINGLY STALE until slice 3: the research
-.mts tools (import deleted arena exports; they gain a spec parameter)
-and the potential tables (cake-3's measured numbers). Standing
-ledger: plans/15 side quests (claim, don't re-triage); snapshot
-tripod framing dies on tall specs; audit tranche C post-friend-test;
-wind plan and Bite/integrity re-pin ownerless. NEXT: the visionary's
-playtest feedback, then DISCUSS plans/13 slice 3 (research/13 + /11
-gain a spec parameter, measure cake-1/2/4/5/6, author RUNGS — the
-ladder's top is where the tools say the envelope dies) before
-building; the friend test (plans/12) inherits everything. Port map:
-research/01-port-gap-analysis.md.
+THE LADDER MEASURED (2026-07-08, fourth session): plans/13 slice 3 is
+BUILT (307 tests, both tsc legs). The re-pin tools are SPEC-
+PARAMETERIZED with zero drift proven (research/11 imports the REAL
+buildCensus/splatSamples — its mirror is deleted; both tool headers
+carry the pins to reproduce after any splat/census/ballistics
+change). THE CLAMP landed gated (plans/15 item 2 DONE):
+TILT_MAX_NOTCH 18→12 after cake-3 at maxNotch 12 reproduced every
+envelope number; sim/HUD/scene read the constant symbolically and
+scene.test.ts pins the render contract (shown frame tilt = sim
+tilt). ALL SEVEN ROWS MEASURED under the shipped ladder: summit
+combos 22/16/12/8/7/4/0 across cake-1/2/3, cupcake, cake-4/5/6;
+union frost coverage 100.0% on EVERY row (frost never gates the
+ladder); TOWN_POTENTIAL's 0.9/1.0 generalize — one table, no
+per-spec rows. THE RUNGS TABLE (game/campaign.ts, 7 rows, the
+measurement record in its header; pins in campaign.test.ts): rung 3
+= THE ANCHOR verbatim; THE CUPCAKE is rung 4 (§1 amendment: the
+ladder is authored spec rows, harder not necessarily TALLER; random
+insertion rejected); cake-6 is the top — its summit takes ZERO
+shipped combos (windows exist in physics but fall between notches:
+death by QUANTIZATION) and KEEPS its crown ask anyway: THE
+IMPOSSIBLE TRAGEDY (visionary ruling — the run's story ends at the
+top; the future power-up economy sells the key; the ONE sanctioned
+impossible ask, every other crown must be measured reachable). THE
+SLICE-3 BOUNDARY IS PINNED: specForRung still deals cake-3 every
+rung — slice 4 flips deal + asks + clock TOGETHER, never spec alone.
+Standing ledger: plans/15 (items 1/3/4 unclaimed pre-friend-test;
+claim, don't re-triage); snapshot tripod framing dies on tall specs
+(goes LIVE the moment slice 4 deals cake-4+); cupcake crown arrivals
+all HOT (may bounce — feel pass); audit tranche C post-friend-test;
+wind plan and Bite/integrity re-pin ownerless. NEXT: review, DISCUSS
+slice 4 (mandatory — the flip, per-rung ask/clock wiring into order
+rows, the rung-7-win ruling), then build; the friend test (plans/12)
+inherits everything. Port map: research/01-port-gap-analysis.md.
