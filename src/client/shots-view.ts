@@ -51,6 +51,156 @@ export const unpackShotTag = (tag: number): { deal: number; town: number } => ({
  * one color for life and reads identically on every client. */
 export const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 0xfff0f5];
 
+/** THE TRAIL (plans/15 item 4, 2026-07-09): a translucent, topping-colored
+ * comet ribbon behind every lob — aim feedback, client-only, seen by every
+ * player because every client simulates every broadcast shot. Position
+ * HISTORY, never prediction — the pre-shot preview arc is a recorded design
+ * boundary (plans/15 item 9). Samples ride the FIXED TICK (the trail freezes
+ * honestly under __timeScale); billboarding rides the frame (sync takes the
+ * camera). Grains never trail (the quiet-grain law); the burst carrier
+ * trails until the pop. These three are the aesthetics-pass dials. */
+export const TRAIL_WINDOW_TICKS = 36; // 0.6s of arc at the 60Hz tick
+export const TRAIL_HEAD_ALPHA = 0.45; // translucent at the ball…
+export const TRAIL_WIDTH = PROJECTILE_RADIUS; // …tapering to a point behind
+/** Below this speed² the body is AT REST for trail purposes — a settled
+ * cherry must not wear a head-alpha dot forever; its ribbon ages out (and
+ * honestly resumes if a later shot nudges it). Freefall can never dip under
+ * this (gravity alone is ~0.16 m/s after one tick), so an airborne lob
+ * always feeds. */
+const TRAIL_MIN_SPEED_SQ = 0.01; // (0.1 m/s)²
+
+// Per-frame scratch for the ribbon rebuild — no allocation in the loop.
+const _tangent = new THREE.Vector3();
+const _toCam = new THREE.Vector3();
+const _side = new THREE.Vector3();
+
+/** One lob's ribbon: a ring buffer of recent positions, rebuilt each frame
+ * as a camera-facing strip with per-vertex RGBA fade (three.js renders
+ * 4-component vertex colors natively — no shader). The ribbon OUTLIVES its
+ * body: after impact/burst it stops feeding and the arc dissolves over the
+ * window; the ring (plans/15 item 1) is the landing record. */
+class TrailRibbon {
+  /** Oldest first; the head (the ball) is last. Age in fixed ticks. */
+  private readonly samples: Array<{
+    x: number;
+    y: number;
+    z: number;
+    age: number;
+  }> = [];
+  private readonly mesh: THREE.Mesh;
+  private readonly geometry: THREE.BufferGeometry;
+  private readonly pos: THREE.BufferAttribute;
+  private readonly rgba: THREE.BufferAttribute;
+  private readonly color = new THREE.Color();
+  private body: RAPIER.RigidBody | null;
+
+  constructor(body: RAPIER.RigidBody, colorHex: number, scene: THREE.Scene) {
+    this.body = body;
+    this.color.setHex(colorHex);
+    const max = TRAIL_WINDOW_TICKS + 1; // ages 0..WINDOW live at once
+    this.geometry = new THREE.BufferGeometry();
+    this.pos = new THREE.BufferAttribute(new Float32Array(max * 2 * 3), 3);
+    this.rgba = new THREE.BufferAttribute(new Float32Array(max * 2 * 4), 4);
+    this.pos.setUsage(THREE.DynamicDrawUsage);
+    this.rgba.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute("position", this.pos);
+    this.geometry.setAttribute("color", this.rgba);
+    const idx: number[] = [];
+    for (let i = 0; i < max - 1; i++)
+      idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+    this.geometry.setIndex(idx);
+    this.geometry.setDrawRange(0, 0);
+    this.mesh = new THREE.Mesh(
+      this.geometry,
+      new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true, // normal alpha, not additive — stained glass, not laser
+        depthWrite: false, // never fight the cake for the depth buffer
+        side: THREE.DoubleSide,
+      }),
+    );
+    // The empty-birth culling trap (sprinkles lesson, 2026-07-06): geometry
+    // that grows far from the origin keeps its born-empty bounding sphere.
+    this.mesh.frustumCulled = false;
+    scene.add(this.mesh);
+  }
+
+  /** One fixed tick: age the arc out the tail, sample the live body at the
+   * head (while it MOVES — see TRAIL_MIN_SPEED_SQ). */
+  tick(): void {
+    for (const s of this.samples) s.age++;
+    while (this.samples.length && this.samples[0]!.age > TRAIL_WINDOW_TICKS)
+      this.samples.shift();
+    if (this.body && !this.body.isValid()) this.body = null;
+    if (!this.body) return;
+    const v = this.body.linvel();
+    if (v.x * v.x + v.y * v.y + v.z * v.z <= TRAIL_MIN_SPEED_SQ) return;
+    const t = this.body.translation();
+    this.samples.push({ x: t.x, y: t.y, z: t.z, age: 0 });
+  }
+
+  /** Arc dissolved AND the body gone or at rest — the ribbon leaves the
+   * scene. Settled solids do NOT keep an idle ribbon against a future
+   * nudge: lobby test shots litter the floor forever (the rings lesson,
+   * plans/15 item 1), and an unbounded idle-mesh list is the same
+   * pile-up in scene-graph form. Lobs wear ribbons; litter doesn't. */
+  get done(): boolean {
+    if (this.samples.length) return false;
+    if (!this.body) return true;
+    const v = this.body.linvel();
+    return v.x * v.x + v.y * v.y + v.z * v.z <= TRAIL_MIN_SPEED_SQ;
+  }
+
+  /** Per frame: rebuild the strip facing the camera. Width and alpha fade
+   * with sample age — the comet taper. */
+  rebuild(camera: THREE.Camera): void {
+    const n = this.samples.length;
+    if (n < 2) {
+      this.geometry.setDrawRange(0, 0);
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      const s = this.samples[i]!;
+      const p = this.samples[Math.max(0, i - 1)]!;
+      const q = this.samples[Math.min(n - 1, i + 1)]!;
+      _tangent.set(q.x - p.x, q.y - p.y, q.z - p.z);
+      _toCam.set(
+        s.x - camera.position.x,
+        s.y - camera.position.y,
+        s.z - camera.position.z,
+      );
+      _side.crossVectors(_tangent, _toCam);
+      const len = _side.length();
+      if (len < 1e-6) _side.set(0, 1, 0);
+      else _side.divideScalar(len);
+      const fade = 1 - s.age / TRAIL_WINDOW_TICKS;
+      const half = TRAIL_WIDTH * fade;
+      this.pos.setXYZ(
+        2 * i,
+        s.x + _side.x * half,
+        s.y + _side.y * half,
+        s.z + _side.z * half,
+      );
+      this.pos.setXYZ(
+        2 * i + 1,
+        s.x - _side.x * half,
+        s.y - _side.y * half,
+        s.z - _side.z * half,
+      );
+      const a = TRAIL_HEAD_ALPHA * fade;
+      this.rgba.setXYZW(2 * i, this.color.r, this.color.g, this.color.b, a);
+      this.rgba.setXYZW(2 * i + 1, this.color.r, this.color.g, this.color.b, a);
+    }
+    this.pos.needsUpdate = true;
+    this.rgba.needsUpdate = true;
+    this.geometry.setDrawRange(0, (n - 1) * 6);
+  }
+
+  dispose(): void {
+    removeAndDispose(this.mesh);
+  }
+}
+
 export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
@@ -59,6 +209,9 @@ export class ShotsView {
    * never erase YOUR walk-the-fall correction, and lobby test shots must
    * not pile up — the old FIFO-30 breadcrumb trail did both. */
   private readonly markers = new Map<number, THREE.Mesh>();
+  /** Every lever-pulled lob's ribbon (plans/15 item 4) — grains and
+   * welcome-restored resting toppings never get one. */
+  private readonly trails: TrailRibbon[] = [];
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). The topping
    * rides along: fudge paints under its own splat law and renders dark. */
@@ -117,6 +270,11 @@ export class ShotsView {
       this.scene,
     );
     this.meshes.push({ body, mesh });
+    // The comet (plans/15 item 4): the lob wears its topping's color. A
+    // burst carrier trails too — until the pop; its grains never do.
+    this.trails.push(
+      new TrailRibbon(body, TOPPING_COLORS[msg.topping] ?? 0xc23b4e, this.scene),
+    );
   }
 
   /** Recreate a topping already at rest (welcome world-sync, F2): a live
@@ -210,12 +368,25 @@ export class ShotsView {
     // stale burst visibly sticking to the fresh cake is accepted décor
     // (plans/10 §8), cleared with the next fresh deal.
     for (const st of ev.stuck) this.onStuck?.(st.topping, st.pos, st.normal);
+    // Trails ride the fixed tick AFTER the world stepped — the head sample
+    // is this tick's true position. A done ribbon (body gone, arc
+    // dissolved) leaves the scene here; no fresh-deal clearing needed,
+    // nothing outlives its 0.6s window.
+    for (let i = this.trails.length - 1; i >= 0; i--) {
+      const tr = this.trails[i]!;
+      tr.tick();
+      if (tr.done) {
+        tr.dispose();
+        this.trails.splice(i, 1);
+      }
+    }
   }
 
   /** Per frame: meshes follow their bodies (position AND rotation — a
    * grain capsule lies as it fell); consumed globs' and burst carriers'
-   * meshes leave with their bodies. */
-  sync(): void {
+   * meshes leave with their bodies. Ribbons rebuild facing `camera`. */
+  sync(camera: THREE.Camera): void {
+    for (const tr of this.trails) tr.rebuild(camera);
     for (let i = this.meshes.length - 1; i >= 0; i--) {
       const s = this.meshes[i]!;
       if (!s.body.isValid()) {

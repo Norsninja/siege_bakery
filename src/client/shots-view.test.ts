@@ -20,7 +20,13 @@ import { CAKE_Z } from "../core/arena";
 import { CAKE_3, dessertGeometry } from "../core/dessert";
 import type { StepEvents } from "../core/projectiles";
 import { TOPPINGS } from "../game/toppings";
-import { packShotTag, unpackShotTag, ShotsView } from "./shots-view";
+import {
+  packShotTag,
+  unpackShotTag,
+  ShotsView,
+  TRAIL_WINDOW_TICKS,
+} from "./shots-view";
+import type { ShotMsg } from "./net-handlers";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";
 
@@ -140,5 +146,104 @@ describe("landing rings: one per catapult (plans/15 item 1)", () => {
     expect(rings(shotsView).size).toBe(2);
     shotsView.clearLandingMarkers();
     expect(rings(shotsView).size).toBe(0);
+  });
+});
+
+describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
+  // REAL physics here (no step stub): the trail contract is about a body's
+  // actual flight — spawn, fly, land — so the tests fly real lobs over a
+  // plain floor collider (any lob eventually lands on SOMETHING, like the
+  // bakery floor litter does).
+  type TrailPeek = {
+    samples: { age: number }[];
+    geometry: THREE.BufferGeometry;
+  };
+  const trails = (v: ShotsView): TrailPeek[] =>
+    (v as unknown as { trails: TrailPeek[] }).trails;
+  const bodies = (v: ShotsView): RAPIER.RigidBody[] =>
+    (
+      v as unknown as { meshes: Array<{ body: RAPIER.RigidBody }> }
+    ).meshes.map((m) => m.body);
+  const lob = (topping: string): ShotMsg => ({
+    t: "shot",
+    town: 0,
+    topping,
+    traverseDeg: 0,
+    tiltNotch: 0,
+    tensionClicks: 6,
+    seed: 7,
+  });
+  function rig() {
+    const world = new RAPIER.World(GRAVITY);
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(400, 0.1, 400).setTranslation(0, -0.1, 0),
+    );
+    const view = new ShotsView(world, new THREE.Scene());
+    return { world, view };
+  }
+
+  it("a lob wears a ribbon: samples accrete per tick, capped at the window", () => {
+    const { view } = rig();
+    view.spawn(lob("cherry"));
+    expect(trails(view).length).toBe(1);
+    for (let i = 0; i < 10; i++) view.step(GEOM, noop);
+    expect(trails(view)[0]!.samples.length).toBe(10);
+    for (let i = 0; i < TRAIL_WINDOW_TICKS + 20; i++) view.step(GEOM, noop);
+    expect(trails(view)[0]!.samples.length).toBeLessThanOrEqual(
+      TRAIL_WINDOW_TICKS + 1,
+    );
+  });
+
+  it("a consumed glob's ribbon OUTLIVES the body, then dissolves over the window", () => {
+    const { view } = rig();
+    view.spawn(lob("frosting")); // paint: consumed at impact, body removed
+    let landed = false;
+    for (let i = 0; i < 600 && !landed; i++) {
+      view.step(GEOM, noop);
+      landed = !bodies(view)[0]!.isValid();
+    }
+    expect(landed).toBe(true);
+    expect(trails(view).length).toBe(1); // the arc still hangs, dissolving
+    for (let i = 0; i < TRAIL_WINDOW_TICKS + 2; i++) view.step(GEOM, noop);
+    expect(trails(view).length).toBe(0); // gone — the ring is the record
+  });
+
+  it("grains never trail: the pop spawns grain meshes and ZERO new ribbons", () => {
+    const { view } = rig();
+    view.spawn(lob("sprinkles")); // the burst carrier
+    let popped = false;
+    for (let i = 0; i < 600 && !popped; i++) {
+      view.step(GEOM, noop);
+      popped = bodies(view).length > 1; // grains joined the mesh list
+    }
+    expect(popped).toBe(true);
+    expect(trails(view).length).toBe(1); // the carrier's — and only ever the carrier's
+  });
+
+  it("a settled solid's ribbon dissolves AND leaves — no idle pile-up (the rings lesson)", () => {
+    const { view } = rig();
+    view.spawn(lob("cherry"));
+    for (let i = 0; i < 5; i++) view.step(GEOM, noop);
+    const body = bodies(view)[0]!;
+    body.setLinvel({ x: 0, y: 0, z: 0 }, false);
+    body.sleep(); // the settled pose — under TRAIL_MIN_SPEED, honestly at rest
+    for (let i = 0; i < TRAIL_WINDOW_TICKS + 2; i++) view.step(GEOM, noop);
+    // The body lives on as floor litter; its ribbon must NOT idle beside it
+    // forever — lobby test shots would grow the scene without bound.
+    expect(body.isValid()).toBe(true);
+    expect(trails(view).length).toBe(0);
+  });
+
+  it("sync billboards the ribbon: a newborn draws nothing, a flying arc draws its strip", () => {
+    const { view } = rig();
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(0, 5, 20);
+    view.spawn(lob("cherry"));
+    view.sync(camera); // zero samples — zero draw range, no throw
+    expect(trails(view)[0]!.geometry.drawRange.count).toBe(0);
+    for (let i = 0; i < 6; i++) view.step(GEOM, noop);
+    view.sync(camera);
+    // 6 samples → 5 segments → 2 triangles each → 30 indices drawn.
+    expect(trails(view)[0]!.geometry.drawRange.count).toBe(30);
   });
 });

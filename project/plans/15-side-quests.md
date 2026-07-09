@@ -108,7 +108,52 @@ definition.
 
 ## 4. Projectile trails — PRE-FRIEND-TEST (promoted by the visionary)
 
-**Status: unclaimed.**
+**Status: DONE 2026-07-09 (ninth session). Built as ruled below:
+TrailRibbon in shots-view.ts — a preallocated camera-facing triangle
+strip per lob, per-vertex RGBA fade (three.js native 4-component
+vertex colors, no shader), frustumCulled=false (the sprinkles
+empty-birth culling lesson). Samples ride the fixed tick in step()
+(head sampled AFTER the world steps); billboarding rides the frame —
+sync(camera) grew the parameter (main.ts, sole caller). Dials pinned:
+TRAIL_WINDOW_TICKS 36, TRAIL_HEAD_ALPHA 0.45, TRAIL_WIDTH = one
+projectile radius, both tapering to zero at the tail. ONE LAW ADDED
+IN BUILD: the ribbon leaves when its arc dissolves AND its body is
+gone or at rest (TRAIL_MIN_SPEED) — a settled solid does NOT keep an
+idle ribbon against a future nudge, or lobby test shots grow the
+scene without bound (the rings lesson in scene-graph form; found live
+at 159 idle ribbons). Pinned (shots-view.test.ts, +5, real physics
+over a floor collider): samples accrete capped at the window, a
+consumed glob's ribbon outlives its body then dissolves, grains never
+trail (the pop spawns zero ribbons), a settled solid's ribbon leaves,
+sync draw-range math. 376 tests, both tsc legs. Live-verified
+numerically (accrete → cap 37 → dissolve → dispose); probe lesson
+recorded in memory: store COPIES in window probes, not references —
+a stored live sample aged to its terminal 37 before the read and
+faked a bug. EYE PASS: the visionary's own run — "the trails are
+beautiful."**
+
+Rulings of the discussion (2026-07-09, visionary agreed):
+- RIBBON, not puffs and not a 1px line: a custom camera-facing triangle
+  strip through the ball's recent positions — translucent (normal alpha
+  blending, not additive glow), topping-colored (TOPPING_COLORS),
+  head alpha ~0.45 tapering to 0, width ~one projectile radius tapering
+  to a point. The fat-line examples module was considered and rejected
+  (no per-vertex alpha without patching its shader).
+- 0.6s trailing window, sampled on the FIXED TICK (36 samples at 60Hz)
+  — the trail freezes honestly under __timeScale; billboarding rides
+  the frame (sync gets the camera).
+- Every player sees every arc BY ARCHITECTURE (shots are broadcast
+  events; every client simulates every lob) — no extra work, recorded
+  so nobody designs for it twice.
+- Grains NEVER trail (plans/10 quiet-grain law; 40 ribbons per pop is
+  the whole perf budget in one event). The burst CARRIER trails until
+  the pop.
+- No persistence after landing: the ribbon stops feeding and its
+  samples age out — the last 0.6s of descent dissolves; the ring
+  (item 1) is the landing record. No interaction with
+  clearLandingMarkers or the fresh-deal law.
+- Alpha/width/window are named constants in shots-view.ts — the
+  aesthetics-pass dials.
 
 Transparent, fading trails on projectiles. Promoted out of the
 aesthetics pass 2026-07-08: playtest brains want them, the loop is
@@ -180,3 +225,20 @@ thing in both. Open: per-player or per-crew.
 
 Reason it waits: slice 5's purse must exist first; the shape belongs
 in item 6's post-campaign session.
+
+## 9. Pre-shot preview arc — DESIGN BOUNDARY, do not build casually
+
+**Status: recorded 2026-07-09 (ninth session, the trails discussion);
+ruled by the visionary. No action.**
+
+Our flight is a pure parabola (no drag — launchVelocity then gravity),
+so a golf-game-style predicted arc from the current traverse/tension/
+tilt would be TRIVIALLY computable — and that is exactly why this
+boundary is recorded: the temptation will recur. DO NOT build it as a
+tuning tweak or a juice item. The game's aim loop is fire → watch →
+correct — walk the fall, learn your machine; that learning IS content
+in a deliberately simple loop. Trails (item 4) are FEEDBACK (what
+happened); a preview is an ANSWER KEY (what will happen) — it would
+let players aim by cursor and gut the skill the landing rings and
+trails exist to feed. If a playtest ever begs for a preview, that is a
+DESIGN SESSION (like item 7's 55° floor), not a feature request.

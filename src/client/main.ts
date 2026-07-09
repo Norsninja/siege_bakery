@@ -528,7 +528,7 @@ async function main(): Promise<void> {
       );
 
     ghosts.update();
-    shotsView.sync();
+    shotsView.sync(camera);
     // The portcullis panel shows exactly while its fence is shut — the
     // fence must never be an invisible wall.
     gs.gateMeshes.forEach((m, i) => {
