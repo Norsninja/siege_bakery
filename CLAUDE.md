@@ -116,7 +116,14 @@ plans/15 item 8 NEW: run-points meta-progression (visionary's shape
 recorded, deferred to the post-campaign power-up session). Standing
 ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; cupcake
 hot-arrival watch; audit tranche C post-friend-test; wind plan and
-Bite/integrity re-pin ownerless. NEXT: the visionary's feel run
-(slices 4+4b+5 in preview — rung pacing, the window's 15s, the §5
-prices/pay scale), then the friend test (plans/12) inherits
-everything. Port map: research/01-port-gap-analysis.md.
+Bite/integrity re-pin ownerless. THE LONE HERO AMENDMENT (plans/13
+§5) is RECORDED, NOT BUILT — the visionary's solo-handicap ruling
+from his live feel run (measured solo cycle 23.5s ≈ the mechanical
+floor; solo unpassable as clocked): ask potential = REACH (towns) ×
+LABOR (crew, hypothesis [—,0.5,1,1,1]), deal-time priced, judgment
+grades the scaled potential (no gate-2 insult for one dwarf), clocks
+untouched, crew 2+ verbatim. NEXT: review that record, DISCUSS
+(agenda in the handoff §6), then build it; then the feel run
+continues and the friend test (plans/12) inherits everything —
+measuring the duo cycle the clocks assume. Port map:
+research/01-port-gap-analysis.md.

@@ -371,6 +371,56 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
       (research/11, classic-glob model) calls unreachable. Upside
       with no price; if high rungs play easier than measured, fudge
       tech is the first suspect.
+- **THE LONE HERO AMENDMENT (2026-07-09, seventh session —
+  RECORDED, NOT BUILT: the next session reviews this record and
+  DISCUSSES before building, per the standing sequence).** The
+  visionary's shape, from his own feel run: *the realm is low on
+  dwarves after years of war and division — one hero rises. The
+  patrons won't get a perfect cake, but they will get a cake, and
+  that's what matters. How can we say the cake is trash because one
+  dwarf decorated it? The dwarf gets fed patrons and climbs to the
+  next rung, which is even harder.*
+    - THE EVIDENCE (the visionary's measured run, 2026-07-09): the
+      real solo shot cycle — pantry ferry, load, wind, aim, fire —
+      is **23.5s with minimal aiming**, and decomposition says that
+      is near the MECHANICAL FLOOR (ferry 8s sprint round trip +
+      crank 4.5–7.5s + post transitions): the tuning.ts header's
+      12–18s cycle is STALE (measured 2026-07-03, before the
+      gun-crew posts added transitions). Consequence: at ~5 shots
+      per effective rung-1 clock, **solo cannot pass ANY rung as
+      clocked, at any skill** — the authored clocks implicitly
+      price a pipelining duo. "Solo is hard mode" had silently
+      become solo-is-impossible.
+    - THE SHAPE: the ask potential splits into **REACH × LABOR** —
+      reach is TOWN_ASK_POTENTIAL (towns, unchanged); labor is a
+      new crew-size factor, hypothesis `[—, 0.5, 1.0, 1.0, 1.0]`
+      (tuning.ts, one dial). Priced at DEAL TIME from connected
+      crew (the towns law verbatim: the ask follows at the next
+      deal; joiners/leavers never retro-change a ticket).
+    - THE GRACIOUS JUDGE: the scaled potential is what judgment
+      grades against (potential-relative coverage, stars, gate 2) —
+      so one dwarf's thin-but-earnest cake earns honest stars
+      instead of "it is TERRIBLE"; the Giant grades what one pair
+      of hands could reach. This kills the gate-2 insult trap
+      structurally, not with words.
+    - Clocks UNTOUCHED (at labor 0.5, rung 1 solo ≈ 4–5 good shots
+      inside today's 150s — the visionary's measured pace passes);
+      the ladder still escalates faster than solo can climb — the
+      lone hero honorably dies mid-ladder, which IS the fiction
+      (the realm needs more dwarves). Crew 2+ = today's numbers
+      VERBATIM (the friend test inherits zero drift). Pay stays
+      full — the realm pays its hero.
+    - Wrinkles, named: a mid-order leaver leaves a duo-priced
+      ticket until the next deal (accepted towns law); town 2 is
+      useless to a solo crew (an uncrewed fort is scenery) — the
+      TURNTABLE is the shop's future solo story; the Patron's
+      gracious voice line ("for one pair of hands… acceptable.
+      sit.") rides the content pass, mechanics don't wait.
+    - SUPERSEDED by this amendment: the session's earlier rung-1
+      clock/frac patch proposal (150→240, 0.4→0.25) — withdrawn;
+      the handicap fixes the correct layer. The build must also
+      re-pin the tuning.ts header's stale 12–18s cycle to the
+      measured 23.5s.
 
 ## 6. THE RUN CONTAINER — states and wire
 
