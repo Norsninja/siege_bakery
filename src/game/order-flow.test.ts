@@ -74,25 +74,28 @@ describe("requirementsFor (the per-rung ticket, slice 4)", () => {
 });
 
 describe("THE LONE HERO AMENDMENT (plans/13 §5) — ask = REACH × LABOR", () => {
-  it("DECISION PIN (2026-07-09): labor [—, 0.5, 1, 1, 1] — solo half, never zero, never a bonus", () => {
-    // Calibrated to the visionary's measured 23.5s solo cycle: rung-1
-    // solo ≈ 5 decent shots on the effective clock. Moving [1] is a
-    // design decision — restate the tuning.ts workload math when you do.
-    expect(CREW_LABOR).toEqual([0, 0.5, 1.0, 1.0, 1.0]);
+  it("DECISION PIN (2026-07-09, re-pinned same day): labor [—, 0.35, 1, 1, 1] — never zero, never a bonus", () => {
+    // 0.5 was the hypothesis; 0.35 is MEASURED — the visionary's best
+    // rung-1 line (power 6, ±8° sweep, 6 shots) was replicated in-harness
+    // and plateaus at 6.7% absolute: band overlap decays late shots to
+    // ~0.9%. At 0.35 that line passes on its sixth shot with ~14%
+    // headroom; at 0.5 it can never pass. Moving [1] is a design
+    // decision — restate the tuning.ts saturation math when you do.
+    expect(CREW_LABOR).toEqual([0, 0.35, 1.0, 1.0, 1.0]);
   });
 
-  it("one pair of hands halves the ask — the potential AND the grains (ceil)", () => {
+  it("one pair of hands scales the ask by labor — the potential AND the grains (ceil)", () => {
     const solo = requirementsFor(rungRow(3), 1, 1);
     expect(solo[0]).toMatchObject({
       kind: "frost-coverage",
       frac: FROST_FRAC,
-      potential: TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.21
+      potential: TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.147
     });
     // Grains scale too (ruled 2026-07-09: the shot cycle prices hands,
-    // whatever the payload) — 60 → 30, ceiled so a row never asks 0.
+    // whatever the payload) — 60 → 21, ceiled so a row never asks 0.
     expect(solo[1]).toMatchObject({
       topping: "sprinkles",
-      needed: Math.ceil(SPRINKLES_NEEDED * CREW_LABOR[1]!), // 30
+      needed: Math.ceil(SPRINKLES_NEEDED * CREW_LABOR[1]!), // 21
     });
   });
 
@@ -110,7 +113,7 @@ describe("THE LONE HERO AMENDMENT (plans/13 §5) — ask = REACH × LABOR", () =
 
   it("labor multiplies REACH — two towns × one dwarf compose", () => {
     expect(requirementsFor(rungRow(3), 2, 1)[0]).toMatchObject({
-      potential: TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!, // 0.375
+      potential: TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!, // 0.2625
     });
   });
 });

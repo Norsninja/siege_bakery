@@ -423,9 +423,10 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
       measured 23.5s.
     **[BUILT 2026-07-09 (eighth session), after the standing-sequence
     discussion. RULINGS OF THE BUILD DISCUSSION (visionary agreed all
-    six agenda items): (1) labor [—, 0.5, 1.0, 1.0, 1.0] confirmed —
-    at 0.5, rung-1 solo is ~5 decent shots on the effective clock:
-    passable earned, failable sloppy; (2) SPRINKLES SCALE TOO —
+    six agenda items): (1) labor [—, 0.5, 1.0, 1.0, 1.0] as the
+    hypothesis — RE-PINNED TO 0.35 the same day by the visionary's
+    rung-1 feel run, REPLICATED in-harness (the saturation study
+    below); (2) SPRINKLES SCALE TOO —
     amends the record's frost-only wording: the 23.5s cycle prices
     HANDS whatever the payload, and absolute grain rows would rebuild
     at rung 2 the wall the amendment tears down at rung 1 (needed =
@@ -458,7 +459,24 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
     bob leaves → rung 3 re-priced lone (0.21, 30 grains, tag back).
     A NOTED CONSEQUENCE (feature, by discussion): honest stars are
     now solo-reachable, so a lone hero can fund town 2 — scenery to
-    him until the turntable, but the realm's story anyway.]**
+    him until the turntable, but the realm's story anyway.
+    THE SATURATION RE-PIN (2026-07-09, same day, the visionary's
+    rung-1 feel run): his fastest run ever — power 6 held, traverse
+    swept +8°→−8°, SIX shots (his cycle beat 23.5s because the flat
+    band never re-cranks) — still failed the 0.5 ask. REPLICATED
+    IN-HARNESS shot for shot: fresh splats paint ~1.4% absolute but
+    BAND OVERLAP decays shots 4–6 to ~0.9%, plateauing at 6.7%
+    absolute vs the 8.4% asked — the 0.5 hypothesis priced
+    non-overlapping "decent" shots a same-power line cannot produce,
+    and 0.4 (6.72%) fails his exact line by 0.02%. RE-PINNED
+    CREW_LABOR[1] = 0.35: the ask is 5.88% — the measured best line
+    passes ON its sixth shot with ~14% headroom (earned, not
+    gifted); 2★/3★ sit past the band's plateau, demanding power
+    variation — rare as designed. The optimized solo line IS the
+    design's reference play: it trades coverage decay for cycle
+    speed, and the dial prices the trade the visionary actually
+    found. Solo grain asks at 0.35: rung 2 = 14, rung 3 = 21,
+    cupcake = 11 (ceil law).]**
 
 ## 6. THE RUN CONTAINER — states and wire
 

@@ -581,7 +581,7 @@ describe("Room: the match, headless over protocol", () => {
     const frost = A.w?.order.requirements.find(
       (r) => r.kind === "frost-coverage",
     ) as { potential?: number } | undefined;
-    expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!); // 0.375
+    expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!); // two towns × one dwarf
     expect(A.w?.order.hands).toBe(1); // the ticket wears its pricing
     expect(A.w?.frosting.some((c) => c > 0)).toBe(true);
   });
@@ -717,7 +717,7 @@ describe("Room: the match, headless over protocol", () => {
       const order = a.all("order").find((m) => m.fresh);
       expect(order?.order.hands).toBe(1);
       expect(frostOf(order!.order)?.potential).toBe(
-        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.21
+        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.147
       );
     });
 
@@ -767,7 +767,7 @@ describe("Room: the match, headless over protocol", () => {
         (r) => r.kind === "on-frosting",
       ) as { needed?: number } | undefined;
       expect(grains?.needed).toBe(
-        Math.ceil(rungRow(2).asks.sprinkles * CREW_LABOR[1]!), // 40 → 20
+        Math.ceil(rungRow(2).asks.sprinkles * CREW_LABOR[1]!), // 40 → 14
       );
     });
 

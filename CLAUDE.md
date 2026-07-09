@@ -85,10 +85,16 @@ HERO AMENDMENT is BUILT (367 tests, both tsc legs, live-verified on
 the worker-shim harness) after the standing-sequence discussion —
 full record + the build's six rulings in the §5 BUILT block. The
 law: every deal prices ask = REACH (TOWN_ASK_POTENTIAL, towns) ×
-LABOR (CREW_LABOR [—,0.5,1,1,1], tuning.ts one dial), from
+LABOR (CREW_LABOR [—,0.35,1,1,1], tuning.ts one dial), from
 roster.count() at DEAL TIME (Room.dealAt wraps all three dealFresh
 sites; joiners/leavers never retro-change a ticket — towns law
-verbatim). SPRINKLES SCALE TOO (build ruling: the 23.5s cycle
+verbatim). LABOR [1] IS MEASURED, NOT HYPOTHESIZED: 0.5 fell to the
+visionary's same-day feel run, replicated in-harness — the optimized
+solo line (power 6, ±8° sweep, 6 shots, no re-crank) SATURATES at
+6.7% absolute (band overlap decays late shots ~1.4%→0.9%), so 0.35
+prices the pass at 5.88%: his measured best passes ON its sixth
+shot (~14% headroom). Saturation study in the tuning.ts CREW_LABOR
+comment + plans/13 §5 BUILT block. SPRINKLES SCALE TOO (build ruling: the 23.5s cycle
 prices hands whatever the payload) — needed = ceil(grains × labor);
 crown/desire/window/clocks/pay untouched; crew 2+ deals today's
 numbers VERBATIM (friend test inherits zero drift). Judgment grades
