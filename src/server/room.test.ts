@@ -9,14 +9,17 @@ import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
   FINISH_WINDOW_TICKS,
+  FLOURISH_BONUS_COINS,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   READY_COUNTDOWN_TICKS,
   RUNOVER_TICKS,
+  TOWN2_PRICE,
   TOWN_ASK_POTENTIAL,
 } from "../game/tuning";
 import {
+  createCatapult,
   CRANK_TICKS_PER_CLICK,
   SCREW_TICKS_PER_NOTCH,
   TENSION_MAX_CLICKS,
@@ -81,6 +84,100 @@ function jumpToRung(room: Room, rung: number): void {
   r.run.rung = rung;
   r.flow.dealFresh(rungRow(rung));
   r.redealDessert();
+}
+
+// ---------------------------------------------------------------------------
+// THE SEAMS (jumpToRung's cousins — grown file-wide with slice 5): these
+// build the STATE a rule runs on — coverage, grains, a resting cherry, an
+// active second town — through privates, because driving each physically
+// re-runs the whole WIN script per test. The TRIGGERS stay real: every
+// evaluation happens on a genuine landing tick (one weak lime lob), every
+// purchase on a genuine `buy` message. Physics truth lives in the unit
+// pins; these pin the Room's orchestration.
+// ---------------------------------------------------------------------------
+interface SeamVec {
+  x: number;
+  y: number;
+  z: number;
+}
+interface RoomSeams {
+  frosting: {
+    paint(pos: SeamVec, speed: number): number;
+    coverage(): number;
+    snapshot(): number[];
+  };
+  dessert: {
+    samples: ReadonlyArray<{ pos: SeamVec }>;
+    tierOf(pos: SeamVec): number | null;
+    topTier: number;
+  };
+  settled: Array<{ topping: string; pos: SeamVec; onCake: boolean; stuck?: true }>;
+  run: { rung: number; purse: number };
+  towns: unknown[];
+  flow: { activeTowns: number };
+}
+const seams = (room: Room): RoomSeams => room as unknown as RoomSeams;
+
+/** Paint the deal's cake to `frac` of the SOLO ask potential. */
+function seamPaint(room: Room, frac: number): void {
+  const s = seams(room);
+  for (const sample of s.dessert.samples) {
+    if (s.frosting.coverage() / TOWN_ASK_POTENTIAL[1]! >= frac) return;
+    s.frosting.paint(sample.pos, 20);
+  }
+}
+
+/** Rest `n` sprinkle grains on painted skin (meets on-frosting rows). */
+function seamSprinkles(room: Room, n: number): void {
+  const s = seams(room);
+  const coats = s.frosting.snapshot();
+  const spots = s.dessert.samples.filter((_, i) => coats[i]! > 0).slice(0, n);
+  for (const spot of spots)
+    s.settled.push({ topping: "sprinkles", pos: { ...spot.pos }, onCake: true, stuck: true });
+}
+
+/** Rest a cherry on the deal's summit. */
+function seamCherry(room: Room): void {
+  const s = seams(room);
+  const summit = s.dessert.samples.find(
+    (sm) => s.dessert.tierOf(sm.pos) === s.dessert.topTier,
+  )!;
+  s.settled.push({ topping: "cherry", pos: { ...summit.pos }, onCake: true });
+}
+
+/** One weak lime lob — the REAL landing tick every evaluation needs
+ * (the decoy fires anyway, lands anyway: floor mess, honest trigger). */
+function fireLime(room: Room, c: FakeClient, wait = 400): void {
+  room.onMessage(c.id, { t: "load", topping: "lime" });
+  run(room, 1);
+  room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+  run(room, CRANK_TICKS_PER_CLICK);
+  room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+  run(room, 1);
+  room.onMessage(c.id, { t: "lever" });
+  run(room, wait);
+}
+
+/** THE TOWN-2 SEAM (slice 5): the stall purchase is separator-gated and
+ * purse-priced now (plans/13 §5 amendment), so tests that just need a
+ * two-town room build one through privates. The purchase LAW has its own
+ * suite (THE STALL below) — the honest wire path is exercised there. */
+function seamTown2(room: Room): void {
+  const s = seams(room);
+  s.towns.push({ machine: createCatapult(), crankTicks: 0, screwTicks: 0 });
+  s.flow.activeTowns = s.towns.length;
+}
+
+/** Seam-win the LIVE rung: paint past `frac` of the solo ask potential,
+ * rest the sprinkle row (+slack covers a nag), then land one real lime —
+ * the landing tick concludes the order. Instant wins only: rungs with no
+ * desire, or an unrevealed one, never open the finish window. */
+function seamWin(room: Room, c: FakeClient, frac = 0.95): void {
+  const s = seams(room);
+  seamPaint(room, frac);
+  const grains = rungRow(s.run.rung).asks.sprinkles;
+  if (grains > 0) seamSprinkles(room, grains + 10);
+  fireLime(room, c);
 }
 
 describe("Room: the match, headless over protocol", () => {
@@ -411,34 +508,28 @@ describe("Room: the match, headless over protocol", () => {
     expect((wA?.stuck.length ?? 0)).toBeGreaterThan(0);
   });
 
-  it("two Rooms, identical inputs INCLUDING unlock+pick, converge — the towns spine rides the message stream", () => {
-    // The towns extension of the convergence law: unlockTown2 and pickTown
-    // are INPUTS (they ride onMessage), so two replicas fed the same script
-    // must grow the same towns array, honor the same pick, and replay the
-    // same town-1 shot onto the same shared cake. This is the claim the
-    // spine's "input-stream = replayable = convergence-safe" comment makes;
-    // an out-of-band mutation, per-town Map-order dependence in the intent
-    // merge, or a facing seam in the spawn path would split the welcomes.
+  it("two Rooms, identical inputs INCLUDING buy+pick, converge — the towns spine rides the message stream", () => {
+    // The towns extension of the convergence law, REWORKED for slice 5
+    // (plans/13 §5 amendment): buy and pickTown are INPUTS (they ride
+    // onMessage), so two replicas fed the same script must debit the same
+    // purse, grow the same towns array, honor the same pick, and replay
+    // the same town-1 shot onto the same shared cake. The script IS the
+    // campaign's teaching arc: two passed orders fund the purchase (the
+    // seams paint; the wins, the pay, and every message are honest wire).
     const play = () => {
       const room = new Room();
       const a = connect(room, "alice");
       readyUp(room, a); // the ready-up is itself replayed input (poses)
-      room.onMessage(a.id, { t: "unlockTown2" }); // mid-first-order purchase
-      // The patron burns the first order out — deterministically.
-      let elapsed = 0;
-      const cap = (ORDER_SECONDS + 60) * 60;
-      while (elapsed < cap) {
-        room.tick();
-        elapsed++;
-        const om = a.last("order");
-        if (om && om.order.status !== "running") break;
-      }
-      room.onMessage(a.id, { t: "pickTown", town: 1 }); // linger window: honored
-      // Through the linger, the RUN-OVER report, and the auto-restart
-      // (the pose never left the circle — plans/13): the lost first order
-      // ends the run; the still-gathered crew's NEXT run deals fresh,
-      // priced for the two towns the purchase activated.
-      run(room, ORDER_RESET_TICKS + RUNOVER_TICKS + READY_COUNTDOWN_TICKS + 10);
+      seamWin(room, a); // rung 1, 3★: +25 (pay column 10 + 3×5)
+      run(room, ORDER_RESET_TICKS + 10); // the linger ends; rung 2 deals
+      seamWin(room, a); // rung 2, 3★: +35 — the purse holds 60
+      // THE PURCHASE and the pick, both inside the won separator — the
+      // stall's hours. A second buy in the same window must bounce off
+      // `owned` without touching the purse (no double debit).
+      room.onMessage(a.id, { t: "buy", item: "town2" });
+      room.onMessage(a.id, { t: "buy", item: "town2" });
+      room.onMessage(a.id, { t: "pickTown", town: 1 });
+      run(room, ORDER_RESET_TICKS + 10); // rung 3 deals, priced for two
       // Fire town 1's 6-click frost at the RUNNING two-town order — the
       // real play situation, no linger-timing dependence.
       room.onMessage(a.id, { t: "load", topping: "frosting" });
@@ -448,17 +539,15 @@ describe("Room: the match, headless over protocol", () => {
       room.onMessage(a.id, { t: "lever" });
       run(room, 600);
       return {
-        elapsed,
         shot: a.last("shot"),
         town: a.last("town"),
+        runWire: a.last("run"),
         w: connect(room, "peek").last("welcome"),
       };
     };
     const A = play();
     const B = play();
-    // The first order died on the same tick in both rooms...
-    expect(A.elapsed).toBe(B.elapsed);
-    // ...the pick was honored identically...
+    // The pick was honored identically...
     expect(A.town).toEqual(B.town);
     expect(A.town?.town).toBe(1);
     // ...the town-1 shot event matches to the byte (town, params, seed)...
@@ -470,10 +559,13 @@ describe("Room: the match, headless over protocol", () => {
     expect(A.w?.toppings).toEqual(B.w?.toppings);
     expect(A.w?.stuck).toEqual(B.w?.stuck);
     expect(A.w?.checks).toEqual(B.w?.checks);
-    // Non-vacuous: both towns are live, the fresh deal is priced for two,
-    // and the town-1 frost really painted the shared cake.
+    // Non-vacuous: both towns are live, the purse debited exactly once
+    // (60 earned − 50 = 10, the second buy refused untouched), the fresh
+    // deal is priced for two, and the town-1 frost painted the cake.
     expect(A.w?.machines).toHaveLength(2);
     expect(A.w?.yourTown).toBe(0); // joiners always start home
+    expect(A.runWire?.purse).toBe(60 - TOWN2_PRICE);
+    expect(A.w?.run.purse).toBe(60 - TOWN2_PRICE);
     const frost = A.w?.order.requirements.find(
       (r) => r.kind === "frost-coverage",
     ) as { potential?: number } | undefined;
@@ -481,35 +573,119 @@ describe("Room: the match, headless over protocol", () => {
     expect(A.w?.frosting.some((c) => c > 0)).toBe(true);
   });
 
-  it("the second town is DORMANT until the unlockTown2 INPUT — idempotent, capped, town 0 untouched (plans/11 §1)", () => {
-    const room = new Room();
-    const a = connect(room, "alice");
-    type TownPeek = {
-      machine: { tensionClicks: number; loaded: string | null };
-      crankTicks: number;
-    };
-    const towns = (): TownPeek[] =>
-      (room as unknown as { towns: TownPeek[] }).towns;
-    // THE CORE LAW: the default is ONE town, always.
-    expect(towns().length).toBe(1);
-    room.onMessage(a.id, { t: "unlockTown2" });
-    expect(towns().length).toBe(2);
-    const second = towns()[1];
-    // A fresh, unwound machine — never a copy of town 0's.
-    expect(second!.machine.tensionClicks).toBe(0);
-    expect(second!.machine.loaded).toBe(null);
-    // Idempotent AND capped at the arena's town count.
-    room.onMessage(a.id, { t: "unlockTown2" });
-    room.onMessage(a.id, { t: "unlockTown2" });
-    expect(towns().length).toBe(2);
-    expect(towns()[1]).toBe(second); // repeats never re-create it
-    // Town 0's play is untouched by activation: cranking winds ITS winch;
-    // the crewless town 1 idles (owner-implicit filtering is step 5).
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
-    run(room, CRANK_TICKS_PER_CLICK * 3);
-    room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 0 });
-    expect(towns()[0]!.machine.tensionClicks).toBe(3);
-    expect(towns()[1]!.machine.tensionClicks).toBe(0);
+  describe("THE STALL (plans/13 §5 as amended 2026-07-09 — slice 5)", () => {
+    it("shop hours: buys bounce off the lobby, a running order, a run-ending linger, and the catalog — untouched, undebited", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      // THE CORE LAW (plans/11 §1) survives the stall: ONE town, always,
+      // until a purchase — and a fresh second machine when it comes (the
+      // convergence test drives the honest arc; this suite the refusals).
+      expect(seams(room).towns.length).toBe(1);
+      // LOBBY: no shop hours (and no purse — it zeroes at run start).
+      room.onMessage(a.id, { t: "buy", item: "town2" });
+      expect(seams(room).towns.length).toBe(1);
+      readyUp(room, a);
+      seams(room).run.purse = 999; // funded beyond doubt: the GATE refuses
+      // MID-ORDER: gates-law parity — buying while the order runs is not
+      // a thing.
+      room.onMessage(a.id, { t: "buy", item: "town2" });
+      expect(seams(room).towns.length).toBe(1);
+      expect(seams(room).run.purse).toBe(999); // never debited
+      // THE CATALOG is the whitelist: fudge is pantry, not shop.
+      room.onMessage(a.id, { t: "buy", item: "fudge" });
+      expect(seams(room).towns.length).toBe(1);
+      // A RUN-ENDING LINGER sells nothing: inventory dies with the run —
+      // the key would be dead before it ever turned. Burn rung 1 out.
+      let guard = 0;
+      while (
+        (a.last("order")?.order.status ?? "running") === "running" &&
+        guard++ < (ORDER_SECONDS + 60) * 60
+      )
+        room.tick();
+      expect(a.last("order")?.order.status).toBe("lost");
+      room.onMessage(a.id, { t: "buy", item: "town2" });
+      expect(seams(room).towns.length).toBe(1);
+      expect(seams(room).run.purse).toBe(999);
+    });
+
+    it("a poor crew is refused honestly: no funds, no fort, purse intact", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      seamWin(room, a); // rung 1, 3★: the purse holds 25 — under the 50
+      expect(a.last("run")?.purse).toBe(25);
+      room.onMessage(a.id, { t: "buy", item: "town2" }); // the won linger: hours OPEN
+      expect(seams(room).towns.length).toBe(1); // ...but 25 < 50
+      expect(seams(room).run.purse).toBe(25); // nothing was taken
+    });
+
+    it("PAY rides the conclusion tick: base + stars × perStar on the run wire (§5's column, live at last)", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3);
+      seamPaint(room, 0.75); // 2★ (good, not excellent)
+      seamSprinkles(room, 70);
+      fireLime(room, a); // no look fired: desire unrevealed → instant win
+      expect(a.all("order").some((m) => m.order.status === "won")).toBe(true);
+      const pay = rungRow(3).pay;
+      expect(a.last("run")?.purse).toBe(pay.base + 2 * pay.perStar);
+    });
+
+    it("THE FLOURISH PAYS: the coda adds its bonus on top of the column", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3);
+      seamPaint(room, 0.75);
+      seamSprinkles(room, 70);
+      seamCherry(room); // pre-met: instant verdict + coda (4b law)
+      fireLime(room, a);
+      const end = a.all("order").find((m) => m.order.status === "won");
+      expect(end?.judgment?.flourish).toBe(true);
+      const pay = rungRow(3).pay;
+      expect(a.last("run")?.purse).toBe(
+        pay.base + 2 * pay.perStar + FLOURISH_BONUS_COINS,
+      );
+    });
+
+    it("INVENTORY DIES WITH THE RUN: the next start re-locks town 2, zeroes the purse, re-addresses the crew home", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      seamTown2(room);
+      seamWin(room, a); // rung 1 won — the linger opens the pick window
+      room.onMessage(a.id, { t: "pickTown", town: 1 });
+      expect(a.last("town")?.town).toBe(1);
+      seams(room).run.purse = 42; // a visible balance to die with the run
+      run(room, ORDER_RESET_TICKS + 10); // rung 2 deals (duo-priced — 2 towns)
+      // Burn rung 2 to death: the run ends; the report and the lobby still
+      // tell the finished story's balance (the purse dies at the START).
+      let guard = 0;
+      while (
+        (a.last("order")?.order.status ?? "running") === "running" &&
+        guard++ < (ORDER_SECONDS + 60) * 60
+      )
+        room.tick();
+      expect(a.last("order")?.order.status).toBe("lost");
+      run(room, ORDER_RESET_TICKS + 20);
+      const over = a.all("run").find((m) => m.phase === "runover");
+      expect(over?.purse).toBe(42); // the report keeps the story's balance
+      // The pose never left the circle: lobby → countdown → auto-restart.
+      run(room, RUNOVER_TICKS + READY_COUNTDOWN_TICKS + 30);
+      const w = connect(room, "peek").last("welcome");
+      expect(w?.run.phase).toBe("running");
+      expect(w?.run.rung).toBe(1);
+      expect(w?.machines).toHaveLength(1); // town 2 re-locked
+      expect(w?.run.purse).toBeUndefined(); // the purse died at the start
+      // Alice was re-addressed home at the boundary, through the same
+      // town word a pick uses — BEFORE the fresh deal and the run word.
+      expect(a.all("town").pop()?.town).toBe(0);
+      const frost = w?.order.requirements.find(
+        (r) => r.kind === "frost-coverage",
+      ) as { potential?: number } | undefined;
+      expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[1]); // priced solo again
+    });
   });
 
   it("pickTown: LOCKED while running, open at order end, dormant forts unpickable, junk ignored (plans/11 §5)", () => {
@@ -518,7 +694,7 @@ describe("Room: the match, headless over protocol", () => {
     readyUp(room, a);
     const townOf = (): number =>
       (room as unknown as { roster: { townOf(id: number): number } }).roster.townOf(a.id);
-    room.onMessage(a.id, { t: "unlockTown2" });
+    seamTown2(room);
     // A running order locks the crew — you committed.
     room.onMessage(a.id, { t: "pickTown", town: 1 });
     expect(townOf()).toBe(0);
@@ -572,7 +748,7 @@ describe("Room: the match, headless over protocol", () => {
     type TownPeek = { machine: { tensionClicks: number; traverseDeg: number } };
     const towns = (): TownPeek[] =>
       (room as unknown as { towns: TownPeek[] }).towns;
-    room.onMessage(a.id, { t: "unlockTown2" });
+    seamTown2(room);
     // Alice moves to town 1 through the order-end window.
     let elapsed = 0;
     const cap = (ORDER_SECONDS + 60) * 60;
@@ -601,7 +777,7 @@ describe("Room: the match, headless over protocol", () => {
     const a = connect(room, "alice");
     readyUp(room, a);
     jumpToRung(room, 3); // the 6-click landing + 248-tick rest were measured on the anchor
-    room.onMessage(a.id, { t: "unlockTown2" });
+    seamTown2(room);
     // Reach the pick window (the Giant burns the clock early).
     let elapsed = 0;
     const cap = (ORDER_SECONDS + 60) * 60;
@@ -645,15 +821,20 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
-    // Unlock MID-ORDER: the running order keeps the rows it was dealt.
-    room.onMessage(a.id, { t: "unlockTown2" });
+    // Activate MID-ORDER (seam — the honest purchase can't even happen
+    // here, THE STALL suite pins that): the running order keeps the rows
+    // it was dealt.
+    seamTown2(room);
     run(room, 60); // a clock correction carries the (unchanged) order
     const running = a.last("order") ?? a.last("welcome");
     const frostRow = (o: { requirements: Array<{ kind: string; potential?: number }> }) =>
       o.requirements.find((r) => r.kind === "frost-coverage");
     expect(frostRow(running!.order)?.potential).toBe(0.42);
-    // Run the order out and through the linger to the fresh deal.
-    run(room, (ORDER_SECONDS + 20) * 60);
+    // WIN the order (slice 5: a loss ends the run and the re-lock would
+    // price the restart solo — the climb is where the next deal lives)
+    // and ride the linger to rung 2's fresh cake.
+    seamWin(room, a);
+    run(room, ORDER_RESET_TICKS + 10);
     const msgs = a.all("order");
     const fresh = msgs
       .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
@@ -1118,7 +1299,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
-    room.onMessage(a.id, { t: "unlockTown2" });
+    seamTown2(room);
     // Hands full at town 0: crank HELD (never released) + a crate queued.
     room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
     run(room, CRANK_TICKS_PER_CLICK * 2);
@@ -1342,73 +1523,11 @@ describe("Room: the match, headless over protocol", () => {
   });
 
   describe("THE FINISH IT WINDOW (plans/13 §1 finish-it amendment, slice 4b)", () => {
-    // THE SEAM (jumpToRung's cousins): these tests build the STATE the
-    // window rules on — coverage past the greatness bar, a met sprinkle
-    // row, a cherry at rest on the summit — through privates, because
-    // driving each physically re-runs the whole WIN script per test. The
-    // TRIGGERS stay real: every evaluation below happens on a genuine
-    // landing tick (one weak lime lob), and the reveal on a genuine
-    // patron look. Physics truth for these rules lives in the unit pins
-    // (judgment/order-flow/patron); this pins the Room's orchestration.
-    interface Vec {
-      x: number;
-      y: number;
-      z: number;
-    }
-    interface RoomSeams {
-      frosting: {
-        paint(pos: Vec, speed: number): number;
-        coverage(): number;
-        snapshot(): number[];
-      };
-      dessert: {
-        samples: ReadonlyArray<{ pos: Vec }>;
-        tierOf(pos: Vec): number | null;
-        topTier: number;
-      };
-      settled: Array<{ topping: string; pos: Vec; onCake: boolean; stuck?: true }>;
-    }
-    const seams = (room: Room): RoomSeams => room as unknown as RoomSeams;
-
-    /** Paint the deal's cake to `frac` of the SOLO ask potential. */
-    function seamPaint(room: Room, frac: number): void {
-      const s = seams(room);
-      for (const sample of s.dessert.samples) {
-        if (s.frosting.coverage() / TOWN_ASK_POTENTIAL[1]! >= frac) return;
-        s.frosting.paint(sample.pos, 20);
-      }
-    }
-
-    /** Rest `n` sprinkle grains on painted skin (meets on-frosting rows). */
-    function seamSprinkles(room: Room, n: number): void {
-      const s = seams(room);
-      const coats = s.frosting.snapshot();
-      const spots = s.dessert.samples.filter((_, i) => coats[i]! > 0).slice(0, n);
-      for (const spot of spots)
-        s.settled.push({ topping: "sprinkles", pos: { ...spot.pos }, onCake: true, stuck: true });
-    }
-
-    /** Rest a cherry on the deal's summit. */
-    function seamCherry(room: Room): void {
-      const s = seams(room);
-      const summit = s.dessert.samples.find(
-        (sm) => s.dessert.tierOf(sm.pos) === s.dessert.topTier,
-      )!;
-      s.settled.push({ topping: "cherry", pos: { ...summit.pos }, onCake: true });
-    }
-
-    /** One weak lime lob — the REAL landing tick every evaluation needs
-     * (the decoy fires anyway, lands anyway: floor mess, honest trigger). */
-    function fireLime(room: Room, c: FakeClient, wait = 400): void {
-      room.onMessage(c.id, { t: "load", topping: "lime" });
-      run(room, 1);
-      room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 1 });
-      run(room, CRANK_TICKS_PER_CLICK);
-      room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 0 });
-      run(room, 1);
-      room.onMessage(c.id, { t: "lever" });
-      run(room, wait);
-    }
+    // These tests build state through THE SEAMS (file scope, slice 5 moved
+    // them there for the stall suite): coverage past the greatness bar, a
+    // met sprinkle row, a cherry at rest on the summit. The TRIGGERS stay
+    // real — every evaluation happens on a genuine landing tick (one weak
+    // lime lob), and the reveal on a genuine patron look.
 
     it("the window opens on a qualifying win, holds the ending, and closes honest at finishOver", () => {
       const room = new Room();

@@ -56,6 +56,40 @@ describe("RunFlow — lobby and the ready countdown", () => {
   });
 });
 
+describe("RunFlow — the shared purse (plans/13 §5 as amended 2026-07-09)", () => {
+  const startRun = (r: RunFlow): void => {
+    r.tickReady(true);
+    for (let i = 0; i < READY_COUNTDOWN_TICKS; i++) r.tickReady(true);
+  };
+
+  it("earn accumulates; spend debits exactly when it can and refuses honestly when it can't", () => {
+    const r = new RunFlow();
+    startRun(r);
+    r.earn(25);
+    r.earn(35);
+    expect(r.purse).toBe(60);
+    expect(r.spend(50)).toBe(true);
+    expect(r.purse).toBe(10);
+    // The refusal takes NOTHING — an honest "not enough coins".
+    expect(r.spend(50)).toBe(false);
+    expect(r.purse).toBe(10);
+  });
+
+  it("the purse SURVIVES runover and the lobby (the report tells the whole story) and dies at the NEXT run's start", () => {
+    const r = new RunFlow();
+    startRun(r);
+    r.earn(42);
+    r.orderConcluded(false); // the run dies; the balance doesn't — yet
+    expect(r.phase).toBe("runover");
+    expect(r.purse).toBe(42);
+    for (let i = 0; i < RUNOVER_TICKS; i++) r.tickRunover();
+    expect(r.phase).toBe("lobby");
+    expect(r.purse).toBe(42); // the lobby still holds the finished story
+    startRun(r); // ...and the next run starts its own
+    expect(r.purse).toBe(0);
+  });
+});
+
 describe("RunFlow — the ladder and the run's end", () => {
   const running = (): RunFlow => {
     const r = new RunFlow();

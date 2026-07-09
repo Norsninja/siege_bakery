@@ -61,6 +61,55 @@ describe("tickInteraction", () => {
   });
 });
 
+describe("the stall (plans/13 §5 as amended 2026-07-09) — E predicts the Room's shop law", () => {
+  const stall = (over = {}) => ({
+    open: true,
+    owned: false,
+    price: 50,
+    purse: 60,
+    ...over,
+  });
+
+  it("an affordable open stall sends the buy (and only the buy — hands untouched)", () => {
+    const act = tickInteraction(true, "shop", "cherry", null, stall());
+    expect(act.send).toEqual([{ t: "buy", item: "town2" }]);
+    expect(act.carrying).toBe("cherry"); // a purchase is not a pickup
+    expect(act.flash?.msg).toContain("TOWN 2");
+  });
+
+  it("closed hours flash the hours; a poor purse flashes the honest refusal — neither sends", () => {
+    const closed = tickInteraction(true, "shop", null, null, stall({ open: false }));
+    expect(closed.send).toEqual([]);
+    expect(closed.flash?.msg).toContain("opens between orders");
+    const poor = tickInteraction(true, "shop", null, null, stall({ purse: 25 }));
+    expect(poor.send).toEqual([]);
+    expect(poor.flash?.msg).toContain("not enough coins");
+  });
+
+  it("SOLD OUT presses do nothing (the prompt already says so); no context reads closed", () => {
+    const owned = tickInteraction(true, "shop", null, null, stall({ owned: true }));
+    expect(owned.send).toEqual([]);
+    expect(owned.flash).toBeNull();
+    const noCtx = tickInteraction(true, "shop", null, null);
+    expect(noCtx.send).toEqual([]);
+    expect(noCtx.flash).toBeNull();
+  });
+
+  it("the E chain: a stall press CONSUMES the edge (never mans a post through the counter)", () => {
+    const r = resolveEEdge(true, null, "shop", "gunner", null, null, stall());
+    expect(r.manned).toBeNull();
+    expect(r.act.send).toEqual([{ t: "buy", item: "town2" }]);
+    // ...and the HUD invite yields to it (one press, one meaning).
+    expect(interactionActs("shop", null, null, stall())).toBe(true);
+    // A SOLD-OUT stall acts on nothing: the edge falls through to the post.
+    const sold = resolveEEdge(
+      true, null, "shop", "gunner", null, null, stall({ owned: true }),
+    );
+    expect(sold.manned).toBe("gunner");
+    expect(interactionActs("shop", null, null, stall({ owned: true }))).toBe(false);
+  });
+});
+
 describe("pantryTarget — the crosshair speaks only to the pantry loop (plans/14)", () => {
   it("machine controls are refused; bucket and shelves pass; null is null", () => {
     for (const t of ["wheel", "winch", "screw", "lever"] as const)

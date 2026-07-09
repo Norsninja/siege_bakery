@@ -59,6 +59,14 @@ export class RunFlow {
    * MASTER BAKER content pass). Impossible on today's machine — cake-6's
    * summit takes zero shipped combos — until the economy sells the key. */
   ultra = false;
+  /** THE SHARED PURSE (plans/13 §5 as amended 2026-07-09): one bakery,
+   * one wallet — run-scoped state, so it lives where the run does.
+   * Earned at each passed order (the rung's pay column + the flourish
+   * bonus — the Room does that arithmetic and calls earn); spent at the
+   * stall. It ZEROES AT THE NEXT RUN'S START, not at run over: the
+   * report and the lobby display the finished run's balance — a run is
+   * a complete story, told to the end. */
+  purse = 0;
   /** Ticks left on the ready countdown (countdown phase only). */
   countdownLeft = 0;
   /** Ticks left on the run-over report (runover phase only). */
@@ -84,9 +92,25 @@ export class RunFlow {
       if (this.countdownLeft > 0) return null;
       this.phase = "running";
       this.rung = 1;
+      this.purse = 0; // inventory dies with the run (§5 amendment) —
+      // the Room re-locks town 2 at this same boundary (startRun)
       return "start";
     }
     return null;
+  }
+
+  /** Coins into the shared purse — the Room calls this with the passed
+   * order's award (pay column + flourish bonus) at the conclusion tick. */
+  earn(coins: number): void {
+    this.purse += coins;
+  }
+
+  /** An authoritative debit: true = paid, false = the honest refusal
+   * ("not enough coins"). The Room applies the purchase only on true. */
+  spend(cost: number): boolean {
+    if (this.purse < cost) return false;
+    this.purse -= cost;
+    return true;
   }
 
   /** The Room reports how the order concluded, AT THE REDEAL BOUNDARY

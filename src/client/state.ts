@@ -7,12 +7,13 @@
  * hud.ts read it.
  */
 import { dessertGeometry, type DessertGeometry } from "../core/dessert";
-import { specForRung } from "../game/campaign";
+import { RUNGS, specForRung } from "../game/campaign";
 import { createCatapult } from "../game/catapult";
 import type { Judgment, RequirementCheck } from "../game/judgment";
 import { createOrder, type OrderState } from "../game/order";
 import type { RunWire, TownMachine } from "../game/protocol";
-import type { NetStatus } from "./hud";
+import { TOWN2_PRICE } from "../game/tuning";
+import type { NetStatus, ShopState } from "./hud";
 
 export interface MatchView {
   /** Every ACTIVE town's machine, indexed by town (plans/11 §4) — the
@@ -53,6 +54,25 @@ export function freshTownMachine(): TownMachine {
  * indexes machines once welcomed. */
 export function myMachine(view: MatchView): TownMachine {
   return view.machines[view.yourTown] ?? view.machines[0]!;
+}
+
+/** The stall's standing state (plans/13 §5 as amended 2026-07-09) — the
+ * client's prediction of the Room's shop law, derived from broadcast
+ * truth every read. SHOP HOURS mirror the Room's gate exactly: a WON
+ * order's separator during a live run — never a run-ending linger (a
+ * loss ends the run; the top-rung triumph does too — inventory dies
+ * with the run, so either would sell a dead key). If the Room's rule
+ * moves, move this WITH it. */
+export function shopState(view: MatchView): ShopState {
+  return {
+    open:
+      view.run.phase === "running" &&
+      view.order.status === "won" &&
+      view.run.rung < RUNGS.length,
+    owned: view.machines.length > 1,
+    price: TOWN2_PRICE,
+    purse: view.run.purse ?? 0,
+  };
 }
 
 /**

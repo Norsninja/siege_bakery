@@ -36,7 +36,7 @@ import {
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
-import { createMatchView, myMachine, predictClock } from "./state";
+import { createMatchView, myMachine, predictClock, shopState } from "./state";
 import { bannerLatch, interactionActs, resolveEEdge } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
@@ -291,6 +291,9 @@ async function main(): Promise<void> {
         nearPost,
         view.carrying,
         myMachine(view).machine.loaded,
+        // The stall (plans/13 §5 amendment): rules in interactions.ts,
+        // state derived in state.ts — this is wiring only, per the law.
+        shopState(view),
       );
       manned = resolved.manned;
       if (resolved.justManned && manned === "gunner") {
@@ -405,6 +408,7 @@ async function main(): Promise<void> {
             view.run.rung,
             view.run.won ?? false,
             view.run.ultra ?? false,
+            view.run.purse ?? 0,
           );
         } else if (view.run.phase !== "running") {
           // The lobby (or the countdown): everything comes down. No deal
@@ -464,6 +468,10 @@ async function main(): Promise<void> {
               // linger — the banner must not promise one.
               runEnds: view.order.status === "lost",
             },
+            // The concluded rung prices the banner's pay line (§5
+            // amendment) — the climb happens at the redeal, after this
+            // banner comes down, so run.rung is still the rung just won.
+            view.run.rung,
           );
           // Caption rides the same cadence: the verdict can land a beat
           // after the show edge (its broadcast races the status flip).
@@ -530,6 +538,7 @@ async function main(): Promise<void> {
         myId: view.myId,
         locked: document.pointerLockElement === canvas,
         target,
+        shop: shopState(view),
         flash: now < flashUntil ? flashMsg : null,
         manned,
         // The invite YIELDS to an actionable crosshair target (one press,
@@ -542,6 +551,7 @@ async function main(): Promise<void> {
             target,
             view.carrying,
             myMachine(view).machine.loaded,
+            shopState(view),
           )
             ? nearPostShown
             : null,
@@ -599,11 +609,9 @@ async function main(): Promise<void> {
       // 2026-07-07). A future density review re-adds it from the TUNNEL
       // commit's parent, loopback-guarded as before.
       //
-      // The fork-2 purchase's dev stand-in (plans/11 §1): activates the
-      // dormant second town. Safe over the net — it is an INPUT the Room
-      // applies authoritatively, not a module mutation — which is what
-      // the dev-toggle friend test needs.
-      unlockTown2: () => transport.send({ t: "unlockTown2" }),
+      // The unlockTown2 dev stand-in RETIRED (plans/13 §5 amendment,
+      // slice 5): town 2 is a real stall purchase now — buy it at the
+      // shop, or build state through __game.room (loopback) below.
       // THE LOOPBACK ROOM SEAM (slice 4b live-verify; jumpToRung culture):
       // solo/dev only — null over ws. Lets a verification script BUILD
       // state (paint, ledger entries, a rung jump) the way the room tests'

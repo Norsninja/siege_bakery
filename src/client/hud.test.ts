@@ -125,6 +125,24 @@ describe("promptFor", () => {
     expect(SHELF_TOPPING["shelf-lime"]).toBe("lime");
     expect(SHELF_TOPPING.lever).toBeUndefined(); // machines are not snacks
   });
+
+  it("the stall's prompt (slice 5): price on the prompt, every refusal predicted in words", () => {
+    const m = machine();
+    const stall = { open: true, owned: false, price: 50, purse: 60 };
+    expect(promptFor("shop", m, null, stall)).toBe(
+      "E — buy TOWN 2 · 50 coins (purse 60)",
+    );
+    expect(promptFor("shop", m, null, { ...stall, purse: 25 })).toBe(
+      "THE STALL — TOWN 2 · 50 coins (purse 25) — not enough coins",
+    );
+    expect(promptFor("shop", m, null, { ...stall, open: false })).toBe(
+      "THE STALL — TOWN 2 · 50 coins (purse 60) — opens between orders",
+    );
+    expect(promptFor("shop", m, null, { ...stall, owned: true })).toContain(
+      "SOLD OUT",
+    );
+    expect(promptFor("shop", m, null, null)).toBe("THE STALL — closed");
+  });
 });
 
 describe("bannerText — three endings, culprit always named", () => {
@@ -193,6 +211,23 @@ describe("bannerText — three endings, culprit always named", () => {
     expect(plain).not.toContain("FLOURISH");
   });
 
+  it("THE PAY LINE (slice 5): a won banner names the coins from the shared tables; the flourish names its bonus", () => {
+    const order = { ...createOrder([], 100), status: "won" as const };
+    // Rung 3, 2★: 30 + 2×5 = 40 — the same arithmetic the Room's award
+    // runs, so the words and the wallet agree.
+    const text = bannerText(order, rows, judgment({ stars: 2 }), 2, undefined, 3);
+    expect(text).toContain("🪙 +40 coins to the purse");
+    expect(text).not.toContain("for the style");
+    // The coda adds its named bonus: 40 + 10.
+    const styled = bannerText(
+      order, rows, judgment({ stars: 2, flourish: true }), 2, undefined, 3,
+    );
+    expect(styled).toContain("🪙 +50 coins to the purse — 10 of them for the style");
+    // No rung (pre-run callers): no pay line — the pre-slice-5 banner.
+    const plain = bannerText(order, rows, judgment({ stars: 2 }), 2);
+    expect(plain).not.toContain("🪙");
+  });
+
   it("a run-ending loss promises NO new order — the run ends (plans/13)", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
     const text = bannerText(order, rows, null, 2, {
@@ -217,6 +252,14 @@ describe("runOverText — the run report banner", () => {
     // and the words agree).
     expect(runOverText(3, false, true)).toContain("THE RUN IS OVER");
   });
+
+  it("the report tells the purse's end (slice 5) — and stays silent at zero", () => {
+    expect(runOverText(3, false, false, 42)).toContain(
+      "🪙 the purse ends at 42 coins",
+    );
+    expect(runOverText(7, true, false, 15)).toContain("the purse ends at 15");
+    expect(runOverText(3, false)).not.toContain("🪙"); // the pre-purse report
+  });
 });
 
 describe("hudLines", () => {
@@ -234,6 +277,7 @@ describe("hudLines", () => {
     myId: null,
     locked: true,
     target: null,
+    shop: null,
     flash: null,
     manned: null,
     nearPost: null,
@@ -244,6 +288,17 @@ describe("hudLines", () => {
     const lines = hudLines(view());
     expect(lines[0]).toBe("RUNG 1 · THE ORDER · 1:11   [solo bakery]");
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
+  });
+
+  it("the purse rides the run block (slice 5): the wire's balance, absent reads 0", () => {
+    const lines = hudLines(
+      view({ run: { phase: "running", rung: 2, purse: 35 } }),
+    );
+    expect(lines).toContain("  🪙 purse: 35 coins");
+    expect(hudLines(view())).toContain("  🪙 purse: 0 coins");
+    // Only a live rung banks: the lobby block carries no wallet line.
+    const lobby = hudLines(view({ run: { phase: "lobby", rung: 0 } }));
+    expect(lobby.join("\n")).not.toContain("purse");
   });
 
   it("the lobby invites to the circle with the ready census; no order shows (plans/13)", () => {

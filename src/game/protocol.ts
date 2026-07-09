@@ -30,6 +30,13 @@ export interface RunWire {
    * top-rung triumph landed the flourish too — ULTRA MASTER BAKER OF
    * THE REALMS. Same skeleton idiom as `won`. */
   ultra?: true;
+  /** THE SHARED PURSE (plans/13 §5 as amended 2026-07-09): the run's
+   * one wallet, riding the container it is scoped to — welcome and
+   * every run broadcast carry it, so mid-run joiners see the balance
+   * for free (the desire's idiom). Present when nonzero; absent reads
+   * 0 (it zeroes at run start, so a fresh wire is byte-identical to
+   * the pre-purse wire). */
+  purse?: number;
   /** countdown only: ticks until rung 1 deals (clients may predict a
    * local count between broadcasts, predictClock-style). */
   countdownTicks?: number;
@@ -92,14 +99,15 @@ export type ClientMsg =
   /** Edges: consumed by the room exactly once. */
   | { t: "lever" }
   | { t: "load"; topping: string }
-  /** DEV STAND-IN for the fork-2 shop purchase (plans/11 §1): activates
-   * the dormant second town. An INPUT, not out-of-band state — it rides
-   * the message stream so headless replicas replay it identically, and
-   * it works over the net for the dev-toggle friend test. Idempotent.
-   * The real purchase (purse + eligibility gate) replaces this handler
-   * in fork 2; until then the trust model is plans/02 co-op-among-
-   * friends, same as client-authoritative poses. */
-  | { t: "unlockTown2" }
+  /** THE STALL PURCHASE (plans/13 §5 as amended 2026-07-09 — replaces
+   * the unlockTown2 dev stand-in it was always promised to). An INPUT
+   * like its predecessor: it rides the message stream so headless
+   * replicas replay it identically. The Room validates EVERYTHING —
+   * catalog item, shop hours (a won order's separator only), not
+   * already owned, and the authoritative purse debit; refusals are
+   * silent drops the client's own prompt already predicted ("not
+   * enough coins" is a local flash — the client sees the same purse). */
+  | { t: "buy"; item: string }
   /** The split MECHANISM (plans/11 §5, DECISION 2): pick which town you
    * crew for the NEXT order. Honored only while the order is NOT running
    * (a running order locks you in — you committed); the default is

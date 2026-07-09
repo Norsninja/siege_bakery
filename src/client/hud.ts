@@ -22,6 +22,8 @@ import {
   type Judgment,
   type RequirementCheck,
 } from "../game/judgment";
+import { rungRow } from "../game/campaign";
+import { FLOURISH_BONUS_COINS } from "../game/tuning";
 import type { OrderState } from "../game/order";
 import type { RunWire } from "../game/protocol";
 import type { Post } from "./posts";
@@ -38,7 +40,8 @@ export type InteractableKind =
   | "shelf-lime"
   | "shelf-frosting"
   | "shelf-sprinkles"
-  | "shelf-fudge";
+  | "shelf-fudge"
+  | "shop";
 
 /** Which topping each pantry shelf hands out — main.ts's pickup reads this
  * instead of growing a branch per crate. */
@@ -66,6 +69,21 @@ export const MACHINE_CONTROL_KINDS: ReadonlySet<InteractableKind> = new Set([
 
 export type NetStatus = "loopback" | "connecting" | "open" | "closed";
 
+/** What the stall's prompt (and the E press — interactions.ts) reads:
+ * the client's local prediction of the Room's shop law (plans/13 §5 as
+ * amended 2026-07-09), built from broadcast state every tick. If the
+ * Room's rules move, move this WITH them — the drift is what the
+ * interaction tests exist to catch. */
+export interface ShopState {
+  /** Shop hours: a WON order's separator during a live run (never a
+   * run-ending linger — inventory dies with the run). */
+  open: boolean;
+  /** Town 2 already active (machines.length > 1) — nothing to sell. */
+  owned: boolean;
+  price: number;
+  purse: number;
+}
+
 /** The arc position as a filled ladder — the fill shows the whole scale
  * at once (the notch-1/3 misread fix, kept through the vernier). 19
  * positions since the 2.5° table (research/13): grouped in FOURS — one
@@ -88,6 +106,7 @@ export function promptFor(
   kind: InteractableKind,
   machine: CatapultState,
   carrying: string | null,
+  shop?: ShopState | null,
 ): string {
   switch (kind) {
     // The machine's CONTROLS are worked from crew posts now (plans/14).
@@ -124,6 +143,19 @@ export function promptFor(
       return carrying !== null
         ? "hands full — one at a time"
         : "E — scoop hot fudge";
+    case "shop": {
+      // THE STALL (plans/13 §5 amendment): price on the prompt, never a
+      // menu. Every refusal the Room would give is predicted here in
+      // words — the walk-up already knows why before pressing E.
+      if (!shop) return "THE STALL — closed";
+      if (shop.owned)
+        return "THE STALL — SOLD OUT (the second fort is yours)";
+      const tag = `TOWN 2 · ${shop.price} coins (purse ${shop.purse})`;
+      if (!shop.open) return `THE STALL — ${tag} — opens between orders`;
+      return shop.purse >= shop.price
+        ? `E — buy ${tag}`
+        : `THE STALL — ${tag} — not enough coins`;
+    }
   }
 }
 
@@ -151,6 +183,12 @@ export function bannerText(
   verdict: Judgment | null,
   topTier: number,
   next?: NextOrderNote,
+  /** The concluded rung (plans/13 §5 amendment): a won banner names the
+   * pay — computed client-side from the SHARED tables (campaign.ts pay
+   * column + the tuning bonus), the same arithmetic the Room's award
+   * runs, so the words and the wallet agree. 0 = no pay line (pre-run
+   * callers and the lobby's dormant order). */
+  rung = 0,
 ): string {
   const list = checks
     .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req, topTier)}`)
@@ -167,7 +205,18 @@ export function bannerText(
     const coda = verdict.flourish
       ? `\n✨ AND THE FLOURISH — A ${(order.desire?.topping ?? "flourish").toUpperCase()} ON THE VERY TOP ✨`
       : "";
-    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}${coda}\n${list}\n${scoreLine}`;
+    // The pay line (§5 amendment): style visibly pays — the flourish
+    // bonus is named right where the coda just sparkled.
+    let payLine = "";
+    if (rung > 0) {
+      const pay = rungRow(rung).pay;
+      const coins =
+        pay.base +
+        verdict.stars * pay.perStar +
+        (verdict.flourish ? FLOURISH_BONUS_COINS : 0);
+      payLine = `\n🪙 +${coins} coins to the purse${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
+    }
+    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}${coda}${payLine}\n${list}\n${scoreLine}`;
   } else if (verdict?.met) {
     // Gate 2 refusal — the insulting kind: every box ticked, badly.
     text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
@@ -216,12 +265,21 @@ export function runOverLine(rung: number, won = false): string {
  * filthy floor is the trophy, and the lobby circle is the next move.
  * TRIUMPH (§1 flourish amendment): the MASTER BAKER banner — the
  * skeleton of the moment; trophy/fanfare/credits are a content pass. */
-export function runOverText(rung: number, won = false, ultra = false): string {
+export function runOverText(
+  rung: number,
+  won = false,
+  ultra = false,
+  purse = 0,
+): string {
+  // The run report tells the purse's end too (§5 amendment: the purse
+  // dies at the NEXT run's start, so the report and the lobby still
+  // hold the finished story's balance).
+  const coins = purse > 0 ? `\n🪙 the purse ends at ${purse} coins` : "";
   if (won)
     // ULTRA (§1 finish-it amendment): the triumph's verdict wore the coda —
     // the title upgrades; the ceremony rides the MASTER BAKER content pass.
-    return `${ultra ? "👑 ULTRA MASTER BAKER OF THE REALMS 👑" : "👑 MASTER BAKER 👑"}\n${runOverLine(rung, true)}\n— gather in the gold circle to bake again`;
-  return `THE RUN IS OVER\n${runOverLine(rung)}\n— gather in the gold circle to run again`;
+    return `${ultra ? "👑 ULTRA MASTER BAKER OF THE REALMS 👑" : "👑 MASTER BAKER 👑"}\n${runOverLine(rung, true)}${coins}\n— gather in the gold circle to bake again`;
+  return `THE RUN IS OVER\n${runOverLine(rung)}${coins}\n— gather in the gold circle to run again`;
 }
 
 export interface HudView {
@@ -243,6 +301,9 @@ export interface HudView {
   /** Pointer lock engaged? */
   locked: boolean;
   target: InteractableKind | null;
+  /** The stall's standing state (plans/13 §5 amendment) — feeds the
+   * shop prompt; null before the view has a run (boot). */
+  shop: ShopState | null;
   /** Active flash message, or null once expired. */
   flash: string | null;
   /** The post this baker is manning (plans/14), or null on foot. */
@@ -302,6 +363,9 @@ export function hudLines(v: HudView): string[] {
                     `  ★ THE FLOURISH: a ${v.order.desire.topping} on the very top${v.order.desire.met ? " ✓" : " — style, not required"}`,
                   ]
                 : []),
+              // The shared purse (§5 amendment): one wallet, always in
+              // sight during the run — the stall's prompt prices from it.
+              `  🪙 purse: ${v.run.purse ?? 0} coins`,
             ];
   const lines = [
     ...top,
@@ -329,7 +393,7 @@ export function hudLines(v: HudView): string[] {
     );
   }
   if (v.target && v.manned === null)
-    lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying)}`);
+    lines.push(`▸ ${promptFor(v.target, v.machine, v.carrying, v.shop)}`);
   if (v.flash) lines.push(v.flash);
   return lines;
 }

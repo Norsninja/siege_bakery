@@ -108,6 +108,12 @@ export interface Town {
   /** Center of the gate opening in the front wall (ground plane). The
    * fort interior lies on the pantry's side of this point. */
   gate: { x: number; z: number };
+  /** THE SHOP STALL (plans/13 §5 as amended 2026-07-09): against the
+   * side wall, HALFWAY between pantry and machine — the visionary's
+   * placement: running around is part of the fun, so the stall shares
+   * the ferry leg. Greybox anchor like pantry/plinth; the feel pass
+   * moves it. */
+  shop: Vec3;
   /** Side + back + gated-front walls (the gate gap has no wall). */
   walls: readonly WallDef[];
 }
@@ -119,6 +125,9 @@ const TOWN0: Town = {
   spawn: { x: 0, y: 1.2, z: CROSS_HALF - 2 },
   facingDeg: 0,
   gate: { x: GATE_X, z: -ARENA_HALF_LENGTH },
+  // Against the −x side wall (inner face −7.75; the gate owns +x), at
+  // z=0 — the exact midpoint of the pantry (z=12) ↔ machine (z=−12) leg.
+  shop: { x: -(ARENA_HALF_WIDTH - 0.85), y: 0.75, z: 0 },
   walls: TOWN0_WALLS,
 };
 
@@ -136,6 +145,7 @@ export const TOWNS: readonly Town[] = [
     spawn: rotateAboutCake(TOWN0.spawn),
     facingDeg: 180,
     gate: { x: -TOWN0.gate.x, z: 2 * CAKE_Z - TOWN0.gate.z },
+    shop: rotateAboutCake(TOWN0.shop),
     walls: TOWN0_WALLS.map(rotateWall),
   },
 ];
@@ -166,6 +176,10 @@ export const BAKER_SPAWN: Vec3 = TOWNS[0]!.spawn;
 /** Prop half-extents, shared by every town's pantry/plinth. */
 export const PANTRY_HALF: Vec3 = { x: 2, y: 0.75, z: 0.5 };
 export const PLINTH_HALF: Vec3 = { x: 1, y: 0.5, z: 1 };
+/** The shop stall's counter (plans/13 §5 amendment): depth off the wall
+ * × counter height × width along the wall. A solid like the pantry —
+ * bakers lean on it, wild bounces rest on it, both replicas agree. */
+export const SHOP_HALF: Vec3 = { x: 0.6, y: 0.75, z: 1.1 };
 
 /** Every wall in the arena — both enclosures, flattened. Renderers and
  * research scripts loop this exactly as before. */
@@ -207,6 +221,13 @@ export function buildArenaColliders(world: RAPIER.World): void {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(PLINTH_HALF.x, PLINTH_HALF.y, PLINTH_HALF.z)
         .setTranslation(t.plinth.x, t.plinth.y, t.plinth.z),
+    );
+    // The shop stall's counter (plans/13 §5 amendment). A static like
+    // pantry/plinth: it sits against the side wall at z=0, far off every
+    // plinth→cake firing line — the measured envelopes never cross it.
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(SHOP_HALF.x, SHOP_HALF.y, SHOP_HALF.z)
+        .setTranslation(t.shop.x, t.shop.y, t.shop.z),
     );
   }
 }

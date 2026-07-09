@@ -246,4 +246,38 @@ describe("applyServerMsg", () => {
     applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
     expect(h.flashes.pop()).toContain("gather in the circle");
   });
+
+  it("run copies the triumph flags and the purse (won/ultra FOUND DROPPED with slice 5 — the standing crew's crown never rendered)", () => {
+    const h = harness();
+    applyServerMsg(
+      h.view,
+      { t: "run", phase: "runover", rung: 7, won: true, ultra: true, purse: 15 },
+      h.fx,
+    );
+    expect(h.view.run.won).toBe(true);
+    expect(h.view.run.ultra).toBe(true);
+    expect(h.view.run.purse).toBe(15);
+    // Absent means absent — the next word replaces the whole container.
+    applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
+    expect(h.view.run.won).toBeUndefined();
+    expect(h.view.run.purse).toBeUndefined();
+  });
+
+  it("THE RE-LOCK, client half (slice 5): the run-start word shrinks machines back to home — inventory died with the last run", () => {
+    const h = harness();
+    // A second machine arrived last run (its 15Hz broadcast grew the list).
+    applyServerMsg(
+      h.view,
+      { t: "machine", town: 1, state: myMachine(h.view).machine, crankTicks: 0, screwTicks: 0 },
+      h.fx,
+    );
+    expect(h.view.machines).toHaveLength(2);
+    applyServerMsg(h.view, { t: "run", phase: "runover", rung: 2 }, h.fx);
+    applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
+    expect(h.view.machines).toHaveLength(2); // the lobby sandbox keeps it...
+    applyServerMsg(h.view, { t: "run", phase: "running", rung: 1 }, h.fx);
+    expect(h.view.machines).toHaveLength(1); // ...the next run's START re-locks
+    // The C-MED-2 invariant survives the shrink: yourTown still indexes.
+    expect(h.view.machines[h.view.yourTown]).toBeDefined();
+  });
 });

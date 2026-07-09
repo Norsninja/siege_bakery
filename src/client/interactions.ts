@@ -16,11 +16,15 @@ import {
   MACHINE_CONTROL_KINDS,
   SHELF_TOPPING,
   type InteractableKind,
+  type ShopState,
 } from "./hud";
 import type { Post } from "./posts";
 
 /** The messages an interaction may send (a subset of ClientMsg). */
-export type InteractionMsg = { t: "lever" } | { t: "load"; topping: string };
+export type InteractionMsg =
+  | { t: "lever" }
+  | { t: "load"; topping: string }
+  | { t: "buy"; item: string };
 
 export interface TickInteraction {
   /** Hands after the interaction (pickup fills them, a load empties them). */
@@ -42,12 +46,41 @@ export function tickInteraction(
   target: InteractableKind | null,
   carrying: string | null,
   machineLoaded: string | null,
+  shop?: ShopState | null,
 ): TickInteraction {
   if (!eEdge || target === null) return NOTHING(carrying);
   // Pantry pickup: hands must be empty, one topping at a time.
   const shelf = SHELF_TOPPING[target];
   if (shelf !== undefined)
     return carrying === null ? { carrying: shelf, send: [], flash: null } : NOTHING(carrying);
+  // THE STALL (plans/13 §5 amendment): one E, one purchase — the send
+  // is the client's prediction of a buy the Room will honor; every
+  // refusal is predicted in a flash from the same broadcast state (the
+  // Room's silent drop never needs explaining). SOLD OUT presses do
+  // nothing — the prompt already says so.
+  if (target === "shop") {
+    if (!shop || shop.owned) return NOTHING(carrying);
+    if (!shop.open)
+      return {
+        carrying,
+        send: [],
+        flash: { msg: "the stall opens between orders", ms: 2500 },
+      };
+    if (shop.purse < shop.price)
+      return {
+        carrying,
+        send: [],
+        flash: {
+          msg: `not enough coins — the purse holds ${shop.purse} of ${shop.price}`,
+          ms: 2500,
+        },
+      };
+    return {
+      carrying,
+      send: [{ t: "buy", item: "town2" }],
+      flash: { msg: "🪙 TOWN 2 — the second fort wakes!", ms: 3500 },
+    };
+  }
   // The release lever ALWAYS executes — empty bucket included.
   if (target === "lever")
     return {
@@ -98,9 +131,10 @@ export function interactionActs(
   target: InteractableKind | null,
   carrying: string | null,
   machineLoaded: string | null,
+  shop?: ShopState | null,
 ): boolean {
   return acts(
-    tickInteraction(true, pantryTarget(target), carrying, machineLoaded),
+    tickInteraction(true, pantryTarget(target), carrying, machineLoaded, shop),
     carrying,
   );
 }
@@ -124,6 +158,7 @@ export function resolveEEdge(
   nearPost: Post | null,
   carrying: string | null,
   machineLoaded: string | null,
+  shop?: ShopState | null,
 ): EEdgeResult {
   if (eEdge && manned !== null)
     return { manned: null, act: NOTHING(carrying), justManned: false };
@@ -132,6 +167,7 @@ export function resolveEEdge(
     pantryTarget(target),
     carrying,
     machineLoaded,
+    shop,
   );
   if (eEdge && !acts(act, carrying) && nearPost !== null)
     return { manned: nearPost, act, justManned: true };

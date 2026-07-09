@@ -22,6 +22,7 @@ import {
   PANTRY_HALF,
   PLINTH_HALF,
   READY_CIRCLE,
+  SHOP_HALF,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
 import type { CakeTier } from "../core/dessert";
@@ -398,6 +399,18 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
       box(0.8, 0.5, 0.7, bodyColor, t.pantry.x + dx * s, crateY, t.pantry.z, scene),
       sphere(0.2, TOPPING_COLORS[topping] ?? 0xffffff, t.pantry.x + dx * s, crateY + 0.4, t.pantry.z, scene),
     ];
+    // THE SHOP STALL (plans/13 §5 as amended 2026-07-09): against the
+    // side wall, halfway along the pantry↔machine ferry leg — a walk-up
+    // counter with a coin on a post, greybox like everything. The
+    // collider is the arena's (core owns statics); these are the visuals
+    // + the crosshair's target.
+    const stall: THREE.Mesh[] = [
+      box(SHOP_HALF.x * 2, SHOP_HALF.y * 2, SHOP_HALF.z * 2, 0x7a5230,
+        t.shop.x, t.shop.y, t.shop.z, scene),
+      box(0.06, 1.1, 0.06, 0xefe3d0,
+        t.shop.x, SHOP_HALF.y * 2 + 0.55, t.shop.z, scene),
+      sphere(0.22, 0xd9a92a, t.shop.x, SHOP_HALF.y * 2 + 1.25, t.shop.z, scene),
+    ];
     townInteractables.push({
       wheel: [rig.wheelMesh],
       winch: [rig.drumMesh, rig.winchHandle],
@@ -409,6 +422,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
       "shelf-sprinkles": crate(0, 0x6b4a8a, "sprinkles"),
       "shelf-fudge": crate(0.8, 0x3a2413, "fudge"),
       "shelf-lime": crate(1.6, 0x4f7a35, "lime"),
+      shop: stall,
     });
   }
 

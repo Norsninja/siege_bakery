@@ -131,3 +131,24 @@ playtests ever want a flat, direct shot — skim under something, rope a
 low wall — that is a DESIGN change (a second machine type or an
 arm-geometry rework), not a tuning tweak. Recorded so the wish, if it
 arrives, lands here instead of in a tuning session.
+
+## 8. Run points — meta-progression after the run — POST-CAMPAIGN DISCUSSION
+
+**Status: awaiting a design session (visionary's shape recorded
+2026-07-09, seventh session; deliberately deferred).**
+
+The shape (visionary): players earn POINTS at run's end — a currency
+SEPARATE from the purse (purse is in-run, shared, resets with the run;
+a run is a complete story). Points pay even on a FAILED run (every run
+ends with something), and a landed flourish pays more. Natural funding
+channel for the power-up award economy (item 6) — discuss beside it.
+
+Constraints binding on any design: (a) points persist across runs,
+which plans/13 §7's "no run persistence" non-goal currently forbids —
+lifting it needs player identity + storage (none exists; connections
+are anonymous today); (b) two currencies must stay legible — purse
+buys in the shop, points live at the meta layer; never price one
+thing in both. Open: per-player or per-crew.
+
+Reason it waits: slice 5's purse must exist first; the shape belongs
+in item 6's post-campaign session.

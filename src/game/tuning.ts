@@ -90,6 +90,18 @@ export const FINISH_WINDOW_TICKS = 900; // 15s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 
+/** THE ECONOMY's dials (plans/13 §5 as amended 2026-07-09 — the
+ * shop-sells-infrastructure amendment). Both are feel-pass hypotheses,
+ * ruled easily tunable: one edit here moves every reader.
+ * The flourish coda's purse bonus, on top of the rung's pay column
+ * (campaign.ts): +10 = two stars' worth — style pays like excellence,
+ * flat and legible (a multiplier can't be mentally verified mid-game). */
+export const FLOURISH_BONUS_COINS = 10;
+/** Town 2 at the stall — §5's scale: affordable by rung 2–3 for a
+ * decent crew (two 3★ wins = 60), right as the asks start outgrowing
+ * one town's throughput. */
+export const TOWN2_PRICE = 50;
+
 /** THE RUN (the campaign container, plans/13 slice 1) — pacing knobs.
  * The ready countdown: all bakers in the circle holds this long before
  * rung 1 deals; anyone stepping out cancels it (the honest gate). */

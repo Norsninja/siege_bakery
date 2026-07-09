@@ -48,7 +48,8 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "../game/judgment";
-import { rungRow, specForRung, validateRungs } from "../game/campaign";
+import { RUNGS, rungRow, specForRung, validateRungs } from "../game/campaign";
+import { FLOURISH_BONUS_COINS, TOWN2_PRICE } from "../game/tuning";
 import { evaluateOrder } from "../game/order";
 import {
   OrderFlow,
@@ -93,8 +94,12 @@ export class Room {
   /** THE CORE LAW (plans/11 §1): the second town is a PURCHASED upgrade,
    * never a forced split. This array's length IS activeTowns; it starts
    * at 1 — the exact pre-towns game — and grows to 2 only through the
-   * unlockTown2 input (the fork-2 purchase's dev stand-in). It never
-   * shrinks and nothing here ever moves a player. */
+   * `buy` input at the stall (plans/13 §5 as amended 2026-07-09 — the
+   * real purchase the unlockTown2 dev stand-in always promised). It
+   * shrinks exactly once per story: INVENTORY DIES WITH THE RUN — the
+   * next run's start re-locks it (startRun). Nothing here ever moves a
+   * player mid-play; the re-lock re-addresses the dying fort's crew
+   * home through the same town word a pick uses. */
   private towns: TownRuntime[] = [freshTown()];
   /** The order lifecycle — clock, patron, linger, deal tags (game/). */
   private readonly flow = new OrderFlow();
@@ -248,15 +253,30 @@ export class Room {
    * ROOM-level message is town activation: it mutates match state (the
    * towns array), which the Roster by design knows nothing about. */
   onMessage(id: number, msg: ClientMsg): void {
-    if (msg.t === "unlockTown2") {
-      // Idempotent, capped at the arena's towns. Rides the input stream:
-      // a headless replica fed the same messages grows the same array at
+    if (msg.t === "buy") {
+      // THE STALL (plans/13 §5 as amended 2026-07-09): Room-validated,
+      // refusals silent — the client's prompt predicts every one from
+      // the same broadcast state ("not enough coins" is a local flash).
+      // Rides the input stream like its unlockTown2 predecessor: a
+      // headless replica fed the same messages grows the same array at
       // the same tick (determinism law — no out-of-band mutation).
-      if (this.towns.length < TOWNS.length) this.towns.push(freshTown());
-      // The ask follows at the NEXT deal (plans/11 §6): the running
-      // order keeps the rows it was dealt; scoring rises to the
-      // two-town ask only from the next fresh cake on.
+      if (msg.item !== "town2") return; // the catalog is the whitelist
+      // SHOP HOURS: a WON order's separator during a live run — the
+      // gates-law parity, and never a run-ending linger (a loss ends
+      // the run; the top-rung triumph ends it too; inventory dies with
+      // the run, so either would sell a dead key).
+      if (this.run.phase !== "running" || this.flow.order.status !== "won")
+        return;
+      if (this.run.rung >= RUNGS.length) return; // the triumph's linger
+      if (this.towns.length >= TOWNS.length) return; // already owned
+      if (!this.run.spend(TOWN2_PRICE)) return; // the honest refusal
+      this.towns.push(freshTown());
+      // The ask follows at the NEXT deal (plans/11 §6): the concluded
+      // order keeps the rows it was dealt; the rung the crew climbs to
+      // prices for two towns.
       this.flow.activeTowns = this.towns.length;
+      this.broadcastRun(); // the purse moved
+      this.broadcastMachine(this.towns.length - 1); // the new fort wakes
       return;
     }
     if (msg.t === "pickTown") {
@@ -481,7 +501,25 @@ export class Room {
         checks: r.checks,
         judgment: this.lingerVerdict,
       });
+      this.awardPay(this.lingerVerdict);
     }
+  }
+
+  /** THE PAY (plans/13 §5 as amended 2026-07-09): each PASSED order
+   * earns the rung's authored pay column — base + stars × perStar —
+   * plus the flourish bonus when the verdict wears the coda. Runs at
+   * the conclusion tick, right after the ending word, so the purse
+   * rides the run broadcast out while the banner is naming the coins.
+   * A refusal or a clock death pays nothing (§5: "at each passed
+   * order"); the run-ending linger still pays — the run report tells
+   * the whole story, purse included. */
+  private awardPay(j: Judgment): void {
+    if (!j.accepted) return;
+    const pay = rungRow(this.run.rung).pay;
+    this.run.earn(
+      pay.base + j.stars * pay.perStar + (j.flourish ? FLOURISH_BONUS_COINS : 0),
+    );
+    this.broadcastRun();
   }
 
   /** THE CODA STAMP (plans/13 §1 finish-it amendment): accepted verdicts
@@ -516,6 +554,7 @@ export class Room {
       checks: this.currentChecks(),
       judgment: this.lingerVerdict,
     });
+    this.awardPay(this.lingerVerdict);
   }
 
   /** The lifecycle, phase-driven since the run container (plans/13):
@@ -646,6 +685,20 @@ export class Room {
    * lobby warmup mess on the cake is wiped and floor litter honestly
    * carries into the run. */
   private startRun(): void {
+    // INVENTORY DIES WITH THE RUN (plans/13 §5 as amended 2026-07-09):
+    // the last run's town 2 re-locks at this boundary — the same tick
+    // tickReady zeroed the purse. A run is a complete story; the next
+    // one earns its own. The dying fort's crew is re-addressed home
+    // FIRST: the town word must precede the fresh deal and the run
+    // word, so every client's yourTown indexes machines before any
+    // list shrinks (the C-MED-2 invariant, now in both directions).
+    if (this.towns.length > 1) {
+      this.towns = [this.towns[0]!];
+      this.flow.activeTowns = 1;
+      for (const id of this.roster.ids())
+        if (this.roster.townOf(id) > 0 && this.roster.setTown(id, 0, 1))
+          this.roster.broadcast({ t: "town", id, town: 0 });
+    }
     this.flow.dealFresh(rungRow(this.run.rung)); // rung 1 — tickReady set it
     this.redealDessert();
     this.roster.broadcast({
@@ -670,6 +723,9 @@ export class Room {
       ...(this.run.phase === "runover" && this.run.ultra
         ? { ultra: true as const }
         : {}),
+      // The purse rides its container (§5 amendment): absent reads 0,
+      // so a no-coin wire is byte-identical to the pre-purse wire.
+      ...(this.run.purse > 0 ? { purse: this.run.purse } : {}),
       ...(this.run.phase === "countdown"
         ? { countdownTicks: this.run.countdownLeft }
         : {}),

@@ -324,10 +324,53 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
   difficulty curve is what TEACHES this purchase: rung asks climb
   toward workloads one town cannot humanly throughput (§2 numbers) —
   throughput + contested ground, the re-pinned towns rationale, made
-  playable. (b) **FUDGE** — the toppings-as-data row (plans/09 §8),
-  a new shelf appears in the pantry. Everything else waits.
+  playable. (b) ~~**FUDGE** — the toppings-as-data row (plans/09 §8),
+  a new shelf appears in the pantry.~~ [STRUCK 2026-07-09 by the
+  amendment below — fudge shipped FREE in the pantry with plans/10;
+  there is nothing to sell.] Everything else waits.
 - Purchases are Room-validated inputs (authoritative purse debit;
   refusals are honest — "not enough coins" flash).
+- **THE SHOP-SELLS-INFRASTRUCTURE AMENDMENT (2026-07-09, seventh
+  session — the slice-5 discussion's rulings of record).** The fudge
+  unlock is STRUCK: fudge has been live and free in the pantry since
+  the projectile pass (plans/10 — the shelf-fudge crate, "E — scoop
+  hot fudge", an end-to-end room test; its splat law is the measured
+  moat-filler, and its paint counts toward the frost row via the one
+  shared coats field). The "~25 unlock" above was drift against the
+  shipped code and against toppings.ts's own recorded law: "rungs
+  introduce projectiles, THE SHOP SELLS INFRASTRUCTURE." Ruled:
+    - The shop sells UPGRADES only — things that change what the crew
+      CAN DO, never what they can throw. Ingredients live in the
+      pantry. This is structural, not taste: a patron may one day
+      ORDER fudge, so fudge must be reachable without purchase — an
+      order can never demand what the crew cannot have.
+    - Inventory v1 = TOWN 2 alone (~50). Future inventory (recorded,
+      not built): the solo turntable (a §7 non-goal until its act),
+      power-ups (plans/15 item 6).
+    - Purse award at each PASSED order: pay.base + stars ×
+      pay.perStar — the campaign.ts pay column (authored with slice
+      4, dead until now) goes live. A flourish coda pays
+      +FLOURISH_BONUS_COINS on top (tuning.ts, 10 — one dial for the
+      feel pass), announced with the coda: style visibly pays.
+    - Inventory DIES WITH THE RUN: the purse zeroes and town 2
+      re-locks at the next run's start — a run is a complete story.
+      (Meta-points that persist ACROSS runs: raised this session,
+      deliberately deferred — plans/15 item 8.)
+    - The stall: greybox against a wall HALFWAY between pantry and
+      machine (visionary: running around is part of the fun — the
+      shop shares the ferry leg). Walk-up crosshair + E, price on the
+      prompt, NEVER a menu. The Room refuses buys unless the order is
+      concluded (the separator is the shop's hours — pickTown
+      parity); the lobby is moot by arithmetic (purse 0).
+    - Wire: small + additive — the purse rides a broadcast plus a
+      welcome field (mid-run joiners see the balance); {t:"buy",
+      item} client→server REPLACES the unlockTown2 dev stand-in.
+    - FEEL-PASS WATCH (recorded so it isn't rediscovered): fudge
+      counts toward frost coverage today, free, from rung 1 — its
+      down-band reaches wall moats the measured envelope
+      (research/11, classic-glob model) calls unreachable. Upside
+      with no price; if high rungs play easier than measured, fudge
+      tech is the first suspect.
 
 ## 6. THE RUN CONTAINER — states and wire
 
@@ -571,8 +614,63 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    held live (a cherry seamed in AFTER the close changed nothing);
    pre-met path → instant ★★ verdict wearing "✨ AND THE FLOURISH — A
    CHERRY ON THE VERY TOP ✨" on the banner.]**
-5. **Purse + pay + shop stall** with town-2 and fudge purchases
-   (+ flourish purse bonus once 4b exists).
+5. **Purse + pay + shop stall** (DISCUSSED 2026-07-09, seventh
+   session; rulings in §5's SHOP-SELLS-INFRASTRUCTURE AMENDMENT —
+   fudge unlock struck, ZERO fudge work; inventory v1 = town 2
+   alone). Build shape:
+   - Purse is run-scoped Room-side state (RunFlow's grain — it
+     resets where the run resets); award at each passed conclusion
+     from the rung's authored pay column; flourish coda adds
+     FLOURISH_BONUS_COINS (tuning.ts, 10).
+   - {t:"buy", item} replaces the unlockTown2 dev stand-in;
+     Room-validated (catalog, not owned, funds, separator-only);
+     honest refusals. Town 2 re-locks at run start.
+   - The stall greybox against a wall halfway pantry↔machine, per
+     town; crosshair + E + price prompt; purse on the HUD; the
+     welcome carries the balance.
+   - Zero-drift guard: a run that buys nothing plays beat for beat
+     as today.
+   **[BUILT 2026-07-09 (seventh session), under the §5 amendment.
+   RunFlow owns the purse (earn/spend; zeroes in tickReady's start
+   branch — the report and the lobby keep the finished story's
+   balance); Room.awardPay at both won-conclusion sites (the instant
+   verdict and concludeFinishWindow): pay.base + stars × perStar +
+   FLOURISH_BONUS_COINS (tuning.ts, 10) when the verdict wears the
+   coda. {t:"buy", item} REPLACES unlockTown2 (protocol + the client
+   dev seam retired) — Room-validated in order: catalog whitelist,
+   shop hours (phase running + order status "won" + rung below the
+   top: a run-ending linger sells dead keys), not owned, purse
+   debit; refusals are silent drops the client's prompt/flash
+   predicts in words (interactions.ts shop branch + state.shopState,
+   both drift-pinned). THE RE-LOCK: startRun shrinks towns to 1,
+   re-addresses the dying fort's crew through town words BEFORE the
+   fresh deal and the run word (C-MED-2's invariant in both
+   directions — the client truncates machines on its run-start
+   edge). The purse rides RunWire (absent = 0, so a no-coin wire is
+   byte-identical to the pre-purse wire) and the welcome for free.
+   The stall: arena.ts Town.shop + SHOP_HALF (a real static in both
+   replicas' worlds, far off every firing line) at ±7.15 on the side
+   wall, z at the pantry↔machine midpoint, per fort under the 180°
+   rotation; scene counter/post/gold-coin meshes ride the
+   townInteractables raycast. HUD purse row (running block), banner
+   pay line (computed client-side from the SHARED tables — the words
+   and the wallet agree by construction), runover purse line. FOUND
+   + FIXED IN PASSING: net-handlers' run case never copied
+   RunWire.won/ultra — a standing client could not render MASTER
+   BAKER (only welcome-path joiners saw it); copied + pinned. The
+   towns convergence test REWORKED to the honest teaching arc: two
+   seam-painted 3★ wins fund the purchase over real wire (25 + 35 −
+   50 = 10), buy + pick + the town-1 shot converge byte-for-byte,
+   and a double-buy bounces off `owned` undebited. 355 tests (from
+   337), both tsc legs. LIVE-VERIFIED (worker-shim harness, probe
+   armed first): ready-up → rung-1 3★ win banner "🪙 +25 coins to
+   the purse" with wire purse 25 agreeing → poor buy refused (towns
+   1, purse intact) → funded buy honored mid-linger (towns 2, purse
+   10, client machines 2 instantly) → rung 2 dealt for two towns →
+   clock death → runover report "🪙 the purse ends at 10 coins" →
+   auto-restart: towns 1, purse 0, client machines 1 — inventory
+   died with the run, live. Both stalls verified standing at their
+   rotated anchors by mesh census.]**
 6. **Feel pass** (visionary runs the ladder), then the campaign's own
    two-PC session rides the next friend test.
 

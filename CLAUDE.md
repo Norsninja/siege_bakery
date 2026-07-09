@@ -80,41 +80,43 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE FLOURISH LIVE (2026-07-09, sixth session): plans/13 slice 4b is
-BUILT (337 tests, both tsc legs, live-verified). THE FINISH IT
-AMENDMENT (plans/13 §1, the session's ruling — extends the flourish
-amendment): our "FINISH HIM" moment is the ROWS-MET TICK, not
-clock-zero (a won order ends the instant its last row is met; the
-clock only ever ends losses). THE WINDOW: on a qualifying win
-(accepted + flourish rung + reveal fired + desire unmet) the base
-verdict FREEZES unbroadcast (Room.pendingVerdict), status stays
-"running" (gates shut, banner suppressed, order clock + patron
-held), and the crew gets FINISH_WINDOW_TICKS (15s, a feel-pass
-number) to land the fatality — early-out the moment it settles.
-S-MED-1 AS AMENDED: base frozen at the decided tick, verdict
-COMPLETE at the window's end; style shots free by construction.
-LEDGER-JUDGED DESIRE: OrderState.desire ({topping, revealed, met} —
-from Patron.desire, dealt on asks.crown rungs; the Giant wants a
-cherry); eligibility is PHYSICAL (judgment.crownedWith on the
-settled ledger at each conclusion — pre-styled cherries count; the
-reveal is presentation, never eligibility). THE TOPPERS LAW: desires
-draw only from toppers (cherry, lime — never orderable);
-validateDesires at Room boot. The reveal is patron rule 3 REBORN (a
-look at coverage ≥ goodFrac names the desire once, patience 0).
-Coda: Judgment.flourish → banner/caption "✨ AND THE FLOURISH ✨";
-the top-rung triumph with the coda = RunWire.ultra → ULTRA MASTER
-BAKER OF THE REALMS (skeleton, like won). The cherry needed ZERO
-plumbing — dormant since the pantry pass. NO new wire msgs: desire +
-finishTicksLeft ride OrderState everywhere (a mid-window welcome
-just works). DEV seam: __game.room (loopback only) for
-jumpToRung-style live state building. ZERO DRIFT: the WIN script
-untouched but for three additive asserts (its 0.566 win sits under
-goodFrac — no reveal, no window, beat for beat). Standing ledger:
-plans/15 items 1/3/4 unclaimed pre-friend-test; cupcake hot-arrival
-note reads on the flourish (its 8 summit windows all arrive hot —
-crowns may bounce; feel-pass watch); audit tranche C
-post-friend-test; wind plan and Bite/integrity re-pin ownerless.
-NEXT: the visionary's ladder feel run (slices 4+4b in preview — rung
-pacing AND the window's 15s), then slice 5 (purse/pay/shop stall, +
-the flourish purse bonus); the friend test (plans/12) inherits
+THE ECONOMY LIVE (2026-07-09, seventh session): plans/13 slice 5 is
+BUILT (355 tests, both tsc legs, live-verified). THE
+SHOP-SELLS-INFRASTRUCTURE AMENDMENT (plans/13 §5, the session's
+ruling): the fudge unlock is STRUCK — fudge has been live and FREE
+in the pantry since plans/10 (a research agent claimed otherwise;
+the visionary caught it — grep before positions), and fudge paint
+counts toward frost coverage (feel-pass watch: high rungs may play
+easier than measured; fudge tech is the first suspect). The shop
+sells UPGRADES only — ingredients are pantry, structurally (a patron
+may one day ORDER fudge; an order can never demand what the crew
+can't have). Inventory v1 = TOWN 2 alone (TOWN2_PRICE 50, tuning.ts
+beside FLOURISH_BONUS_COINS 10 — both one-dial feel numbers). PURSE:
+RunFlow state; each PASSED order pays the campaign.ts pay column
+(base + stars × perStar, live at last) + the flourish bonus on the
+coda (Room.awardPay at both won-conclusion sites); rides RunWire
+(`purse?`, absent = 0) + welcome. SHOP HOURS: a WON order's
+separator below the top rung — a run-ending linger sells dead keys.
+{t:"buy", item} REPLACES unlockTown2 (dev seam retired); the Room
+validates catalog/hours/owned/funds, refusals are silent drops the
+client's prompt + flash predict in words (interactions shop branch,
+state.shopState — drift-pinned). INVENTORY DIES WITH THE RUN: purse
+zeroes + town 2 re-locks at the NEXT run's start (the report and
+lobby keep the finished story's balance); startRun speaks town words
+BEFORE the fresh deal, the client truncates machines on its
+run-start edge (C-MED-2 both directions). The stall: Town.shop
+anchor ±7.15 on the side wall at the pantry↔machine midpoint
+(running is the fun), SHOP_HALF static in both replicas,
+counter/post/coin meshes on the crosshair, price on the prompt,
+NEVER a menu. FOUND+FIXED: net-handlers never copied
+RunWire.won/ultra — standing clients could not render MASTER BAKER.
+The towns convergence test is now the honest teaching arc (two 3★
+wins fund the buy; a double-buy bounces off owned, undebited).
+plans/15 item 8 NEW: run-points meta-progression (visionary's shape
+recorded, deferred to the post-campaign power-up session). Standing
+ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; cupcake
+hot-arrival watch; audit tranche C post-friend-test; wind plan and
+Bite/integrity re-pin ownerless. NEXT: the visionary's feel run
+(slices 4+4b+5 in preview — rung pacing, the window's 15s, the §5
+prices/pay scale), then the friend test (plans/12) inherits
 everything. Port map: research/01-port-gap-analysis.md.

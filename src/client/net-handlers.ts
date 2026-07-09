@@ -183,14 +183,29 @@ export function applyServerMsg(
       view.run = {
         phase: msg.phase,
         rung: msg.rung,
+        // The triumph flags (slice 4/4b) — FOUND MISSING with slice 5:
+        // without these copies a standing client's run-over banner could
+        // never crown (only a mid-report joiner saw MASTER BAKER, via
+        // the welcome's whole-run assignment).
+        ...(msg.won !== undefined ? { won: msg.won } : {}),
+        ...(msg.ultra !== undefined ? { ultra: msg.ultra } : {}),
+        // The shared purse (plans/13 §5 amendment): absent reads 0.
+        ...(msg.purse !== undefined ? { purse: msg.purse } : {}),
         ...(msg.countdownTicks !== undefined
           ? { countdownTicks: msg.countdownTicks }
           : {}),
         ...(msg.readyIn !== undefined ? { readyIn: msg.readyIn } : {}),
         ...(msg.readyOf !== undefined ? { readyOf: msg.readyOf } : {}),
       };
-      if (msg.phase === "running" && prev.phase !== "running")
+      if (msg.phase === "running" && prev.phase !== "running") {
+        // THE RE-LOCK, client half (§5 amendment): inventory died with
+        // the last run — town 2's machine leaves the list at the same
+        // boundary the server shrank its towns array. The server spoke
+        // the town re-address BEFORE this run word, so yourTown already
+        // indexes home (C-MED-2's invariant, guarded by the max).
+        view.machines.length = Math.max(1, view.yourTown + 1);
         fx.flash(`THE RUN BEGINS — RUNG 1! the Giant is seated`, 5000);
+      }
       else if (
         msg.phase === "running" &&
         prev.phase === "running" &&
