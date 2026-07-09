@@ -474,8 +474,8 @@ export function hudLines(v: HudView): string[] {
   const lines = [
     ...top,
     v.locked
-      ? "WASD move · Shift sprint · E interact · Esc frees the mouse"
-      : "Click to grab the mouse · WASD move · Shift sprint · E interact",
+      ? "WASD move · Shift sprint · E interact · M music · Esc frees the mouse"
+      : "Click to grab the mouse · WASD move · Shift sprint · E interact · M music",
     `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct !== 0 ? ` ${crankPct > 0 ? "+" : ""}${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
   ];
   // The crew posts (plans/14).

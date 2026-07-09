@@ -4,3 +4,7 @@ dist/
 # Only the vendored binary — a future checked-in tool script must not
 # silently vanish (audit 2026-07-07).
 tools/cloudflared.exe
+# The visionary's raw AI-music inbox (2026-07-09): tracks land here first,
+# then get slug names and a PLAYLISTS row in public/audio — the SHIPPED,
+# versioned copy. Only public/audio is the repo's copy of record.
+project/files/audio/

@@ -36,6 +36,7 @@ import {
   type LastShot,
 } from "./hud";
 import { PostHud } from "./post-hud";
+import { deriveMood, MusicBox } from "./music";
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
@@ -122,6 +123,20 @@ async function main(): Promise<void> {
     flashMsg = msg;
     flashUntil = performance.now() + ms;
   };
+
+  // THE JUKEBOX (the UI pass, 2026-07-09): mood-keyed background music,
+  // client-only ambience — music.ts is the table and the laws. M is the
+  // global mute (noted beside POST_KEYS — the key namespace's audit).
+  const music = new MusicBox();
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "KeyM" && !e.repeat)
+      flash(
+        music.toggleMute()
+          ? "music muted — M brings it back"
+          : "music on 🎵",
+        2000,
+      );
+  });
 
   // --- Every word the room says (net-handlers.ts) ---
   const fx: NetFx = {
@@ -281,10 +296,17 @@ async function main(): Promise<void> {
   let accumulator = 0;
   function frame(now: number): void {
     // Cap the accumulator so a backgrounded tab doesn't spiral on return.
-    accumulator = Math.min(accumulator + (now - last) / 1000, 0.25);
+    const dtMs = now - last;
+    accumulator = Math.min(accumulator + dtMs / 1000, 0.25);
     last = now;
 
     updateTarget();
+
+    // The jukebox follows the match's mood; step runs the fades. Wall
+    // time on purpose — ambience, not sim (a frozen __timeScale harness
+    // should still fade politely).
+    music.setMood(deriveMood(view.run.phase, view.order.status));
+    music.step(dtMs);
 
     while (accumulator >= FIXED_DT) {
       tickCounter++;
@@ -606,6 +628,7 @@ async function main(): Promise<void> {
       baker,
       shots: shotsView,
       sprinkles: sprinklesView,
+      music,
       send: (m: Parameters<Transport["send"]>[0]) => transport.send(m),
       getMachine: () => ({
         ...myMachine(view).machine,

@@ -271,3 +271,30 @@ happened); a preview is an ANSWER KEY (what will happen) — it would
 let players aim by cursor and gut the skill the landing rings and
 trails exist to feed. If a playtest ever begs for a preview, that is a
 DESIGN SESSION (like item 7's 55° floor), not a feature request.
+
+## 10. Background music — the mood jukebox
+
+**Status: DONE 2026-07-09 (ninth session, the UI pass; the visionary's
+two AI tracks). THE TABLE IS THE FEATURE: music.ts PLAYLISTS keys
+moods → song lists; future tracks are DROP-INS (copy to public/audio,
+add a row — no code). Today: order = [kitchen-chaos, kitchen-mayhem];
+lobby / linger (the 18s interlude) / runover (the fatality) are
+silence with their names on the door — the visionary is composing
+them. LAWS (ruled): music during the ORDER; random first pick, a
+track ending mid-order hands off to the OTHER (nextTrack — pure,
+pinned: never repeats with n>1); order end FADES 1.5s (a hard cut
+fights the celebration), fresh deal fades in 0.8s; the finish-it
+window keeps the order's music (peak excitement is not an interlude);
+BG_VOLUME 0.35 one dial; M mutes globally (noted in the POST_KEYS
+namespace audit; controls line teaches it). Client-only ambience:
+Math.random legal (never touches core/game), clients unsynced by
+design (syncing costs wire for nothing). Autoplay law: play() rejects
+until a real gesture — MusicBox retries on first pointer/key; the
+pointer-lock click is the natural unlock. Files: public/audio is the
+COPY OF RECORD (Vite → dist/, the room server serves it — the friend
+test streams through the tunnel); project/files/audio is the raw
+inbox, gitignored. Pinned: nextTrack + deriveMood + the table (+7,
+386 total); the browser shell live-verified: lobby silence → ready-up
+→ order kicks in at 0.35 (real-click unlock), synthetic 'ended' →
+the other song seamless, fade 0.35→0→0.35 both ramps, M both ways,
+dist/audio ships. Speakers eye(ear)-pass: the visionary's next run.**

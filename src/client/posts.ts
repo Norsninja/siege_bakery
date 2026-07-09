@@ -103,7 +103,10 @@ export function postAt(
  * W/S = more/less law (plans/14) cannot drift between hand and eye.
  * `label` is the keycap the panel draws for that code. (KeyF's edge is
  * tracked in input.ts and gated on the manned post in main — the fire
- * cap below is the same key by law; move both together.) */
+ * cap below is the same key by law; move both together.)
+ * GLOBAL KEYS OUTSIDE THIS TABLE, so the namespace stays audited:
+ * WASD/Shift move (input.ts), E interact/man, Esc pointer-lock,
+ * M music mute (music.ts via main). */
 export interface PostKey {
   code: string;
   label: string;
