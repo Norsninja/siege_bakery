@@ -59,6 +59,14 @@ export interface OrderState {
    * the frozen base verdict waits in the Room (plans/13 §1 finish-it
    * amendment). OrderFlow ticks it; the Room opens and closes it. */
   finishTicksLeft: number;
+  /** THE LONE HERO stamp (plans/13 §5, 2026-07-09): the connected crew
+   * this ticket was priced for at deal time (REACH × LABOR — the rows
+   * above already carry the scaled numbers; this is the label). On the
+   * wire with the order for free: the HUD's "one pair of hands" tag
+   * reads it, and it describes the TICKET, not the live headcount — a
+   * mid-order leaver never flickers it. Absent = a pre-amendment order
+   * (full labor). */
+  hands?: number;
   /** Shots for full waste credit (gate 2, Step 2 — carried on the wire now). */
   parShots: number;
   /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
@@ -80,11 +88,13 @@ export function createOrder(
     goodFrac?: number;
     excellentFrac?: number;
     desire?: Desire;
+    hands?: number;
   },
 ): OrderState {
   return {
     requirements,
     ...(opts?.desire ? { desire: opts.desire } : {}),
+    ...(opts?.hands !== undefined ? { hands: opts.hands } : {}),
     finishTicksLeft: 0,
     parShots: opts?.parShots ?? 6,
     passScore: opts?.passScore ?? 50,

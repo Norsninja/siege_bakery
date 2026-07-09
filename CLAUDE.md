@@ -80,50 +80,36 @@ playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
 re-triage. Current state:
-THE ECONOMY LIVE (2026-07-09, seventh session): plans/13 slice 5 is
-BUILT (355 tests, both tsc legs, live-verified). THE
-SHOP-SELLS-INFRASTRUCTURE AMENDMENT (plans/13 §5, the session's
-ruling): the fudge unlock is STRUCK — fudge has been live and FREE
-in the pantry since plans/10 (a research agent claimed otherwise;
-the visionary caught it — grep before positions), and fudge paint
-counts toward frost coverage (feel-pass watch: high rungs may play
-easier than measured; fudge tech is the first suspect). The shop
-sells UPGRADES only — ingredients are pantry, structurally (a patron
-may one day ORDER fudge; an order can never demand what the crew
-can't have). Inventory v1 = TOWN 2 alone (TOWN2_PRICE 50, tuning.ts
-beside FLOURISH_BONUS_COINS 10 — both one-dial feel numbers). PURSE:
-RunFlow state; each PASSED order pays the campaign.ts pay column
-(base + stars × perStar, live at last) + the flourish bonus on the
-coda (Room.awardPay at both won-conclusion sites); rides RunWire
-(`purse?`, absent = 0) + welcome. SHOP HOURS: a WON order's
-separator below the top rung — a run-ending linger sells dead keys.
-{t:"buy", item} REPLACES unlockTown2 (dev seam retired); the Room
-validates catalog/hours/owned/funds, refusals are silent drops the
-client's prompt + flash predict in words (interactions shop branch,
-state.shopState — drift-pinned). INVENTORY DIES WITH THE RUN: purse
-zeroes + town 2 re-locks at the NEXT run's start (the report and
-lobby keep the finished story's balance); startRun speaks town words
-BEFORE the fresh deal, the client truncates machines on its
-run-start edge (C-MED-2 both directions). The stall: Town.shop
-anchor ±7.15 on the side wall at the pantry↔machine midpoint
-(running is the fun), SHOP_HALF static in both replicas,
-counter/post/coin meshes on the crosshair, price on the prompt,
-NEVER a menu. FOUND+FIXED: net-handlers never copied
-RunWire.won/ultra — standing clients could not render MASTER BAKER.
-The towns convergence test is now the honest teaching arc (two 3★
-wins fund the buy; a double-buy bounces off owned, undebited).
-plans/15 item 8 NEW: run-points meta-progression (visionary's shape
-recorded, deferred to the post-campaign power-up session). Standing
-ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; cupcake
-hot-arrival watch; audit tranche C post-friend-test; wind plan and
-Bite/integrity re-pin ownerless. THE LONE HERO AMENDMENT (plans/13
-§5) is RECORDED, NOT BUILT — the visionary's solo-handicap ruling
-from his live feel run (measured solo cycle 23.5s ≈ the mechanical
-floor; solo unpassable as clocked): ask potential = REACH (towns) ×
-LABOR (crew, hypothesis [—,0.5,1,1,1]), deal-time priced, judgment
-grades the scaled potential (no gate-2 insult for one dwarf), clocks
-untouched, crew 2+ verbatim. NEXT: review that record, DISCUSS
-(agenda in the handoff §6), then build it; then the feel run
-continues and the friend test (plans/12) inherits everything —
-measuring the duo cycle the clocks assume. Port map:
+THE LONE HERO LIVE (2026-07-09, eighth session): plans/13 §5's LONE
+HERO AMENDMENT is BUILT (367 tests, both tsc legs, live-verified on
+the worker-shim harness) after the standing-sequence discussion —
+full record + the build's six rulings in the §5 BUILT block. The
+law: every deal prices ask = REACH (TOWN_ASK_POTENTIAL, towns) ×
+LABOR (CREW_LABOR [—,0.5,1,1,1], tuning.ts one dial), from
+roster.count() at DEAL TIME (Room.dealAt wraps all three dealFresh
+sites; joiners/leavers never retro-change a ticket — towns law
+verbatim). SPRINKLES SCALE TOO (build ruling: the 23.5s cycle
+prices hands whatever the payload) — needed = ceil(grains × labor);
+crown/desire/window/clocks/pay untouched; crew 2+ deals today's
+numbers VERBATIM (friend test inherits zero drift). Judgment grades
+the scaled potential off the dealt row (no gate-2 insult for one
+dwarf, honest stars — a lone hero can now fund town 2, scenery
+until the turntable, by design). The ticket WEARS its pricing:
+OrderState.hands? stamped at deal (absent = full labor), rides
+every order wire free; the HUD's "🖐 one pair of hands" tag reads
+the STAMP, never live headcount. tuning.ts header re-pinned: solo
+cycle 23.5s measured (12–18s retired), workload math restated as
+REACH × LABOR. TEST LAW: room.test's jumpToRung anchor seam deals
+FULL labor (pinned physics predate the handicap); towns-law tests
+took a second baker; the convergence test is the lone hero's
+teaching arc (her two 3★ wins fund the fort, deal priced 0.375
+over honest wire, hands stamped). Slice 5 (economy/stall/purse)
+context: plans/13 §5 amendment + §8.5 BUILT record. Standing
+ledger: plans/15 items 1/3/4 unclaimed pre-friend-test; item 8
+run-points deferred post-campaign; cupcake hot-arrival watch;
+fudge-counts-toward-frost watch; audit tranche C post-friend-test;
+wind plan and Bite/integrity re-pin ownerless. NEXT: the
+visionary's feel run continues (solo is now honest — rung pacing
+above rung 1 wants data); then the friend test (plans/12) measures
+the duo cycle the clocks assume. Port map:
 research/01-port-gap-analysis.md.

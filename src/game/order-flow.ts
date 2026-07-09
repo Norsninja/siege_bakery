@@ -26,6 +26,7 @@ import {
 import { createOrder, tickOrder, type OrderState } from "./order";
 import { createGiant, type Patron } from "./patron";
 import {
+  CREW_LABOR,
   FINISH_WINDOW_TICKS,
   ORDER_RESET_TICKS,
   PATRON_LOOK_EVERY,
@@ -44,22 +45,42 @@ import {
  * NO CROWN ROW deals — the crown is an optional FLOURISH since the §1
  * amendment, shelved until slice 4b builds it. Fresh rows every deal —
  * orders are mutable, never share row objects. */
-export function requirementsFor(row: Rung, activeTowns = 1): Requirement[] {
+export function requirementsFor(
+  row: Rung,
+  activeTowns = 1,
+  /** Connected crew at deal time (THE LONE HERO AMENDMENT, plans/13 §5).
+   * Defaults to 2 — full labor — so anchor tickets and pre-amendment
+   * callers price today's numbers verbatim; the live game always passes
+   * the roster's truth. */
+  crew = 2,
+): Requirement[] {
   // The frost ask is AUTHORED (plans/09 §4, Option B 2026-07-07): the
   // order says what the Patron expects — the ask table at the ACTIVE
   // town count, never the measured ceiling. "Scoring rises to the
   // two-town ask ONLY on purchase" (§1) is exactly this lookup: one
   // town asks one town's number, forever. Clamped to the table's top
   // so a future third fort fails loud in a test, not undefined here.
-  const ask =
+  const reach =
     TOWN_ASK_POTENTIAL[Math.min(activeTowns, TOWN_ASK_POTENTIAL.length - 1)]!;
+  // REACH × LABOR (the lone hero amendment): one pair of hands is asked
+  // for what one pair of hands can reach. Clamped BOTH ways — the top so
+  // a five-baker room prices full labor, the bottom so an empty room
+  // prices solo (CREW_LABOR[0] is a guard: labor 0 would deal a born-met
+  // ask, and the Giant does not order cakes from nobody).
+  const labor = CREW_LABOR[Math.max(1, Math.min(crew, CREW_LABOR.length - 1))]!;
   const rows: Requirement[] = [
-    { kind: "frost-coverage", frac: row.asks.frostFrac, potential: ask },
+    { kind: "frost-coverage", frac: row.asks.frostFrac, potential: reach * labor },
   ];
   // A zero ask deals NO row (rung 1): a zero-target row is born met and
   // the Giant's nag could tighten a thing that was never asked.
+  // Grains scale by labor too (ruled 2026-07-09: the shot cycle prices
+  // hands, whatever the payload) — ceil, so a scaled row never asks 0.
   if (row.asks.sprinkles > 0)
-    rows.push({ kind: "on-frosting", topping: "sprinkles", needed: row.asks.sprinkles });
+    rows.push({
+      kind: "on-frosting",
+      topping: "sprinkles",
+      needed: Math.ceil(row.asks.sprinkles * labor),
+    });
   return rows;
 }
 
@@ -117,6 +138,12 @@ export class OrderFlow {
    * writes it when the second town activates; the RUNNING order keeps the
    * rows it was dealt — the ask rises at the next deal, never mid-order. */
   activeTowns = 1;
+  /** How many hands the NEXT deal is priced for (THE LONE HERO AMENDMENT,
+   * plans/13 §5): the Room writes roster truth before every deal; the
+   * RUNNING order keeps the labor it was dealt — towns law verbatim.
+   * Defaults to 2 (full labor) so a bare OrderFlow prices pre-amendment
+   * numbers; the Room's write is what makes the lone hero real. */
+  activeCrew = 2;
   /** The deal generation. Shots spawn tagged with it; a delivery whose tag
    * is stale scores NOTHING (audit AUD-4) — a glob fired against one order
    * can't paint the next one's fresh cake. */
@@ -143,18 +170,25 @@ export class OrderFlow {
    * Flourish rungs (asks.crown) carry the patron's DESIRE (§1 amendment,
    * slice 4b) — per-patron data, never a requirement row. */
   private freshOrder(row: Rung): OrderState {
-    return createOrder(requirementsFor(row, this.activeTowns), row.clockSeconds * 60, {
-      parShots: this.activeTowns >= 2 ? row.parShots.duo : row.parShots.solo,
-      ...(row.asks.crown && this.patron.desire
-        ? {
-            desire: {
-              topping: this.patron.desire.topping,
-              revealed: false,
-              met: false,
-            },
-          }
-        : {}),
-    });
+    return createOrder(
+      requirementsFor(row, this.activeTowns, this.activeCrew),
+      row.clockSeconds * 60,
+      {
+        // The ticket wears its pricing (the HUD's "one pair of hands"
+        // tag reads the stamp, never the live headcount).
+        hands: this.activeCrew,
+        parShots: this.activeTowns >= 2 ? row.parShots.duo : row.parShots.solo,
+        ...(row.asks.crown && this.patron.desire
+          ? {
+              desire: {
+                topping: this.patron.desire.topping,
+                revealed: false,
+                met: false,
+              },
+            }
+          : {}),
+      },
+    );
   }
 
   get deal(): number {

@@ -14,6 +14,7 @@ import {
   validateDesires,
 } from "./order-flow";
 import {
+  CREW_LABOR,
   FINISH_WINDOW_TICKS,
   FROST_FRAC,
   ORDER_RESET_TICKS,
@@ -72,6 +73,48 @@ describe("requirementsFor (the per-rung ticket, slice 4)", () => {
   });
 });
 
+describe("THE LONE HERO AMENDMENT (plans/13 §5) — ask = REACH × LABOR", () => {
+  it("DECISION PIN (2026-07-09): labor [—, 0.5, 1, 1, 1] — solo half, never zero, never a bonus", () => {
+    // Calibrated to the visionary's measured 23.5s solo cycle: rung-1
+    // solo ≈ 5 decent shots on the effective clock. Moving [1] is a
+    // design decision — restate the tuning.ts workload math when you do.
+    expect(CREW_LABOR).toEqual([0, 0.5, 1.0, 1.0, 1.0]);
+  });
+
+  it("one pair of hands halves the ask — the potential AND the grains (ceil)", () => {
+    const solo = requirementsFor(rungRow(3), 1, 1);
+    expect(solo[0]).toMatchObject({
+      kind: "frost-coverage",
+      frac: FROST_FRAC,
+      potential: TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.21
+    });
+    // Grains scale too (ruled 2026-07-09: the shot cycle prices hands,
+    // whatever the payload) — 60 → 30, ceiled so a row never asks 0.
+    expect(solo[1]).toMatchObject({
+      topping: "sprinkles",
+      needed: Math.ceil(SPRINKLES_NEEDED * CREW_LABOR[1]!), // 30
+    });
+  });
+
+  it("crew 2+ deals today's numbers VERBATIM — the friend test inherits zero drift", () => {
+    expect(requirementsFor(rungRow(3), 1, 2)).toEqual(requirementsFor(rungRow(3)));
+    expect(requirementsFor(rungRow(3), 1, 4)).toEqual(requirementsFor(rungRow(3)));
+  });
+
+  it("crew clamps BOTH ways: an empty room prices solo, a mob prices full labor", () => {
+    // CREW_LABOR[0] is a guard, never indexed — labor 0 would deal a
+    // born-met ask, and the Giant does not order cakes from nobody.
+    expect(requirementsFor(rungRow(3), 1, 0)).toEqual(requirementsFor(rungRow(3), 1, 1));
+    expect(requirementsFor(rungRow(3), 1, 9)).toEqual(requirementsFor(rungRow(3), 1, 2));
+  });
+
+  it("labor multiplies REACH — two towns × one dwarf compose", () => {
+    expect(requirementsFor(rungRow(3), 2, 1)[0]).toMatchObject({
+      potential: TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!, // 0.375
+    });
+  });
+});
+
 describe("OrderFlow", () => {
   it("the dormant boot order is rung 1's ticket — clock, rows, and solo par", () => {
     const flow = new OrderFlow();
@@ -97,6 +140,24 @@ describe("OrderFlow", () => {
     flow.dealFresh(rungRow(3));
     expect(flow.order.parShots).toBe(rungRow(3).parShots.duo);
     expect(flow.order.requirements[0]).toMatchObject({ potential: 0.75 });
+  });
+
+  it("the deal prices activeCrew and stamps the ticket — the RUNNING order keeps its labor", () => {
+    const flow = new OrderFlow();
+    // A bare flow prices full labor (pre-amendment numbers, hands 2).
+    expect(flow.order.hands).toBe(2);
+    flow.activeCrew = 1;
+    flow.dealFresh(rungRow(3));
+    expect(flow.order.hands).toBe(1);
+    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1, 1));
+    // A joiner mid-order never retro-changes the ticket (towns law
+    // verbatim): the ask follows at the NEXT deal.
+    flow.activeCrew = 2;
+    expect(flow.order.hands).toBe(1);
+    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1, 1));
+    flow.dealFresh(rungRow(3));
+    expect(flow.order.hands).toBe(2);
+    expect(flow.order.requirements).toEqual(standardRequirements());
   });
 
   it("the look cadence fires every PATRON_LOOK_EVERY running ticks, and not while ended", () => {

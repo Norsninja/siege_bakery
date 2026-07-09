@@ -318,6 +318,10 @@ export function hudLines(v: HudView): string[] {
   const crankPct = Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100);
   const secsLeft = Math.ceil(v.order.ticksLeft * FIXED_DT);
   const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
+  // THE LONE HERO tag (plans/13 §5): the ticket wears its pricing — the
+  // stamp is deal-time truth (order.hands), never the live headcount, so
+  // a mid-order leaver can't flicker it onto a duo-priced order.
+  const lone = v.order.hands === 1 ? " · 🖐 one pair of hands" : "";
   const who =
     v.netStatus === "loopback"
       ? "solo bakery"
@@ -351,7 +355,7 @@ export function hudLines(v: HudView): string[] {
               // window's own countdown; the golden row below names the ask.
               v.order.finishTicksLeft > 0
                 ? `RUNG ${v.run.rung} · ⭐ FINISH IT! ${Math.ceil(v.order.finishTicksLeft * FIXED_DT)}s ⭐   [${who}]`
-                : `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
+                : `RUNG ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
               ...v.checks.map(
                 (c) =>
                   `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,

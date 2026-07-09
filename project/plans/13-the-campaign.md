@@ -421,6 +421,44 @@ export const RUNGS: readonly Rung[] = [ /* rows 1..6, v1 */ ];
       the handicap fixes the correct layer. The build must also
       re-pin the tuning.ts header's stale 12–18s cycle to the
       measured 23.5s.
+    **[BUILT 2026-07-09 (eighth session), after the standing-sequence
+    discussion. RULINGS OF THE BUILD DISCUSSION (visionary agreed all
+    six agenda items): (1) labor [—, 0.5, 1.0, 1.0, 1.0] confirmed —
+    at 0.5, rung-1 solo is ~5 decent shots on the effective clock:
+    passable earned, failable sloppy; (2) SPRINKLES SCALE TOO —
+    amends the record's frost-only wording: the 23.5s cycle prices
+    HANDS whatever the payload, and absolute grain rows would rebuild
+    at rung 2 the wall the amendment tears down at rung 1 (needed =
+    ceil(grains × labor); the crown stays a single placement,
+    untouched; one volley is 40 grains — toppings.ts, not 60);
+    (3) desire/window untouched (style, not throughput); (4) the deal
+    reads roster.count() — Room.dealAt wraps ALL THREE dealFresh
+    sites (next-rung, dormant re-deal, startRun); (5) the ticket
+    WEARS its pricing: OrderState.hands? stamped at deal time (absent
+    = pre-amendment wire, full labor) rides every order broadcast for
+    free — the HUD's "🖐 one pair of hands" tag reads the STAMP,
+    never the live headcount, so a mid-order leaver can't flicker a
+    duo-priced ticket; (6) header re-pinned to 23.5s with the
+    workload math restated in REACH × LABOR terms. Implementation:
+    tuning.CREW_LABOR (one dial), requirementsFor(row, towns, crew)
+    clamps crew BOTH ways ([0] is a guard — an empty room prices
+    solo, never a born-met labor-0 ask), OrderFlow.activeCrew beside
+    activeTowns (towns law verbatim). parShots needs nothing (towns-
+    keyed: solo there means one FIRING LINE; a half-ask hero fires
+    under par by arithmetic). TEST LAW: the room.test anchor seam
+    (jumpToRung) deals FULL labor — the pinned physics scripts
+    predate the handicap; the towns-law tests took a second baker to
+    stay towns-pure; the convergence test is now the LONE HERO's
+    teaching arc (her own two 3★ wins fund the fort: 25+35−50=10,
+    the fresh deal priced REACH × LABOR = 0.375 over honest wire).
+    367 tests (from 355), both tsc legs. LIVE-VERIFIED (worker-shim
+    harness): solo ready-up → rung 1 dealt 0.21/hands 1/HUD tag →
+    bob joins MID-ORDER, ticket unchanged → 3★ win pays the full 25
+    → rung 2 dealt for the duo VERBATIM (0.42, 40 grains, no tag) →
+    bob leaves → rung 3 re-priced lone (0.21, 30 grains, tag back).
+    A NOTED CONSEQUENCE (feature, by discussion): honest stars are
+    now solo-reachable, so a lone hero can fund town 2 — scenery to
+    him until the turntable, but the realm's story anyway.]**
 
 ## 6. THE RUN CONTAINER — states and wire
 

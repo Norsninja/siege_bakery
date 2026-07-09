@@ -48,7 +48,13 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "../game/judgment";
-import { RUNGS, rungRow, specForRung, validateRungs } from "../game/campaign";
+import {
+  RUNGS,
+  rungRow,
+  specForRung,
+  validateRungs,
+  type Rung,
+} from "../game/campaign";
 import { FLOURISH_BONUS_COINS, TOWN2_PRICE } from "../game/tuning";
 import { evaluateOrder } from "../game/order";
 import {
@@ -642,7 +648,7 @@ export class Room {
         // the next rung's wheels out (redealDessert — the per-spec swap,
         // plans/13 §3). Everything ON it leaves with it; floor litter is
         // the crew's mess, not the dessert's; it stays, all run long.
-        this.flow.dealFresh(rungRow(this.run.rung));
+        this.dealAt(rungRow(this.run.rung));
         this.redealDessert();
         this.roster.broadcast({
           t: "order",
@@ -660,7 +666,7 @@ export class Room {
         // dormant lobby order still deals internally as the next run's
         // rung 1 (exactly the old self-deal's timing; never broadcast as
         // live), and the frozen verdict stays for mid-report joiners.
-        this.flow.dealFresh(rungRow(1));
+        this.dealAt(rungRow(1));
         this.broadcastRun();
       }
     }
@@ -678,6 +684,15 @@ export class Room {
   private readyCount(): number {
     return this.roster.allPoses().filter((p) => p !== null && inReadyCircle(p))
       .length;
+  }
+
+  /** EVERY deal goes through here (THE LONE HERO AMENDMENT, plans/13 §5):
+   * the ticket prices its labor from the roster's connected truth AT DEAL
+   * TIME — the towns law verbatim: a joiner or leaver never retro-changes
+   * a running order; the ask follows at the next deal. */
+  private dealAt(row: Rung): void {
+    this.flow.activeCrew = this.roster.count();
+    this.flow.dealFresh(row);
   }
 
   /** The countdown held: deal rung 1 — the run begins. The fresh deal is
@@ -699,7 +714,7 @@ export class Room {
         if (this.roster.townOf(id) > 0 && this.roster.setTown(id, 0, 1))
           this.roster.broadcast({ t: "town", id, town: 0 });
     }
-    this.flow.dealFresh(rungRow(this.run.rung)); // rung 1 — tickReady set it
+    this.dealAt(rungRow(this.run.rung)); // rung 1 — tickReady set it
     this.redealDessert();
     this.roster.broadcast({
       t: "order",

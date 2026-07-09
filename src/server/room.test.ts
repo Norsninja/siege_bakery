@@ -8,6 +8,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
+  CREW_LABOR,
   FINISH_WINDOW_TICKS,
   FLOURISH_BONUS_COINS,
   ORDER_RESET_TICKS,
@@ -78,10 +79,16 @@ function readyUp(room: Room, ...clients: FakeClient[]): void {
 function jumpToRung(room: Room, rung: number): void {
   const r = room as unknown as {
     run: { rung: number };
-    flow: { dealFresh(row: Rung): void };
+    flow: { dealFresh(row: Rung): void; activeCrew: number };
     redealDessert(): void;
   };
   r.run.rung = rung;
+  // THE ANCHOR IS FULL LABOR (the lone hero amendment, plans/13 §5): the
+  // pinned physics scripts were measured on the standing order BEFORE the
+  // crew handicap existed — the seam deals the anchor ticket verbatim,
+  // however many bakers the test connected. Lone-hero pricing has its own
+  // pins (order-flow.test + THE LONE HERO suite below).
+  r.flow.activeCrew = 2;
   r.flow.dealFresh(rungRow(rung));
   r.redealDessert();
 }
@@ -516,6 +523,10 @@ describe("Room: the match, headless over protocol", () => {
     // the same town-1 shot onto the same shared cake. The script IS the
     // campaign's teaching arc: two passed orders fund the purchase (the
     // seams paint; the wins, the pay, and every message are honest wire).
+    // A LONE baker runs it since the lone hero amendment (plans/13 §5):
+    // the realm pays its hero in full — her own two wins fund the fort —
+    // and every deal here prices REACH × LABOR over real wire, the only
+    // Room test that watches the composition leave the building.
     const play = () => {
       const room = new Room();
       const a = connect(room, "alice");
@@ -529,7 +540,7 @@ describe("Room: the match, headless over protocol", () => {
       room.onMessage(a.id, { t: "buy", item: "town2" });
       room.onMessage(a.id, { t: "buy", item: "town2" });
       room.onMessage(a.id, { t: "pickTown", town: 1 });
-      run(room, ORDER_RESET_TICKS + 10); // rung 3 deals, priced for two
+      run(room, ORDER_RESET_TICKS + 10); // rung 3: two towns, one dwarf
       // Fire town 1's 6-click frost at the RUNNING two-town order — the
       // real play situation, no linger-timing dependence.
       room.onMessage(a.id, { t: "load", topping: "frosting" });
@@ -561,7 +572,8 @@ describe("Room: the match, headless over protocol", () => {
     expect(A.w?.checks).toEqual(B.w?.checks);
     // Non-vacuous: both towns are live, the purse debited exactly once
     // (60 earned − 50 = 10, the second buy refused untouched), the fresh
-    // deal is priced for two, and the town-1 frost painted the cake.
+    // deal is priced for two TOWNS × one PAIR OF HANDS (REACH × LABOR,
+    // stamped on the ticket), and the town-1 frost painted the cake.
     expect(A.w?.machines).toHaveLength(2);
     expect(A.w?.yourTown).toBe(0); // joiners always start home
     expect(A.runWire?.purse).toBe(60 - TOWN2_PRICE);
@@ -569,7 +581,8 @@ describe("Room: the match, headless over protocol", () => {
     const frost = A.w?.order.requirements.find(
       (r) => r.kind === "frost-coverage",
     ) as { potential?: number } | undefined;
-    expect(frost?.potential).toBe(0.75);
+    expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!); // 0.375
+    expect(A.w?.order.hands).toBe(1); // the ticket wears its pricing
     expect(A.w?.frosting.some((c) => c > 0)).toBe(true);
   });
 
@@ -652,7 +665,10 @@ describe("Room: the match, headless over protocol", () => {
     it("INVENTORY DIES WITH THE RUN: the next start re-locks town 2, zeroes the purse, re-addresses the crew home", () => {
       const room = new Room();
       const a = connect(room, "alice");
-      readyUp(room, a);
+      // A duo keeps the re-lock pins TOWNS-pure (full labor): "priced
+      // solo again" below means one TOWN, not one baker.
+      const b = connect(room, "bob");
+      readyUp(room, a, b);
       seamTown2(room);
       seamWin(room, a); // rung 1 won — the linger opens the pick window
       room.onMessage(a.id, { t: "pickTown", town: 1 });
@@ -685,6 +701,83 @@ describe("Room: the match, headless over protocol", () => {
         (r) => r.kind === "frost-coverage",
       ) as { potential?: number } | undefined;
       expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[1]); // priced solo again
+    });
+  });
+
+  describe("THE LONE HERO (plans/13 §5 amendment): every deal prices its labor from the roster", () => {
+    const frostOf = (o: {
+      requirements: Array<{ kind: string; potential?: number }>;
+    }): { potential?: number } | undefined =>
+      o.requirements.find((r) => r.kind === "frost-coverage");
+
+    it("a lone baker's run deals half-labor tickets, stamped hands: 1", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      const order = a.all("order").find((m) => m.fresh);
+      expect(order?.order.hands).toBe(1);
+      expect(frostOf(order!.order)?.potential).toBe(
+        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.21
+      );
+    });
+
+    it("a duo's run deals today's numbers VERBATIM, stamped hands: 2 — zero drift for the friend test", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      const b = connect(room, "bob");
+      readyUp(room, a, b);
+      const order = b.all("order").find((m) => m.fresh);
+      expect(order?.order.hands).toBe(2);
+      expect(frostOf(order!.order)?.potential).toBe(TOWN_ASK_POTENTIAL[1]);
+    });
+
+    it("a mid-order joiner never retro-prices the ticket; the NEXT deal reads the grown crew", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      // Bob arrives mid-order: the welcome carries the lone ticket as it
+      // was dealt (towns law verbatim — a joiner waits for the next deal).
+      const b = connect(room, "bob");
+      expect(b.last("welcome")?.order.hands).toBe(1);
+      expect(frostOf(b.last("welcome")!.order)?.potential).toBe(
+        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!,
+      );
+      // Win the rung; the climb's fresh deal prices the duo at the table.
+      seamWin(room, a);
+      run(room, ORDER_RESET_TICKS + 10);
+      const msgs = a.all("order");
+      const fresh = msgs
+        .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
+        .find((m) => m.order.status === "running");
+      expect(fresh?.order.hands).toBe(2);
+      expect(frostOf(fresh!.order)?.potential).toBe(TOWN_ASK_POTENTIAL[1]);
+    });
+
+    it("grains scale with labor too: the lone rung-2 ticket asks half the sprinkles (ceil)", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      seamWin(room, a);
+      run(room, ORDER_RESET_TICKS + 10); // rung 2 deals, lone-priced
+      const msgs = a.all("order");
+      const fresh = msgs
+        .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
+        .find((m) => m.order.status === "running");
+      const grains = fresh?.order.requirements.find(
+        (r) => r.kind === "on-frosting",
+      ) as { needed?: number } | undefined;
+      expect(grains?.needed).toBe(
+        Math.ceil(rungRow(2).asks.sprinkles * CREW_LABOR[1]!), // 40 → 20
+      );
+    });
+
+    it("PAY IS FULL — the realm pays its hero the same column (no lone-hero discount)", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      seamWin(room, a); // 3★ on the half-labor ticket — honest stars
+      const pay = rungRow(1).pay;
+      expect(a.last("run")?.purse).toBe(pay.base + 3 * pay.perStar);
     });
   });
 
@@ -820,7 +913,10 @@ describe("Room: the match, headless over protocol", () => {
   it("scoring rises to the two-town ask at the NEXT deal, never mid-order (plans/11 §6)", () => {
     const room = new Room();
     const a = connect(room, "alice");
-    readyUp(room, a);
+    // A duo keeps this test TOWNS-pure (full labor): the lone hero would
+    // halve every number here — his composition has its own pins.
+    const b = connect(room, "bob");
+    readyUp(room, a, b);
     // Activate MID-ORDER (seam — the honest purchase can't even happen
     // here, THE STALL suite pins that): the running order keeps the rows
     // it was dealt.
@@ -1214,9 +1310,15 @@ describe("Room: the match, headless over protocol", () => {
     expect(fresh?.rung).toBe(4); // rung 3 won → the cupcake deals
     expect(fresh?.order.ticksLeft).toBe(rungRow(4).clockSeconds * 60);
     expect(fresh?.order.parShots).toBe(rungRow(4).parShots.solo);
+    // The CLIMB is a live deal, and one baker played this script: the
+    // anchor seam pinned rung 3 at full labor, but the ladder prices the
+    // roster's truth — the cupcake asks the lone hero half its grains
+    // (plans/13 §5, REACH × LABOR).
     expect(
       fresh?.order.requirements.find((r) => r.kind === "on-frosting"),
-    ).toMatchObject({ needed: rungRow(4).asks.sprinkles });
+    ).toMatchObject({
+      needed: Math.ceil(rungRow(4).asks.sprinkles * CREW_LABOR[1]!),
+    });
     expect(fresh?.checks.every((c) => c.current === 0 && !c.met)).toBe(true);
     const climbed = a.all("run").find((m) => m.rung === 4);
     expect(climbed?.phase).toBe("running"); // no lobby between rungs

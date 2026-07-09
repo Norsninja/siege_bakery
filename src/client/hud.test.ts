@@ -290,6 +290,20 @@ describe("hudLines", () => {
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
   });
 
+  it("THE LONE HERO tag (plans/13 §5): a hands-1 ticket wears it; a duo's (or unstamped) never", () => {
+    const lone = hudLines(
+      view({ order: createOrder([], 71 * 60, { hands: 1 }) }),
+    );
+    expect(lone[0]).toBe(
+      "RUNG 1 · THE ORDER · 1:11 · 🖐 one pair of hands   [solo bakery]",
+    );
+    const duo = hudLines(view({ order: createOrder([], 71 * 60, { hands: 2 }) }));
+    expect(duo[0]).toBe("RUNG 1 · THE ORDER · 1:11   [solo bakery]");
+    // The stamp is the TICKET's pricing, not the live headcount: an
+    // unstamped (pre-amendment) order reads full labor.
+    expect(hudLines(view())[0]).not.toContain("one pair of hands");
+  });
+
   it("the purse rides the run block (slice 5): the wire's balance, absent reads 0", () => {
     const lines = hudLines(
       view({ run: { phase: "running", rung: 2, purse: 35 } }),

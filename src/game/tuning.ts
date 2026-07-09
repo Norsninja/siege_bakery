@@ -35,16 +35,26 @@
  *
  * ── The shot cycle and the pass budget ────────────────────────────────
  * A full solo shot ≈ pantry round-trip + load + crank (CRANK_SECONDS_PER_
- * CLICK · clicks, game/catapult.ts) + aim + flight — measured ~12–18s.
- * One small splat paints ~7–12 census samples ≈ 1.3% of the cake
- * (core/frosting.ts constants against the 661-sample census, pinned as
- * WIRE FORMAT in frosting.test.ts). The PASS ask (FROST_FRAC of the
- * AUTHORED ask) ≈ 0.50 · 0.42 · 661 ≈ 139 samples ≈ 11–14 idealized
- * shots (research/06 greedy), ~18–22 with human aim — tight for a solo
- * baker on the effective clock, comfortable for two. Solo is hard mode
- * in a co-op party game, ON PURPOSE. 2★/3★ (COVERAGE_GOOD/_EXCELLENT of
- * potential) climb toward the ceiling's asymptote: rare by design — the
- * dessert report's screenshot is the trophy either way.
+ * CLICK · clicks, game/catapult.ts) + aim + flight — RE-MEASURED 23.5s
+ * (the visionary's live run, 2026-07-09, minimal aiming): near the
+ * MECHANICAL FLOOR post-gun-crew-posts (ferry ≈8s sprint round trip +
+ * crank 4.5–7.5s + post transitions). The old 12–18s pin (2026-07-03)
+ * predated the posts and is retired. One small splat paints ~7–12 census
+ * samples ≈ 1.3% of the cake (core/frosting.ts constants against the
+ * 661-sample census, pinned as WIRE FORMAT in frosting.test.ts). The
+ * FULL-LABOR pass ask (FROST_FRAC of the AUTHORED ask) ≈ 0.50 · 0.42 ·
+ * 661 ≈ 139 samples ≈ 11–14 idealized shots (research/06 greedy), ~18–22
+ * with human aim — but the effective clock buys ONE pair of hands only
+ * ~4–5 cycles at 23.5s: the authored clocks price a PIPELINING DUO, and
+ * unscaled solo is impossible at any skill, not hard. Hence THE LONE
+ * HERO AMENDMENT (plans/13 §5, 2026-07-09): the dealt ask is REACH
+ * (TOWN_ASK_POTENTIAL) × LABOR (CREW_LABOR below) — solo's 0.5 sizes the
+ * pass at ~4–5 decent shots inside today's clocks (measured pace passes,
+ * barely), crew 2+ is today's numbers verbatim. Solo stays hard mode ON
+ * PURPOSE — the ladder still outruns one dwarf mid-climb; that is the
+ * fiction. 2★/3★ (COVERAGE_GOOD/_EXCELLENT of potential) climb toward
+ * the ceiling's asymptote: rare by design — the dessert report's
+ * screenshot is the trophy either way.
  *
  * ── The re-pin law (plans/07 + plans/08, standing) ────────────────────
  * Splat-constant or census changes REQUIRE re-running research/04 §3 AND
@@ -140,6 +150,22 @@ export const TOWN_POTENTIAL: readonly number[] = [0, 0.9, 1.0, 1.0, 1.0];
  * purchase, defensible on doubled throughput; a playtest hypothesis like
  * every number in this file (plans/08). */
 export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
+
+/** THE LONE HERO AMENDMENT (plans/13 §5, 2026-07-09): the ask is REACH ×
+ * LABOR — reach is TOWN_ASK_POTENTIAL above (towns, unchanged); labor is
+ * this table, indexed by CONNECTED CREW at deal time (the towns law
+ * verbatim: joiners/leavers never retro-change a ticket). It scales the
+ * frost row's potential AND the sprinkle grain count (ceil) — ruled in
+ * the build discussion (2026-07-09): the 23.5s cycle prices HANDS,
+ * whatever the payload; leaving grains absolute would rebuild at rung 2
+ * the wall this table tears down at rung 1. [1] = 0.5 puts rung-1 solo
+ * at ~5 decent shots on the effective clock — passable earned, failable
+ * sloppy (header math). [2+] = 1.0: the friend test inherits ZERO drift.
+ * [0] is a guard, never indexed (requirementsFor clamps crew to ≥1 — an
+ * empty room prices solo; labor 0 would deal a born-met ask). Clocks and
+ * pay are UNTOUCHED — the realm pays its hero in full. A feel-pass
+ * hypothesis like every number in this file. */
+export const CREW_LABOR: readonly number[] = [0, 0.5, 1.0, 1.0, 1.0];
 
 /** The frost PASS ask, as a fraction of potential (plans/08 — "50% is
  * just passing"; the 2D game asked 50 too, of a cake it could fully
