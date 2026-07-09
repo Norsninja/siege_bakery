@@ -31,10 +31,14 @@ describe("RUNGS (the authored ladder)", () => {
     expect(rungRow(4).asks.crown).toBe(true); // 8 measured windows — hot, but real
   });
 
-  it("cake-6 asks NO crown — the measured summit takes no shipped combo (ask-honesty)", () => {
+  it("cake-6 asks the crown ANYWAY — the impossible tragedy (visionary's ruling)", () => {
+    // The measured summit takes no shipped (click, notch) combo; the
+    // ask stands deliberately — the final rung is unwinnable on
+    // today's machine and the future economy sells the key (power-ups,
+    // plans/15 item 6). The ONE sanctioned impossible ask.
     const top = RUNGS[RUNGS.length - 1]!;
     expect(top.spec).toBe("cake-6");
-    expect(top.asks.crown).toBe(false);
+    expect(top.asks.crown).toBe(true);
   });
 
   it("rows are sane: fractions in (0,1], grains ≥ 0, clocks > 0, pay climbs", () => {

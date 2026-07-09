@@ -327,8 +327,14 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    pins in campaign.test.ts. THE LADDER'S TOP: cake-6's summit takes
    ZERO shipped (click, notch) combos — windows exist in physics
    (~0.5–1° at tilt 13°/18°) but fall between notches, so the
-   envelope dies by QUANTIZATION; cake-6 asks no crown (ask-honesty)
-   and is near-impossible by workload instead. The crown ladder
+   envelope dies by QUANTIZATION. RULED (visionary, same session):
+   cake-6 KEEPS the crown ask — THE IMPOSSIBLE TRAGEDY, the one
+   sanctioned impossible ask ("necessity is the mother of
+   invention"): the final rung is deliberately unwinnable on today's
+   machine and the future economy sells the key (power-ups/upgrades
+   that reach impossible spots — the §5/plans-15-item-6 discussion,
+   post-campaign). Every other row's crown must be measured
+   reachable. The crown ladder
    narrows 22 → 16 → 12 → 8 → 7 → 4 → 0 summit combos; the potential
    tables GENERALIZE (solo 89.4–92.1% ≈ the 0.9 pin on every row;
    union 100.0% everywhere — frost never gates the ladder; cupcake

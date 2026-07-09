@@ -34,14 +34,15 @@
  * EXIST in physics — ~0.5–1° wide at tilt 13.0° (click 7) and 18.0°
  * (click 8) — but both fall BETWEEN the shipped 2.5° notches: the
  * machine cannot be dialed to them. The envelope dies by QUANTIZATION
- * at the summit. So cake-6's row asks NO crown (an ask that physics
- * forbids would break ask-honesty — the report would blame the crew's
- * aim for the machine's ladder); its near-impossibility is WORKLOAD:
- * ~25 idealized two-town shots ≈ 44–49 human ones against a crew
- * ceiling of ~30–44 in the effective clock. Every run's story ends
- * here — barely-winnable by a perfect crew, exactly §1's design. (If
- * play ever wants the cake-6 crown SHOT to exist, that is a tilt-table
- * design change — plans/15 item 7 territory, not a tuning tweak.)
+ * at the summit. THE VISIONARY'S RULING (2026-07-08, fourth session):
+ * cake-6 KEEPS the crown ask — THE IMPOSSIBLE TRAGEDY. The final rung
+ * is deliberately unwinnable on today's machine ("necessity is the
+ * mother of invention"): the run's story is DESIGNED to end here, and
+ * the future economy sells the key — power-ups/upgrades (plans/15
+ * item 6, post-campaign) that reach impossible spots. Until that
+ * exists, the workload alone (~25 idealized two-town shots ≈ 44–49
+ * human against a crew ceiling of ~30–44) already ends most runs
+ * before the crown is even the problem.
  *
  * THE CUPCAKE FINDING: its 8 summit windows are ALL hot arrivals
  * (v ≥ SPLAT_SPEED — the target is low, the ball comes in fast), so a
@@ -77,9 +78,10 @@ export interface Rung {
     frostFrac: number;
     /** Sprinkle ask, in grains (bursts are 40; see SPRINKLES_NEEDED). */
     sprinkles: number;
-    /** Whether this rung demands the crown. NEVER author true against
-     * a spec whose measured summit takes no shipped (click, notch) —
-     * ask-honesty (the cake-6 finding above). */
+    /** Whether this rung demands the crown. cake-6's is TRUE against a
+     * summit no shipped (click, notch) reaches — the ONE sanctioned
+     * exception (the impossible tragedy, visionary's ruling in the
+     * header); every other row's crown must be measured reachable. */
     crown: boolean;
   };
   pay: {
@@ -112,10 +114,10 @@ export const RUNGS: readonly Rung[] = [
   // 6 — the heroic crown: FOUR windows (three PLACE at c8n1–3), the
   // last rung a crown can honestly be asked on.
   { spec: "cake-5", clockSeconds: 330, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, pay: { base: 60, perStar: 5 } },
-  // 7 — the top of the ladder: no crown BY MEASUREMENT (ask-honesty —
-  // the summit takes no shipped combo); near-impossible by workload
-  // against the clock. Every run's story ends here.
-  { spec: "cake-6", clockSeconds: 360, asks: { frostFrac: 0.7, sprinkles: 80, crown: false }, pay: { base: 70, perStar: 5 } },
+  // 7 — the top of the ladder: THE IMPOSSIBLE TRAGEDY (header ruling).
+  // The crown ask stands over a summit no shipped combo reaches; every
+  // run's story ends here until the economy sells the key.
+  { spec: "cake-6", clockSeconds: 360, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1
