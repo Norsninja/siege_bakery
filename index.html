@@ -323,6 +323,32 @@
         box-shadow: 0 0 2px #000;
         pointer-events: none;
       }
+      /* The mute button (the UI pass, 2026-07-09): M's clickable twin —
+         the iPad rider has no M key. THE ONE overlay with pointer-events
+         AUTO (a button is FOR clicking; everything else stays none so the
+         pointer-lock grab falls through). Sits under the snapshot in
+         paint order — the photo's linger wins the corner; clicks still
+         reach the button through the photo's pointer-events: none. */
+      #mute-btn {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(61, 232, 255, 0.6);
+        background: rgba(18, 8, 44, 0.6);
+        box-shadow: 0 0 12px rgba(61, 232, 255, 0.25);
+        color: #fff;
+        font-size: 19px;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+      }
+      #mute-btn:hover {
+        box-shadow: 0 0 16px rgba(255, 79, 216, 0.5);
+        border-color: rgba(255, 79, 216, 0.7);
+      }
     </style>
   </head>
   <body>
@@ -332,6 +358,9 @@
     <!-- The manned post's instruments (plans/15 item 5): before #banner,
          so the proclamation always paints over the panel. -->
     <div id="post-hud"></div>
+    <!-- M's clickable twin (before #snapshot: the photo paints over it
+         during lingers; clicks pass through the photo regardless). -->
+    <button id="mute-btn" title="music on/off (M)">🔊</button>
     <div id="banner"></div>
     <figure id="snapshot">
       <img alt="the dessert, as the Giant saw it" />

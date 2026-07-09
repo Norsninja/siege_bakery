@@ -42,8 +42,10 @@ describe("deriveMood — the match state the HUD already renders by", () => {
 });
 
 describe("PLAYLISTS — the drop-in table", () => {
-  it("the order has its two songs; every path is a public URL", () => {
+  it("order and lobby have their two songs each; every path is a public URL", () => {
     expect(PLAYLISTS.order).toHaveLength(2);
-    for (const p of PLAYLISTS.order!) expect(p).toMatch(/^\/audio\/.+\.mp3$/);
+    expect(PLAYLISTS.lobby).toHaveLength(2);
+    for (const list of Object.values(PLAYLISTS))
+      for (const p of list) expect(p).toMatch(/^\/audio\/.+\.mp3$/);
   });
 });

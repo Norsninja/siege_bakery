@@ -126,16 +126,24 @@ async function main(): Promise<void> {
 
   // THE JUKEBOX (the UI pass, 2026-07-09): mood-keyed background music,
   // client-only ambience — music.ts is the table and the laws. M is the
-  // global mute (noted beside POST_KEYS — the key namespace's audit).
+  // global mute (noted beside POST_KEYS — the key namespace's audit);
+  // the corner button is M's clickable twin (the iPad rider has no M).
   const music = new MusicBox();
+  const muteBtn = document.getElementById("mute-btn");
+  const toggleMusic = (): void => {
+    const muted = music.toggleMute();
+    if (muteBtn) muteBtn.textContent = muted ? "🔇" : "🔊";
+    flash(muted ? "music muted — M brings it back" : "music on 🎵", 2000);
+  };
   window.addEventListener("keydown", (e) => {
-    if (e.code === "KeyM" && !e.repeat)
-      flash(
-        music.toggleMute()
-          ? "music muted — M brings it back"
-          : "music on 🎵",
-        2000,
-      );
+    if (e.code === "KeyM" && !e.repeat) toggleMusic();
+  });
+  muteBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMusic();
+    // A focused button turns Space into "click" — and Space WINDS the
+    // winch. Nobody mutes the bakery by cranking.
+    muteBtn.blur();
   });
 
   // --- Every word the room says (net-handlers.ts) ---

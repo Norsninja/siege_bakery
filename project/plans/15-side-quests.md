@@ -297,4 +297,16 @@ inbox, gitignored. Pinned: nextTrack + deriveMood + the table (+7,
 386 total); the browser shell live-verified: lobby silence → ready-up
 → order kicks in at 0.35 (real-click unlock), synthetic 'ended' →
 the other song seamless, fade 0.35→0→0.35 both ramps, M both ways,
-dist/audio ships. Speakers eye(ear)-pass: the visionary's next run.**
+dist/audio ships. Speakers eye(ear)-pass: the visionary's next run.
+SAME SESSION, second slice: the LOBBY row filled (hearth-harvest +
+hearthside-yeast, the visionary's next two tracks — the drop-in
+workflow's first real use), and the MUTE BUTTON landed upper-right —
+M's clickable twin (the iPad rider has no M key). Button laws: THE
+ONE overlay with pointer-events auto (buttons are for clicking;
+everything else stays none for the pointer-lock grab); painted UNDER
+the snapshot (the photo's linger wins the corner; clicks pass through
+its pointer-events: none regardless); BLURRED after every click —
+a focused button turns Space into "click", and Space WINDS the winch.
+Icon follows the state from BOTH paths (key and click). Live: click
+muted 🔇 without stealing focus, M unmuted 🔊, lobby played
+hearth-harvest and handed off to hearthside-yeast on ended.**

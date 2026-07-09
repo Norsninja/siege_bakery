@@ -30,9 +30,9 @@ export type Mood = "order" | "lobby" | "linger" | "runover";
  * the same tunnel). An absent/empty row = that mood is silence. */
 export const PLAYLISTS: Partial<Record<Mood, readonly string[]>> = {
   order: ["/audio/kitchen-chaos.mp3", "/audio/kitchen-mayhem.mp3"],
-  // lobby: [],   — songs coming (visionary, 2026-07-09)
-  // linger: [],  — the 18s interlude
-  // runover: [], — the fatality
+  lobby: ["/audio/hearth-harvest.mp3", "/audio/hearthside-yeast.mp3"],
+  // linger: [],  — the 18s interlude (songs coming, visionary 2026-07-09)
+  // runover: [], — the fatality (same)
 };
 
 /** Background means background: one dial, sized to sit under the SFX
