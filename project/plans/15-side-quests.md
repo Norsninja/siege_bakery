@@ -163,13 +163,42 @@ correct). Cheap ribbon/line, client-only, `shots-view.ts` territory.
 
 ## 5. Post-local HUD — AESTHETICS PASS
 
-**Status: parked until the pass. Promotion trigger: if friend-test
-first-timers can't find their post's numbers, this jumps the queue.**
+**Status: DONE 2026-07-09 (ninth session) — promoted by the visionary
+into the pre-friend-test UI pass (not by the trigger), rulings from
+the discussion: WINCH panel DEAD CENTER and BIG (the tensioner's only
+job is the number — no time reading UI); GUNNER cluster BOTTOM-LEFT
+(free real estate — the aim line, arc, and cake own the center);
+BUCKET STATE unmissable on the gunner panel (what F throws, or
+BUCKET EMPTY breathing); tone = clear modern BRIGHT, pink/cyan,
+fantasy, Vegas energy (big glowing numbers, pop on every real change,
+celebrate the values) — tone-setting in DOM/CSS now, diegetic Blender
+interfaces later. BUILT: hud.postPanel (pure, tested — WHAT) +
+post-hud.ts (DOM painter — WHERE) + index.html CSS; the manned post's
+instrument lines LEFT the corner block (invitations stay); the corner
+#hud got its card (same words, better bones; box-sizing keeps item
+3's column law). Constraint (a): LastShot memory recorded client-side
+off the shot broadcast per town (no wire change) — "last shot flew at
+N" on the winch, the full solution on the gunner. Constraint (b): THE
+ONE KEY TABLE — posts.POST_KEYS is read by postOp AND rendered by the
+panels; hud.test pins the caps EQUAL the table (never literals), so
+HUD and hand cannot drift. Render discipline: rebuild (and pop) only
+on structural change; crank fill and traverse update in place.
+Pinned: posts.test (postOp table refactor, behavior verbatim),
+hud.test postPanel suite (+4, one-table law). 379 tests, both tsc
+legs. LIVE (worker-driven E-dispatch at the anchors): winch 2/10 big
++ 2 segs lit + 78% live fill + caps W/SPACE/S/E + "last shot flew at
+2" after a wire lever; gunner FUDGE LOADED chip in topping color,
++21.5° cyan / +7.5° pink, ladder, caps A/D/W/S/F/E, gold memory line;
+pointer-events none verified. Screenshots both panels; the deep eye
+pass rides the visionary's next run. Deferred from the discussion's
+slice list: flash-message center toasts (Vegas event celebration) —
+the next aesthetics slice, not this one.**
 
-At each post, that post's stats front and center — no corner-left
-glances. Winch: tension amount BIG, center screen, the keys to press,
-and the LAST fired tension setting. Gunner: all relevant stats large
-but NOT center. Two constraints recorded now: (a) "last tension"
+The original ask (kept for the record): at each post, that post's
+stats front and center — no corner-left glances. Winch: tension
+amount BIG, center screen, the keys to press, and the LAST fired
+tension setting. Gunner: all relevant stats large but NOT center.
+Two constraints recorded then, both honored above: (a) "last tension"
 needs a small remembered state (last fired clicks per catapult);
 (b) whatever keys are displayed must render from ONE shared table per
 post so the W/S = more/less law (plans/14) cannot drift between HUD

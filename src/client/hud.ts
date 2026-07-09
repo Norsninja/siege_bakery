@@ -26,7 +26,7 @@ import { rungRow } from "../game/campaign";
 import { FLOURISH_BONUS_COINS } from "../game/tuning";
 import type { OrderState } from "../game/order";
 import type { RunWire } from "../game/protocol";
-import type { Post } from "./posts";
+import { POST_KEYS, type Post, type PostKey } from "./posts";
 
 /** Everything the crosshair can engage. (Lives here for now; the decomp's
  * input/scene modules share it — re-home if it ever grows legs.) */
@@ -89,10 +89,10 @@ export interface ShopState {
  * positions since the 2.5° table (research/13): grouped in FOURS — one
  * group is 10° — so a glance counts groups, not boxes. VISIONARY CALL
  * 2026-07-08: the full ladder lives ONLY where you dial — that meant the
- * screw prompt, and with the gun crew (plans/14) it means the GUNNER'S
- * instrument line; the always-on machine line carries the compact
- * numeric form — a 23-char ladder between three stats muddied which
- * stat owned it. */
+ * screw prompt, then the gunner's instrument line (plans/14), and with
+ * the UI pass (plans/15 item 5) it means the GUNNER'S PANEL; the
+ * always-on machine line carries the compact numeric form — a 23-char
+ * ladder between three stats muddied which stat owned it. */
 export const arcGlyph = (tiltNotch: number): string => {
   let out = "";
   for (let i = 0; i <= TILT_MAX_NOTCH; i++) {
@@ -282,6 +282,103 @@ export function runOverText(
   return `THE RUN IS OVER\n${runOverLine(rung)}${coins}\n— gather in the gold circle to run again`;
 }
 
+/** THE FIRING MEMORY (plans/15 item 5, constraint a): the settings the
+ * local machine LAST FIRED with — recorded client-side off the shot
+ * broadcast (it carries town + the full solution; no wire change), keyed
+ * by town in main. The crew callout anchor: "same as last, one more." */
+export interface LastShot {
+  tensionClicks: number;
+  traverseDeg: number;
+  tiltNotch: number;
+}
+
+/** A keycap row on a post panel: the caps to press, then what they do.
+ * Caps are LABELS from POST_KEYS — the one table (posts.ts): the panel
+ * renders what postOp reads, drift-proof by construction. */
+export interface KeyHint {
+  caps: string[];
+  label: string;
+}
+const caps = (...lists: readonly (readonly PostKey[])[]): string[] =>
+  lists.flatMap((l) => l.map((k) => k.label));
+
+/** The winch panel (plans/15 item 5, ruled 2026-07-09): DEAD CENTER and
+ * BIG — the tensioner's only job is the number, no time reading UI. */
+export interface WinchPanel {
+  post: "winch";
+  title: string;
+  clicks: number;
+  max: number;
+  /** The partial click winding right now, signed like crankPct. */
+  fillPct: number;
+  /** Constraint (a): what this machine last flew at. */
+  lastFired: number | null;
+  keys: KeyHint[];
+}
+
+/** The gunner panel (same ruling): BOTTOM-LEFT — the aim line, the arc,
+ * and the cake own the center; the cluster lives in free real estate. */
+export interface GunnerPanel {
+  post: "gunner";
+  title: string;
+  traverseDeg: number;
+  tiltNotch: number;
+  maxNotch: number;
+  tiltDeg: number;
+  ladder: string;
+  /** The bucket, unmissable (ruled): what F will throw — or nothing. */
+  loaded: string | null;
+  last: LastShot | null;
+  keys: KeyHint[];
+}
+export type PostPanel = WinchPanel | GunnerPanel;
+
+/** The manned post's panel data — pure, like every word in this file;
+ * post-hud.ts paints it. Null on foot (the panel leaves with the post). */
+export function postPanel(v: HudView): PostPanel | null {
+  if (v.manned === "winch") {
+    return {
+      post: "winch",
+      title: "WINCH POST",
+      clicks: v.machine.tensionClicks,
+      max: TENSION_MAX_CLICKS,
+      fillPct: Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100),
+      lastFired: v.lastShot?.tensionClicks ?? null,
+      keys: [
+        { caps: caps(POST_KEYS.winch.wind), label: "wind" },
+        { caps: caps(POST_KEYS.winch.unwind), label: "let out" },
+        { caps: ["E"], label: "step off" },
+      ],
+    };
+  }
+  if (v.manned === "gunner") {
+    return {
+      post: "gunner",
+      title: "GUNNER'S POST",
+      traverseDeg: v.machine.traverseDeg,
+      tiltNotch: v.machine.tiltNotch,
+      maxNotch: TILT_MAX_NOTCH,
+      tiltDeg: v.machine.tiltNotch * TILT_DEG_PER_NOTCH,
+      ladder: arcGlyph(v.machine.tiltNotch),
+      loaded: v.machine.loaded,
+      last: v.lastShot,
+      keys: [
+        {
+          caps: caps(POST_KEYS.gunner.wheelLeft, POST_KEYS.gunner.wheelRight),
+          label: "wheel",
+        },
+        {
+          caps: caps(POST_KEYS.gunner.screwUp, POST_KEYS.gunner.screwDown),
+          label: "arc",
+        },
+        { caps: caps(POST_KEYS.gunner.fire), label: "FIRE" },
+        { caps: ["E"], label: "step off" },
+      ],
+    };
+  }
+  return null;
+}
+
 export interface HudView {
   order: OrderState;
   checks: readonly RequirementCheck[];
@@ -311,6 +408,9 @@ export interface HudView {
   /** The post whose zone the baker stands in (mannable with E); only
    * meaningful while on foot. */
   nearPost: Post | null;
+  /** The local machine's firing memory (item 5 constraint a) — what it
+   * last flew at; null before its first shot. */
+  lastShot: LastShot | null;
 }
 
 export function hudLines(v: HudView): string[] {
@@ -378,18 +478,12 @@ export function hudLines(v: HudView): string[] {
       : "Click to grab the mouse · WASD move · Shift sprint · E interact",
     `machine — traverse ${v.machine.traverseDeg.toFixed(0)}° · arc +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° (${v.machine.tiltNotch}/${TILT_MAX_NOTCH}) · tension ${v.machine.tensionClicks}/${TENSION_MAX_CLICKS}${crankPct !== 0 ? ` ${crankPct > 0 ? "+" : ""}${crankPct}%` : ""} · bucket: ${v.machine.loaded ?? "empty"} · hands: ${v.carrying ?? "empty"}`,
   ];
-  // The crew posts (plans/14). Manned = the post's own panel — the
-  // gunner's carries the aiming instrument (the ladder's home, the
-  // 2026-07-08 gauge-split call, moved here with the posts). On foot in
-  // a zone = the invitation.
-  if (v.manned === "gunner") {
-    lines.push(
-      "▸ GUNNER'S POST — A/D wheel · W/S screw · F fire · E step off",
-      `  arc ${arcGlyph(v.machine.tiltNotch)} +${v.machine.tiltNotch * TILT_DEG_PER_NOTCH}° · traverse ${v.machine.traverseDeg.toFixed(1)}°`,
-    );
-  } else if (v.manned === "winch") {
-    lines.push("▸ WINCH POST — hold Space/W to wind · S to unwind · E step off");
-  } else if (v.nearPost) {
+  // The crew posts (plans/14).
+  // A MANNED post's instruments left the corner for their own big panel
+  // (postPanel above — the UI pass, plans/15 item 5, 2026-07-09: eyes
+  // are on the machine, so the numbers go where the eyes are). On foot
+  // in a zone = the invitation, still corner-carried.
+  if (v.manned === null && v.nearPost) {
     lines.push(
       v.nearPost === "gunner"
         ? "▸ E — man the gunner's post"

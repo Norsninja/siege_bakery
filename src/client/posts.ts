@@ -96,32 +96,58 @@ export function postAt(
   return best;
 }
 
+/** THE ONE KEY TABLE (plans/15 item 5, constraint b — the UI pass,
+ * 2026-07-09): every key a post honors, named ONCE. postOp READS this
+ * table and the post panel (hud.postPanel) RENDERS its keycaps from it,
+ * so the HUD physically cannot show a key the machine ignores — the
+ * W/S = more/less law (plans/14) cannot drift between hand and eye.
+ * `label` is the keycap the panel draws for that code. (KeyF's edge is
+ * tracked in input.ts and gated on the manned post in main — the fire
+ * cap below is the same key by law; move both together.) */
+export interface PostKey {
+  code: string;
+  label: string;
+}
+export const POST_KEYS = {
+  gunner: {
+    wheelLeft: [{ code: "KeyA", label: "A" }],
+    wheelRight: [{ code: "KeyD", label: "D" }],
+    screwUp: [{ code: "KeyW", label: "W" }],
+    screwDown: [{ code: "KeyS", label: "S" }],
+    fire: [{ code: "KeyF", label: "F" }],
+  },
+  winch: {
+    wind: [
+      { code: "KeyW", label: "W" },
+      { code: "Space", label: "SPACE" },
+    ],
+    unwind: [{ code: "KeyS", label: "S" }],
+  },
+} as const satisfies Record<Post, Record<string, readonly PostKey[]>>;
+
+const anyHeld = (
+  keys: ReadonlySet<string>,
+  list: readonly PostKey[],
+): boolean => list.some((k) => keys.has(k.code));
+
 /** Held machine intent from the manned post + held keys. Opposing keys
  * cancel (A+D, W+S, wind+unwind) — the machine is honest, same as the
  * grip law. The gunner cannot crank and the winch cannot aim: one body,
  * one job. The post grammar: W/S is always MORE/LESS — elevation at the
  * gunner, tension at the winch (Space stays as wind, the habit the
- * first feel test formed). */
+ * first feel test formed). Reads POST_KEYS — the one table above. */
 export function postOp(post: Post | null, keys: ReadonlySet<string>): HeldOp {
-  const wind = keys.has("Space") || keys.has("KeyW");
-  const unwind = keys.has("KeyS");
+  const g = POST_KEYS.gunner;
+  const w = POST_KEYS.winch;
+  const left = anyHeld(keys, g.wheelLeft);
+  const right = anyHeld(keys, g.wheelRight);
+  const up = anyHeld(keys, g.screwUp);
+  const down = anyHeld(keys, g.screwDown);
+  const wind = anyHeld(keys, w.wind);
+  const unwind = anyHeld(keys, w.unwind);
   return {
-    turn:
-      post === "gunner"
-        ? keys.has("KeyA") && !keys.has("KeyD")
-          ? 1
-          : keys.has("KeyD") && !keys.has("KeyA")
-            ? -1
-            : 0
-        : 0,
-    screw:
-      post === "gunner"
-        ? keys.has("KeyW") && !keys.has("KeyS")
-          ? 1
-          : keys.has("KeyS") && !keys.has("KeyW")
-            ? -1
-            : 0
-        : 0,
+    turn: post === "gunner" ? (left && !right ? 1 : right && !left ? -1 : 0) : 0,
+    screw: post === "gunner" ? (up && !down ? 1 : down && !up ? -1 : 0) : 0,
     crank:
       post === "winch" ? (wind && !unwind ? 1 : unwind && !wind ? -1 : 0) : 0,
   };

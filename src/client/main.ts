@@ -29,10 +29,13 @@ import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
 import {
   bannerText,
   hudLines,
+  postPanel,
   runOverText,
   snapshotCaption,
   type InteractableKind,
+  type LastShot,
 } from "./hud";
+import { PostHud } from "./post-hud";
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
@@ -99,6 +102,11 @@ async function main(): Promise<void> {
   const ghosts = new GhostManager(scene);
 
   const hud = document.getElementById("hud");
+  const postHud = new PostHud();
+  // THE FIRING MEMORY (plans/15 item 5, constraint a): each machine's
+  // last-fired solution, recorded off the shot broadcast — client-local,
+  // no wire change. The panels' "last shot" line reads it by town.
+  const lastShot: Record<number, LastShot> = {};
   const banner = document.getElementById("banner");
   // The dessert report (client/snapshot.ts): the tripod, its corner frame,
   // and the caption slot. Photo taken on the banner-show edge below.
@@ -117,7 +125,14 @@ async function main(): Promise<void> {
 
   // --- Every word the room says (net-handlers.ts) ---
   const fx: NetFx = {
-    spawnShot: (msg) => shotsView.spawn(msg),
+    spawnShot: (msg) => {
+      lastShot[msg.town] = {
+        tensionClicks: msg.tensionClicks,
+        traverseDeg: msg.traverseDeg,
+        tiltNotch: msg.tiltNotch,
+      };
+      shotsView.spawn(msg);
+    },
     spawnResting: (t) => shotsView.spawnResting(t),
     restoreFrosting: (coats) => frostingView.restore(coats),
     bindDessert: (dessert) => {
@@ -539,7 +554,7 @@ async function main(): Promise<void> {
     gs.setReadyCircle(view.run.phase !== "running");
 
     if (hud) {
-      hud.textContent = hudLines({
+      const hv = {
         order: view.order,
         checks: view.checks,
         run: view.run,
@@ -569,7 +584,12 @@ async function main(): Promise<void> {
           )
             ? nearPostShown
             : null,
-      }).join("\n");
+        lastShot: lastShot[view.yourTown] ?? null,
+      };
+      hud.textContent = hudLines(hv).join("\n");
+      // The manned post's big panel (plans/15 item 5): the numbers go
+      // where the eyes are — winch center, gunner bottom-left.
+      postHud.update(postPanel(hv));
     }
 
     renderer.render(scene, camera);

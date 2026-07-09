@@ -12,12 +12,19 @@ import {
   arcGlyph,
   bannerText,
   hudLines,
+  postPanel,
   promptFor,
   runOverText,
   SHELF_TOPPING,
   snapshotCaption,
   type HudView,
 } from "./hud";
+import { POST_KEYS } from "./posts";
+import {
+  CRANK_TICKS_PER_CLICK,
+  TENSION_MAX_CLICKS,
+  TILT_MAX_NOTCH,
+} from "../game/catapult";
 
 const machine = (over: Partial<ReturnType<typeof createCatapult>> = {}) => ({
   ...createCatapult(),
@@ -262,27 +269,30 @@ describe("runOverText — the run report banner", () => {
   });
 });
 
+// Shared by the hudLines and postPanel suites below.
+const view = (over: Partial<HudView> = {}): HudView => ({
+  order: createOrder([], 71 * 60),
+  checks: [check(false, 1)],
+  // A live rung by default — the pre-campaign HUD, one header deeper.
+  run: { phase: "running", rung: 1 },
+  topTier: 2, // cake-3's summit (spec refactor, plans/13 §3)
+  machine: machine(),
+  crankTicks: 0,
+  carrying: null,
+  netStatus: "loopback",
+  ghostCount: 0,
+  myId: null,
+  locked: true,
+  target: null,
+  shop: null,
+  flash: null,
+  manned: null,
+  nearPost: null,
+  lastShot: null,
+  ...over,
+});
+
 describe("hudLines", () => {
-  const view = (over: Partial<HudView> = {}): HudView => ({
-    order: createOrder([], 71 * 60),
-    checks: [check(false, 1)],
-    // A live rung by default — the pre-campaign HUD, one header deeper.
-    run: { phase: "running", rung: 1 },
-    topTier: 2, // cake-3's summit (spec refactor, plans/13 §3)
-    machine: machine(),
-    crankTicks: 0,
-    carrying: null,
-    netStatus: "loopback",
-    ghostCount: 0,
-    myId: null,
-    locked: true,
-    target: null,
-    shop: null,
-    flash: null,
-    manned: null,
-    nearPost: null,
-    ...over,
-  });
 
   it("headline rung + clock + solo tag; checklist rows carry progress", () => {
     const lines = hudLines(view());
@@ -422,31 +432,104 @@ describe("hudLines", () => {
     expect(lines[lines.length - 1]).toBe("LOOSED!");
   });
 
-  it("the gunner's panel: legend + the aiming instrument (the ladder's home, plans/14)", () => {
-    const lines = hudLines(
+  it("manned instruments LEFT the corner (item 5): no post lines; invitations stay on foot", () => {
+    const gunner = hudLines(
       view({
         manned: "gunner",
         machine: machine({ traverseDeg: -8.5, tiltNotch: 6 }),
         target: "wheel", // crosshair prompts stay quiet while manned
       }),
     );
-    expect(lines[lines.length - 2]).toBe(
-      "▸ GUNNER'S POST — A/D wheel · W/S screw · F fire · E step off",
-    );
-    expect(lines[lines.length - 1]).toBe(
-      "  arc ▮▮▮▮·▮▮▮▯·▯▯▯▯·▯ +15° · traverse -8.5°",
-    );
-  });
-
-  it("winch panel and the on-foot invitations", () => {
-    expect(hudLines(view({ manned: "winch" })).pop()).toBe(
-      "▸ WINCH POST — hold Space/W to wind · S to unwind · E step off",
-    );
+    expect(gunner.some((l) => l.includes("GUNNER'S POST"))).toBe(false);
+    expect(
+      hudLines(view({ manned: "winch" })).some((l) => l.includes("WINCH")),
+    ).toBe(false);
     expect(hudLines(view({ nearPost: "gunner" })).pop()).toBe(
       "▸ E — man the gunner's post",
     );
     expect(hudLines(view({ nearPost: "winch" })).pop()).toBe(
       "▸ E — man the winch",
     );
+  });
+});
+
+describe("postPanel — the manned post's BIG panel (plans/15 item 5, the UI pass)", () => {
+  it("on foot: no panel", () => {
+    expect(postPanel(view())).toBeNull();
+    expect(postPanel(view({ nearPost: "winch" }))).toBeNull();
+  });
+
+  it("winch: the number huge, the live fill, the firing memory", () => {
+    const p = postPanel(
+      view({
+        manned: "winch",
+        machine: machine({ tensionClicks: 6 }),
+        crankTicks: Math.round(CRANK_TICKS_PER_CLICK / 2),
+        lastShot: { tensionClicks: 7, traverseDeg: -8, tiltNotch: 4 },
+      }),
+    );
+    expect(p?.post).toBe("winch");
+    if (p?.post !== "winch") return;
+    expect(p.clicks).toBe(6);
+    expect(p.max).toBe(TENSION_MAX_CLICKS);
+    expect(p.fillPct).toBe(
+      Math.round(
+        (Math.round(CRANK_TICKS_PER_CLICK / 2) / CRANK_TICKS_PER_CLICK) * 100,
+      ),
+    ); // the live winding, same arithmetic as the corner's crank %
+    expect(p.lastFired).toBe(7); // constraint (a): the callout anchor
+  });
+
+  it("gunner: aim numbers, the ladder, and the bucket — unmissable", () => {
+    const p = postPanel(
+      view({
+        manned: "gunner",
+        machine: machine({ traverseDeg: -8.5, tiltNotch: 6, loaded: "cherry" }),
+        lastShot: { tensionClicks: 7, traverseDeg: -8, tiltNotch: 4 },
+      }),
+    );
+    expect(p?.post).toBe("gunner");
+    if (p?.post !== "gunner") return;
+    expect(p.traverseDeg).toBe(-8.5);
+    expect(p.tiltNotch).toBe(6);
+    expect(p.tiltDeg).toBe(15);
+    expect(p.maxNotch).toBe(TILT_MAX_NOTCH);
+    expect(p.ladder).toBe(arcGlyph(6)); // the ladder's home rides along
+    expect(p.loaded).toBe("cherry");
+    expect(p.last).toEqual({ tensionClicks: 7, traverseDeg: -8, tiltNotch: 4 });
+    expect(postPanel(view({ manned: "gunner" }))?.post === "gunner").toBe(true);
+  });
+
+  it("THE ONE TABLE LAW (constraint b): every keycap derives from POST_KEYS — never a literal", () => {
+    const w = postPanel(view({ manned: "winch" }));
+    if (w?.post !== "winch") throw new Error("no winch panel");
+    expect(w.keys[0]).toEqual({
+      caps: POST_KEYS.winch.wind.map((k) => k.label),
+      label: "wind",
+    });
+    expect(w.keys[1]).toEqual({
+      caps: POST_KEYS.winch.unwind.map((k) => k.label),
+      label: "let out",
+    });
+    const g = postPanel(view({ manned: "gunner" }));
+    if (g?.post !== "gunner") throw new Error("no gunner panel");
+    expect(g.keys[0]).toEqual({
+      caps: [
+        ...POST_KEYS.gunner.wheelLeft.map((k) => k.label),
+        ...POST_KEYS.gunner.wheelRight.map((k) => k.label),
+      ],
+      label: "wheel",
+    });
+    expect(g.keys[1]).toEqual({
+      caps: [
+        ...POST_KEYS.gunner.screwUp.map((k) => k.label),
+        ...POST_KEYS.gunner.screwDown.map((k) => k.label),
+      ],
+      label: "arc",
+    });
+    expect(g.keys[2]).toEqual({
+      caps: POST_KEYS.gunner.fire.map((k) => k.label),
+      label: "FIRE",
+    });
   });
 });
