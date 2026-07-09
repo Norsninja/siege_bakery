@@ -117,7 +117,15 @@ fudge-counts-toward-frost watch; audit tranche C post-friend-test;
 wind plan and Bite/integrity re-pin ownerless. FEEL-APPROVED at
 0.35 by the visionary's own run (rung 1 passed, rung 2 reached,
 sprinkles sendable — lost only to a wrong-crate grab, the decoy
-comedy working): THE LONE HERO IS PLAYABLE AND APPROVED. NEXT: the
-friend test (plans/12) measures the duo cycle the clocks assume;
-plans/15 items 1/3/4 are its unclaimed pre-test side quests. Port
-map: research/01-port-gap-analysis.md.
+comedy working): THE LONE HERO IS PLAYABLE AND APPROVED. SAME
+SESSION: an external audit was ruled on (4 accepted + built: silent-
+server watchdog, #hud pointer-events, npm run preview removed, the
+runbook re-taught; 4 declined with reasons — handoff §2), and side
+quests 3 (the banner yields the photo its column — index.html
+overlay geometry, measured at four viewports) and 1 (one landing
+ring per catapult — packShotTag namespace, shots-view.ts) are DONE
+with full records in plans/15. NEXT: DISCUSS side quest 4 (trails)
+before building — the visionary's explicit sequence; the friend
+test (plans/12, runbook current) runs on the WEEKEND and measures
+the duo cycle the clocks assume. Port map:
+research/01-port-gap-analysis.md.
