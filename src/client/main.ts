@@ -369,7 +369,11 @@ async function main(): Promise<void> {
       if (tickRoom) tickRoom();
 
       // Local clock prediction — never declares an ending (F5, state.ts).
-      view.order = predictClock(view.order);
+      // Phase-gated (slice 4, found live): the lobby's DORMANT order has
+      // no 1Hz correction (room.ts gates it), so an ungated prediction
+      // free-ran the lobby clock down with nothing to correct it.
+      // Invisible (the lobby HUD hides the order) but dishonest state.
+      if (view.run.phase === "running") view.order = predictClock(view.order);
 
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
@@ -394,7 +398,7 @@ async function main(): Promise<void> {
           // loss's photo stays hung — the filthy floor is the trophy.
           bannerShown = true;
           banner.style.display = "flex";
-          banner.textContent = runOverText(view.run.rung);
+          banner.textContent = runOverText(view.run.rung, view.run.won ?? false);
         } else if (view.run.phase !== "running") {
           // The lobby (or the countdown): everything comes down. No deal
           // edge fired here — the run start deals fresh and the latch

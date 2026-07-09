@@ -58,13 +58,43 @@
  * the four-friends 80% heroic curve (48 solo / 39 two-town), margin
  * shrinking as rungs climb.
  *
- * SLICE-3 BOUNDARY: this table is DATA + pins only. specForRung still
- * deals CAKE_3 every rung — slice 4 wires RUNGS live (per-rung deal /
- * asks / clock) in one deliberate flip.
+ * THE FLOURISH AMENDMENT (plans/13 §1, 2026-07-08 fifth session —
+ * amends the impossible tragedy): the crown is an OPTIONAL FLOURISH
+ * now, never a requirement — the fatality, style on top of a decided
+ * outcome. asks.crown is the per-rung FLOURISH FLAG; the summit table
+ * above survives untouched as the flourish's honesty ledger. Rung 7
+ * is winnable by WORKLOAD alone = MASTER BAKER; landing the flourish
+ * on cake-6's dead summit = ULTRA MASTER BAKER, impossible until the
+ * economy sells the key. SLICE 4 SHIPS CROWN-SHELVED (no crown row
+ * deals, patron rule 3 deleted); the flourish itself is slice 4b.
+ *
+ * PAR PER RUNG (slice-4 discussion): flat par 24 mechanically punished
+ * the two-town play the high rungs demand (cake-6 duo pass ≈ 25
+ * idealized shots alone), so par is an authored column now — priced
+ * from the yardstick the way ORDER_PAR_SHOTS was (tuning.ts: par is a
+ * good line's count, not a perfect one):
+ *   par = round(passSamples / 7)            [~7 samples per HUMAN shot]
+ *       + sprinkle bursts (40→1, 60→2, 80→3; two perfect bursts = 80
+ *         exactly, zero grain slack, so the 80-ask budgets a third)
+ *       + 1 flourish allowance on asks.crown rungs (style untaxed, 4b)
+ *       + 1 slack
+ * The anchor forces TWO columns ({solo, duo} — solo rung 3 must stay
+ * 24 verbatim, and one flat number can't also serve the duo workload).
+ * The deal picks by activeTowns; 3+ towns read duo (ask table clamps
+ * the same way). ONE authored deviation: the cupcake reads 8/10 where
+ * the formula says 5/7 — a 1.2 m disc makes misses the NORM, and par
+ * pricing zero room to miss on the precision rung taxes its entire
+ * point (feel-pass hypothesis like every ask).
+ *
+ * THE LADDER IS LIVE (slice 4): specForRung deals THIS table — deal +
+ * asks + clock flipped together (the slice-3 boundary retired). The
+ * deal decision lives in the Room (orderConcluded BEFORE dealFresh —
+ * an OrderFlow self-deal would price the OLD rung's asks over the NEW
+ * rung's cake).
  *
  * game/ law: imports core/ only, like tuning.ts.
  */
-import { CAKE_3, specById, type DessertSpec } from "../core/dessert";
+import { specById, type DessertSpec } from "../core/dessert";
 
 export interface Rung {
   /** DessertSpec id (the wire name — the deal carries the RUNG NUMBER
@@ -78,12 +108,18 @@ export interface Rung {
     frostFrac: number;
     /** Sprinkle ask, in grains (bursts are 40; see SPRINKLES_NEEDED). */
     sprinkles: number;
-    /** Whether this rung demands the crown. cake-6's is TRUE against a
-     * summit no shipped (click, notch) reaches — the ONE sanctioned
-     * exception (the impossible tragedy, visionary's ruling in the
-     * header); every other row's crown must be measured reachable. */
+    /** THE FLOURISH FLAG (§1 amendment — header): does this rung's
+     * patron offer his desire when coverage turns great? NEVER a
+     * requirement (slice 4b builds the flourish; slice 4 ships
+     * crown-shelved). cake-6's summit takes zero shipped combos — its
+     * flourish is the ULTRA ask, impossible until the economy sells
+     * the key; every other flourish row is measured reachable. */
     crown: boolean;
   };
+  /** Shots for full waste credit, authored per rung (header formula):
+   * the deal picks solo (1 town) or duo (2+). Rung 3 solo = 24, the
+   * anchor verbatim. */
+  parShots: { solo: number; duo: number };
   pay: {
     /** Purse award for passing (plans/13 §5: ~10 × rung). */
     base: number;
@@ -97,44 +133,46 @@ export interface Rung {
  * 4/5/6 to the death of the envelope. Index = rung − 1. */
 export const RUNGS: readonly Rung[] = [
   // 1 — the humble cake: teaches machine + frost. No sprinkles, no
-  // crown: one ask, one lesson (gentle by design, plans/13 §4).
-  { spec: "cake-1", clockSeconds: 150, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, pay: { base: 10, perStar: 5 } },
-  // 2 — teaches the ledge and the burst; still no crown.
-  { spec: "cake-2", clockSeconds: 210, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, pay: { base: 20, perStar: 5 } },
+  // flourish: one ask, one lesson (gentle by design, plans/13 §4).
+  { spec: "cake-1", clockSeconds: 150, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
+  // 2 — teaches the ledge and the burst; still no flourish.
+  { spec: "cake-2", clockSeconds: 210, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
   // 3 — THE ANCHOR: today's live numbers verbatim (300s, FROST_FRAC
-  // 0.5, SPRINKLES_NEEDED 60, crown). Never rebalanced from here.
-  { spec: "cake-3", clockSeconds: 300, asks: { frostFrac: 0.5, sprinkles: 60, crown: true }, pay: { base: 30, perStar: 5 } },
+  // 0.5, SPRINKLES_NEEDED 60, solo par 24). Never rebalanced from here.
+  { spec: "cake-3", clockSeconds: 300, asks: { frostFrac: 0.5, sprinkles: 60, crown: true }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
   // 4 — THE CUPCAKE: tiny census (68), so the frost ask is samples-few
   // but every miss is floor waste; sprinkles must land on a 1.2m disc;
-  // the crown's 8 windows all arrive hot (header finding). Short clock:
-  // a precision beat, not a marathon.
-  { spec: "cupcake", clockSeconds: 150, asks: { frostFrac: 0.6, sprinkles: 30, crown: true }, pay: { base: 40, perStar: 5 } },
-  // 5 — the climb begins: 701 census, 7 crown windows.
-  { spec: "cake-4", clockSeconds: 300, asks: { frostFrac: 0.55, sprinkles: 60, crown: true }, pay: { base: 50, perStar: 5 } },
-  // 6 — the heroic crown: FOUR windows (three PLACE at c8n1–3), the
-  // last rung a crown can honestly be asked on.
-  { spec: "cake-5", clockSeconds: 330, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, pay: { base: 60, perStar: 5 } },
-  // 7 — the top of the ladder: THE IMPOSSIBLE TRAGEDY (header ruling).
-  // The crown ask stands over a summit no shipped combo reaches; every
-  // run's story ends here until the economy sells the key.
-  { spec: "cake-6", clockSeconds: 360, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, pay: { base: 70, perStar: 5 } },
+  // the flourish's 8 windows all arrive hot (header finding). Short
+  // clock: a precision beat, not a marathon. Par carries the authored
+  // miss allowance (header — the formula's 5/7 prices zero misses).
+  { spec: "cupcake", clockSeconds: 150, asks: { frostFrac: 0.6, sprinkles: 30, crown: true }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
+  // 5 — the climb begins: 701 census, 7 flourish windows.
+  { spec: "cake-4", clockSeconds: 300, asks: { frostFrac: 0.55, sprinkles: 60, crown: true }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
+  // 6 — the heroic flourish: FOUR windows (three PLACE at c8n1–3), the
+  // last rung the flourish can honestly be offered on.
+  { spec: "cake-5", clockSeconds: 330, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
+  // 7 — the top of the ladder. Winnable by WORKLOAD (barely): MASTER
+  // BAKER. The flourish stands over a summit no shipped combo reaches —
+  // the ULTRA ask, sold by the future economy (§1 amendment).
+  { spec: "cake-6", clockSeconds: 360, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1
  * reads rung 1 (the lobby's dormant order is "the next run's rung 1");
- * past the top reads the top (the ladder ends at the envelope's death —
- * a crew that somehow stands there replays the final rung). */
+ * past the top reads the top — a defensive clamp only: winning the top
+ * rung ENDS the run in triumph (RunFlow's MASTER BAKER terminal, §1
+ * flourish amendment), so no live path ever asks past it. */
 export function rungRow(rung: number): Rung {
   return RUNGS[Math.min(Math.max(rung, 1), RUNGS.length) - 1]!;
 }
 
-/** The spec rung N deals. SLICE-2/3 STAND-IN, still: every rung deals
- * cake-3 until slice 4 flips this to the RUNGS table (one deliberate
- * flip that wires deal + asks + clock together — a spec-only flip
- * would deal cake-1 under cake-3's clock and call it rung 1). Total:
- * any rung number answers — callers never clamp. */
-export function specForRung(_rung: number): DessertSpec {
-  return CAKE_3;
+/** The spec rung N deals — THE LADDER, LIVE (slice 4: deal + asks +
+ * clock flipped together; both replicas resolve through this one
+ * function, so the client's geometry rebind follows the same table).
+ * Total: any rung number answers — callers never clamp. The `!` is
+ * honest because validateRungs() runs at Room boot. */
+export function specForRung(rung: number): DessertSpec {
+  return specById(rungRow(rung).spec)!;
 }
 
 /** Every RUNGS row must name a real spec row — authoring tripwire,

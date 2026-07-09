@@ -19,6 +19,7 @@ import {
   SCREW_TICKS_PER_NOTCH,
   TENSION_MAX_CLICKS,
 } from "../game/catapult";
+import { rungRow, type Rung } from "../game/campaign";
 import type { ServerMsg } from "../game/protocol";
 
 interface FakeClient {
@@ -59,6 +60,25 @@ function readyUp(room: Room, ...clients: FakeClient[]): void {
       pose: { x: READY_CIRCLE.x, y: 1.2, z: READY_CIRCLE.z, yaw: 0 },
     });
   run(room, READY_COUNTDOWN_TICKS + 2);
+}
+
+/** THE RUNG-3 SEAM (plans/13 slice 4): re-anchor a live test onto THE
+ * ANCHOR. The ladder deals cake-1 at rung 1 now, but the pinned physics
+ * scripts (the 6-click tier-2 landing, the 13-arc frost line, the burst
+ * economy) were all measured on cake-3 under the standing order — which
+ * IS rung 3, verbatim (the anchor law). Replays the Room's own nextRung
+ * deal sequence (rung write → dealFresh(row) → redealDessert) through
+ * privates; broadcasts are skipped — the next scored/order message
+ * carries the live checks. Call after readyUp. */
+function jumpToRung(room: Room, rung: number): void {
+  const r = room as unknown as {
+    run: { rung: number };
+    flow: { dealFresh(row: Rung): void };
+    redealDessert(): void;
+  };
+  r.run.rung = rung;
+  r.flow.dealFresh(rungRow(rung));
+  r.redealDessert();
 }
 
 describe("Room: the match, headless over protocol", () => {
@@ -231,6 +251,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
+    jumpToRung(room, 3); // the burst economy's pins live on the anchor
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -286,6 +307,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
+    jumpToRung(room, 3); // the burst pins live on the anchor
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
@@ -576,6 +598,7 @@ describe("Room: the match, headless over protocol", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
+    jumpToRung(room, 3); // the 6-click landing + 248-tick rest were measured on the anchor
     room.onMessage(a.id, { t: "unlockTown2" });
     // Reach the pick window (the Giant burns the clock early).
     let elapsed = 0;
@@ -659,8 +682,12 @@ describe("Room: the match, headless over protocol", () => {
     const w = carol.last("welcome");
     expect(w?.toppings).toHaveLength(1);
     expect(w?.toppings[0]?.topping).toBe("cherry");
-    // Resting on the middle tier, where the pinned ladder put it.
-    expect(w?.toppings[0]?.y).toBeGreaterThan(3.4);
+    // Resting on the LOBBY cake's base top: the dormant dessert is the
+    // next run's rung 1 — cake-1 since the ladder went live (plans/13
+    // slice 4) — so the old 6-click tier-2 arc now settles on the single
+    // tier at y ≈ 2.3 (above its y-2 top, below where tier 2 would be).
+    expect(w?.toppings[0]?.y).toBeGreaterThan(2.2);
+    expect(w?.toppings[0]?.y).toBeLessThan(3.4);
   });
 
   it("a frosting glob scores at IMPACT and paints the welcome snapshot (plans/07)", () => {
@@ -846,12 +873,20 @@ describe("Room: the match, headless over protocol", () => {
     expect(room.memberCount()).toBe(1);
   });
 
-  it("the WIN path over protocol: frost → sprinkles → demand → crown → WON → fresh deal (audit 2026-07-03)", () => {
+  it("the WIN path over protocol: frost → sprinkles → WON → the ladder climbs to the cupcake (audit 2026-07-03; slice 4)", () => {
     // The O2 scripted playthrough, re-bodied as a permanent Room test —
     // the only Room-level ending pinned before this was loss-by-clock.
+    // RE-ANCHORED TO RUNG 3 (slice 4): the ladder deals cake-1 at rung 1
+    // now, and this script's 13 arcs are the anchor's greedy pick list.
+    // THE FLIP'S ZERO-DRIFT PROOF rides here: rung 3 dealt through RUNGS
+    // must play EXACTLY today's standing order — same rows, same clock,
+    // same physics, same verdict. (The crown beats left with the
+    // flourish amendment: no demand, no crown shot — the order ends the
+    // moment the dealt rows are met.)
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
+    jumpToRung(room, 3);
     const op = (turn: -1 | 0 | 1, screw: -1 | 0 | 1, crank: -1 | 0 | 1): void =>
       room.onMessage(a.id, { t: "op", turn, screw, crank });
     const crankTo = (clicks: number): void => {
@@ -962,13 +997,10 @@ describe("Room: the match, headless over protocol", () => {
     expect(lastChecks().find((c) => c.req.kind === "on-frosting")?.met).toBe(
       true,
     );
-    // The Giant demanded his crown along the way — progress-triggered at
-    // a LOOK (12s cadence): the two burst waits span more than one look
-    // window, so by here the demand has certainly landed.
-    expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(true);
-    screw(1, 6); // +15° again
-    turnTo(0);
-    fire("cherry", 8, 650); // the tier-clearing crown shot
+    // NO crown row ever appears (the flourish amendment — patron rule 3
+    // deleted; the desire returns optional in 4b): the order ends WON the
+    // moment the dealt rows are met, at burst 2's scoring tick.
+    expect(lastChecks().some((c) => c.req.kind === "crown")).toBe(false);
     const end = a.all("order").find((m) => m.order.status === "won");
     expect(end).toBeDefined();
     expect(end?.judgment?.accepted).toBe(true);
@@ -977,9 +1009,10 @@ describe("Room: the match, headless over protocol", () => {
     expect(end?.judgment?.stars).toBe(1);
     expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
     // The linger passes; the fresh deal starts honestly unmet — and the
-    // WON order climbs the ladder: the same run, rung 2 (plans/13).
-    // (Find the fresh AFTER the win — the ready-up's own deal is fresh
-    // too, at the top of the inbox.)
+    // WON order climbs the ladder: the same run, rung 4 — THE CUPCAKE
+    // (the ladder live, plans/13 slice 4: the deal carries the climbed
+    // rung and its OWN ticket). (Find the fresh AFTER the win — the
+    // ready-up's own deal is fresh too, at the top of the inbox.)
     run(room, ORDER_RESET_TICKS + 100);
     const wonAt = a.inbox.indexOf(end!);
     const fresh = a.inbox
@@ -988,8 +1021,14 @@ describe("Room: the match, headless over protocol", () => {
       | Extract<ServerMsg, { t: "order" }>
       | undefined;
     expect(fresh?.order.status).toBe("running");
+    expect(fresh?.rung).toBe(4); // rung 3 won → the cupcake deals
+    expect(fresh?.order.ticksLeft).toBe(rungRow(4).clockSeconds * 60);
+    expect(fresh?.order.parShots).toBe(rungRow(4).parShots.solo);
+    expect(
+      fresh?.order.requirements.find((r) => r.kind === "on-frosting"),
+    ).toMatchObject({ needed: rungRow(4).asks.sprinkles });
     expect(fresh?.checks.every((c) => c.current === 0 && !c.met)).toBe(true);
-    const climbed = a.all("run").find((m) => m.rung === 2);
+    const climbed = a.all("run").find((m) => m.rung === 4);
     expect(climbed?.phase).toBe("running"); // no lobby between rungs
   });
 
@@ -1162,7 +1201,10 @@ describe("Room: the match, headless over protocol", () => {
       expect(a.all("scored")).toEqual([]);
       expect(a.all("patron")).toEqual([]);
       const peek = connect(room, "peek").last("welcome");
-      expect(peek?.order.ticksLeft).toBe(ORDER_SECONDS * 60);
+      // The dormant order is the next run's rung 1 — cake-1's short
+      // clock since the ladder went live (plans/13 slice 4), untouched
+      // by the sandbox ticks above.
+      expect(peek?.order.ticksLeft).toBe(rungRow(1).clockSeconds * 60);
     });
 
     it("the ready gate: the census speaks, the countdown arms, stepping out cancels, holding through starts rung 1", () => {

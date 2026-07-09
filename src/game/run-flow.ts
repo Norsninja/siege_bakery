@@ -7,7 +7,12 @@
  *     ^        (stepping out cancels — the honest gate)          |
  *     |                                                    won: rung+1 at
  *     |                                                    the redeal
- *     |                                                    boundary; lost:
+ *     |                                                    boundary; lost —
+ *     |                                                    OR the TOP rung
+ *     |                                                    won (MASTER
+ *     |                                                    BAKER, §1
+ *     |                                                    flourish
+ *     |                                                    amendment):
  *     +---- RUNOVER (the run report holds RUNOVER_TICKS) <-------+
  *
  * RunFlow owns the PHASE and the RUNG — nothing else. It ticks counters
@@ -23,6 +28,7 @@
  * slice 2, measured rungs slice 3). The rung number is real from day
  * one; what it deals grows later.
  */
+import { RUNGS } from "./campaign";
 import { READY_COUNTDOWN_TICKS, RUNOVER_TICKS } from "./tuning";
 
 export type RunPhase = "lobby" | "countdown" | "running" | "runover";
@@ -40,9 +46,13 @@ export type RunEvent =
 
 export class RunFlow {
   phase: RunPhase = "lobby";
-  /** 1-based rung being played (running) or died on (runover); 0 in the
-   * lobby — no run is underway. */
+  /** 1-based rung being played (running), died on, or — when `won` —
+   * conquered (runover); 0 in the lobby — no run is underway. */
   rung = 0;
+  /** THE MASTER BAKER FLAG (§1 flourish amendment): the runover is a
+   * TRIUMPH — the crew won the top rung; the report crowns instead of
+   * mourning. False on every lost run and outside runover. */
+  won = false;
   /** Ticks left on the ready countdown (countdown phase only). */
   countdownLeft = 0;
   /** Ticks left on the run-over report (runover phase only). */
@@ -75,17 +85,21 @@ export class RunFlow {
 
   /** The Room reports how the order concluded, AT THE REDEAL BOUNDARY
    * (the linger/separator's end — the verdict banner already had its
-   * ORDER_RESET_TICKS). Won: the ladder climbs, the Room deals the next
-   * rung. Lost: the run is over — the Room deals NOTHING; the sad cake
-   * stays on display under the run report. */
-  orderConcluded(won: boolean): "nextRung" | "runOver" {
-    if (won) {
+   * ORDER_RESET_TICKS). Won below the top: the ladder climbs, the Room
+   * deals the next rung. Won AT the top (RUNGS.length): MASTER BAKER —
+   * the run ends in triumph (§1 flourish amendment: rung 7 is winnable
+   * by workload, and a silent replay would be the worst payoff for
+   * beating the near-impossible). Lost: the run is over — the Room
+   * deals NOTHING; the sad cake stays on display under the report. */
+  orderConcluded(won: boolean): "nextRung" | "runOver" | "runWon" {
+    if (won && this.rung < RUNGS.length) {
       this.rung++;
       return "nextRung";
     }
     this.phase = "runover";
+    this.won = won;
     this.runoverLeft = RUNOVER_TICKS;
-    return "runOver";
+    return won ? "runWon" : "runOver";
   }
 
   /** One runover tick; returns "lobby" when the report is done. */
@@ -95,6 +109,7 @@ export class RunFlow {
     if (this.runoverLeft > 0) return null;
     this.phase = "lobby";
     this.rung = 0;
+    this.won = false; // the triumph is the RUN's story; the lobby starts clean
     return "lobby";
   }
 }

@@ -114,7 +114,9 @@ describe("applyServerMsg", () => {
     // dessert rebind (the boot-order law, plans/13 §3: the snapshot must
     // land on the deal's census, and resting toppings need its colliders).
     expect(h.spawned).toEqual(["rest:cherry"]);
-    expect(h.frosting).toEqual(["bind:cake-3", "restore:3", "stuck:0"]);
+    // THE LADDER IS LIVE (plans/13 slice 4): rung 2 binds cake-2 — the
+    // welcome's rebind resolves the RUNG through the shared table.
+    expect(h.frosting).toEqual(["bind:cake-2", "restore:3", "stuck:0"]);
   });
 
   it("a fresh deal wheels out a fresh cake — clear with the OLD dessert, then bind the rung's; other order msgs never do", () => {
@@ -128,7 +130,8 @@ describe("applyServerMsg", () => {
     // the bind replaced the old reset). Rings ride the same clear
     // (playtest 2026-07-07): annotations about the dead order's shots
     // must not point at paint that is gone.
-    expect(h.frosting).toEqual(["clear-cake", "bind:cake-3", "clear-stuck", "clear-rings"]);
+    // The deal's rung resolves per-spec now (slice 4): rung 2 = cake-2.
+    expect(h.frosting).toEqual(["clear-cake", "bind:cake-2", "clear-stuck", "clear-rings"]);
   });
 
   it("shot spawns the deterministic local lob and announces it", () => {

@@ -238,6 +238,15 @@ describe("hudLines", () => {
     expect(first[0]).toContain("left hungry at the first dessert");
   });
 
+  it("TRIUMPH: the runover that conquered the top wears the crown — MASTER BAKER (§1 flourish amendment)", () => {
+    const lines = hudLines(
+      view({ run: { phase: "runover", rung: 7, won: true } }),
+    );
+    expect(lines[0]).toContain("MASTER BAKER");
+    expect(lines[0]).toContain("all 7 rungs conquered");
+    expect(lines[0]).not.toContain("RUN OVER");
+  });
+
   it("machine line: traverse, arc glyph, tension, bucket, hands", () => {
     const lines = hudLines(
       view({

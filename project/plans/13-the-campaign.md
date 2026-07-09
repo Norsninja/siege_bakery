@@ -47,6 +47,52 @@ progressively harder until they reach near impossible. Rulings:
   If run variety is ever wanted, the shape is authored ladder
   VARIANTS, seeded per run — a post-campaign discussion beside
   power-ups.
+- **THE FLOURISH AMENDMENT (2026-07-08, fifth session — amends THE
+  IMPOSSIBLE TRAGEDY, §8.3).** The crown stops being a REQUIREMENT
+  and becomes an OPTIONAL FLOURISH — the fatality, in the Mortal
+  Kombat sense: style on top of the outcome, never the outcome. The
+  Giant's progress-triggered required-crown demand (patron rule 3)
+  is CONDEMNED: as a required row, a greatness-triggered demand
+  punishes good play (and on cake-6 would turn playing WELL into the
+  run-ending mistake). The new shape, ruled:
+    - The flourish lives INSIDE the order (visionary: never the
+      linger — the separator belongs to the shop/switch, and players
+      not acting must not be held watching). It fires mid-order when
+      live coverage crosses the greatness bar (COVERAGE_GOOD, the
+      2-star tier — EXCELLENT is "rare by design" and a fatality
+      nobody sees is dead code with a personality); the crew chooses
+      between closing the order and going for style before it ends.
+    - The desire is PER-PATRON — (topping, placement): the Giant
+      wants a cherry on the very top; an Ent wants fudge or
+      sprinkles up there; tiers may vary (seeded rng). v1 content is
+      the Giant's cherry-on-top (one patron exists); the desire
+      TABLE arrives with the patron roster. Placement rows beyond
+      "crown" (topping-on-tier-N) are a new judgment kind, deferred
+      with it.
+    - Meeting the desire NEVER gates the win; it upgrades the
+      verdict (a coda field, purse bonus in slice 5, report flair).
+      The frozen-verdict law (S-MED-1) is untouched — the verdict is
+      complete at the win tick.
+    - CONSEQUENCE, ruled deliberately: rung 7 becomes winnable by
+      WORKLOAD alone (~44–49 human two-town shots vs a crew ceiling
+      of ~30–44 — almost impossible, occasionally beaten). Beating
+      rung 7 = **MASTER BAKER**: trophy, fanfare, credits, play
+      again (skeleton in slice 4; music/credits are a later content
+      pass — no audio pipeline exists yet). Landing the flourish ON
+      rung 7 — cake-6's summit, which no shipped (click, notch)
+      combo reaches — = **ULTRA MASTER BAKER OF THE REALMS**:
+      impossible on today's machine; the power-up economy sells the
+      key later. THE TRAGEDY RELOCATES, it does not die: the
+      impossible thing is now the legend on top of the game instead
+      of a wall in front of its credits.
+    - RUNGS.asks.crown is REINTERPRETED as the per-rung flourish
+      flag (rungs 1–2 false: no flourish in the tutorial). The
+      measured summit table (22→16→12→8→7→4→0 combos) survives
+      untouched as the flourish's honesty ledger.
+    - SCOPE: slice 4 ships CROWN-SHELVED (crown rungs deal frost +
+      sprinkles only; patron rule 3 deleted; the Giant keeps his
+      thunder and his nag). The flourish is **slice 4b**, its own
+      coherent build right after the flip.
 
 ## 2. Foundations this plan is authored against (do not re-derive)
 
@@ -327,8 +373,10 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    pins in campaign.test.ts. THE LADDER'S TOP: cake-6's summit takes
    ZERO shipped (click, notch) combos — windows exist in physics
    (~0.5–1° at tilt 13°/18°) but fall between notches, so the
-   envelope dies by QUANTIZATION. RULED (visionary, same session):
-   cake-6 KEEPS the crown ask — THE IMPOSSIBLE TRAGEDY, the one
+   envelope dies by QUANTIZATION. RULED (visionary, same session;
+   AMENDED next session by §1's FLOURISH AMENDMENT — the crown is an
+   optional flourish now and the impossibility relocates to the ULTRA
+   title): cake-6 KEEPS the crown ask — THE IMPOSSIBLE TRAGEDY, the one
    sanctioned impossible ask ("necessity is the mother of
    invention"): the final rung is deliberately unwinnable on today's
    machine and the future economy sells the key (power-ups/upgrades
@@ -341,9 +389,71 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    97.1% outlier, served by the same pin). specForRung STILL deals
    cake-3 — the slice-3 boundary is pinned by test; slice 4 flips
    deal + asks + clock together.]**
-4. **The ladder live**: per-rung deal/asks/clock; separator rebuilds
-   colliders; run-over report.
-5. **Purse + pay + shop stall** with town-2 and fudge purchases.
+4. **The ladder live** — THE FLIP (scoped 2026-07-08 fifth session,
+   discussion rulings):
+   - specForRung flips to the RUNGS table; deal + asks + clock move
+     TOGETHER. The wire needs nothing new (the deal msg already
+     carries the rung; both replicas resolve spec through the same
+     function, so the client's geometry rebind follows).
+   - **THE DEAL DECISION MOVES TO THE ROOM.** OrderFlow.tickClock
+     stops self-dealing (it dealt BEFORE the Room learned the
+     outcome — per-rung rows would deal the OLD rung's asks over the
+     NEW rung's cake); it reports the linger's end, and the Room
+     runs the one honest sequence: orderConcluded → dealFresh(rung
+     row) → redealDessert → broadcast. On a loss the dormant lobby
+     order deals explicitly as rung 1 (already the law).
+   - Per-rung rows: frost from asks.frostFrac; sprinkles row OMITTED
+     when the ask is 0 (a zero row is born met and naggable); crown
+     SHELVED (the flourish is 4b). Clock = clockSeconds. activeTowns
+     mechanism unchanged.
+   - **PAR SCALES PER RUNG** (gap found in discussion: flat par 24
+     mechanically punishes the two-town play the high rungs demand —
+     cake-6 duo pass ask ≈ 25 idealized shots alone). Rung gains an
+     authored parShots column priced from the yardstick at BOTH ask
+     tables ({solo, duo} — the anchor forces solo rung 3 = 24
+     verbatim, so one flat number cannot serve both). Waste stays a
+     score-shaver (10% axis), so this is honesty, not rescue.
+   - **Rung-7 win = MASTER BAKER** (the §1 flourish amendment):
+     RunFlow gains the won-run terminal; the report reads rungs
+     cleared and the victory banner. Skeleton only — fanfare/music/
+     credits are a content pass.
+   - The snapshot tripod frames per-spec (it dies on tall specs the
+     moment cake-4+ deals — the fix rides IN the slice).
+   - Tuning's FROST_FRAC/SPRINKLES_NEEDED/ORDER_SECONDS/
+     ORDER_PAR_SHOTS become ANCHOR REFERENCES (live code reads
+     RUNGS; the constants keep the anchor pins + a pointer note).
+   - Test re-anchor: the WIN-line pins move to rung 3 via a test
+     seam, where they become the flip's zero-drift proof — rung 3
+     dealt through RUNGS must equal today's standing order exactly.
+   **[BUILT 2026-07-08 (fifth session), under the scope above. The
+   flip: specForRung → specById(rungRow(rung).spec); requirementsFor
+   (row, towns) deals the per-rung ticket (sprinkles-0 omits the row;
+   no crown row anywhere — shelved to 4b; patron rule 3 deleted);
+   dealFresh(row) prices clock + par ({solo,duo} authored column,
+   campaign.ts header formula — anchor forces solo rung 3 = 24);
+   tickClock reports lingerOver and NEVER self-deals (the Room runs
+   orderConcluded first — the ordering bug the discussion predicted);
+   RunFlow gains the runWon terminal + won flag → RunWire → MASTER
+   BAKER banner (skeleton); validateRungs at Room boot; the tripod
+   places itself per spec (waist aim, 45° elevation, range from the
+   summit — anchor frame preserved within half a meter); predictClock
+   phase-gated (found live: the lobby view free-ran with its 1Hz
+   correction gated off). ZERO DRIFT: the WIN script re-anchored to
+   rung 3 plays today's standing order beat for beat (same rows/
+   clock/par/verdict, minus the shelved crown) and its win now deals
+   THE CUPCAKE (rung 4 ticket pinned on the wire). 313 tests green,
+   both tsc legs; live-verified on the worker-shim harness: lobby
+   clock frozen at 9000, ready-up deals rung 1 (150s clock, par 11,
+   ONE row — frost 0.4, no sprinkles), live clock ticks, a 6-click
+   splat paints cake-1's own census (frost row 0 → 3.3%).]**
+4b. **The flourish** (the §1 amendment's build): greatness trigger at
+   COVERAGE_GOOD on a patron look, the optional desire (kept OUT of
+   the requirements array — the "all rows met" invariant stays
+   total), verdict coda + HUD golden row, the Giant's cherry-on-top
+   as v1 content, ULTRA MASTER BAKER on rung 7. DISCUSS the desire
+   mechanics before building, per the standing sequence.
+5. **Purse + pay + shop stall** with town-2 and fudge purchases
+   (+ flourish purse bonus once 4b exists).
 6. **Feel pass** (visionary runs the ladder), then the campaign's own
    two-PC session rides the next friend test.
 

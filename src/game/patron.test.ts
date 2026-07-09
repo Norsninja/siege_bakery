@@ -61,8 +61,8 @@ describe("The Giant", () => {
 
   it("tightens a stalled row ONCE, in place, from the third look — but only while another row is met", () => {
     const g = createGiant();
-    // A crown row already exists so the demand rule stays quiet and the
-    // nag's own law is what's under test.
+    // The crown row is a valid (4b flourish) kind the nag must SKIP —
+    // only COUNT rows tighten; there is no such thing as more crown.
     const order = createOrder(
       [...rows(), { kind: "crown", topping: "cherry" }],
       5400,
@@ -84,61 +84,26 @@ describe("The Giant", () => {
     expect(r0?.kind === "count-on-cake" && r0.needed).toBe(3);
   });
 
-  it("half the boxes ticked and no crown promised → the crown demand, once", () => {
+  it("the crown demand is SHELVED — no rule ever appends a row (flourish amendment, plans/13 §1)", () => {
+    // Rule 3 (the progress-triggered REQUIRED crown) was condemned by the
+    // flourish amendment: a demand that appends a requirement punishes
+    // good play. The cherry returns in 4b as an optional DESIRE. Until
+    // then: no context, however dressed, grows the requirements list.
     const g = createGiant();
-    // No row references cherry, so the demand MAY fire (one-number law).
     const cherryless: Requirement[] = [
       { kind: "count-on-cake", topping: "sprinkles", needed: 2 },
       { kind: "count-in-zone", topping: "lime", zone: 1, needed: 1 },
     ];
     const order = createOrder(cherryless, 5400);
-    const act = g.act(ctx(order, [2, 0])); // sprinkle row met, lime not
-    expect(act.utterance).toContain("CHERRY");
-    expect(act.utterance).toContain("ON THE VERY TOP");
-    expect(order.requirements).toHaveLength(3);
-    const added = order.requirements[2];
-    expect(added).toEqual({ kind: "crown", topping: "cherry" });
-    // Never twice — and never when a crown row already exists.
-    const again = g.act(ctx(order, [2, 0, 0]));
-    expect(order.requirements).toHaveLength(3);
-    expect(again.utterance).not.toContain("NEEDS A CHERRY");
-  });
-
-  it("a cherry COUNT row suppresses the demand — one number per topping (audit 2026-07-03)", () => {
-    // The guard reads the TOPPING, not just the kind: "3 × cherry" plus
-    // "1 × cherry AS THE CROWN" is the exact arithmetic the one-number law
-    // exists to kill, and no future order template gets to resurrect it.
-    const g = createGiant();
-    const order = createOrder(rows(), 5400); // rows() opens with "2 × cherry"
-    g.act(ctx(order, [2, 0])); // progress would trigger the demand...
-    expect(order.requirements).toHaveLength(2); // ...but no crown row appends
-  });
-
-  it("the crown demand normalizes per row — fractions can't poison the arithmetic", () => {
-    const g = createGiant();
-    const honest = (): Requirement[] => [
-      { kind: "frost-coverage", frac: 0.3, potential: 1 },
-      { kind: "on-frosting", topping: "sprinkles", needed: 3 },
-    ];
-    const order = createOrder(honest(), 5400);
-    // Frost 80% of the way, no sprinkles: 0.8 + 0 of 2 rows — not half done.
-    // (Raw sums would read 0.24 of 3.3 asked and never fire at all.)
-    const early = g.act(ctx(order, [0.24, 0], { look: 1 }));
-    expect(early.utterance).not.toContain("NEEDS A CHERRY");
-    // Frost row met + one sprinkle: 1 + ⅓ ≥ half of 2 rows → the demand,
-    // and it appends the ONLY cherry row that ever exists (one-number law).
-    const act = g.act(ctx(order, [0.3, 1], { look: 1 }));
-    expect(act.utterance).toContain("ON THE VERY TOP");
-    expect(order.requirements[order.requirements.length - 1]).toEqual({
-      kind: "crown",
-      topping: "cherry",
-    });
+    const act = g.act(ctx(order, [2, 0])); // half done — the old trigger
+    expect(order.requirements).toHaveLength(2); // nothing appended
+    expect(act.utterance).not.toContain("NEEDS A CHERRY");
   });
 
   it("clock low + a box empty → a reminder that NAMES the row", () => {
     const g = createGiant();
-    // A crown row already exists, so the demand rule stays quiet and
-    // urgency gets its turn (rule order is the tree).
+    // A crown row rides along (a valid 4b-flourish kind) — urgency must
+    // speak ITS words when it is the empty box (rule order is the tree).
     const order = createOrder(
       [...rows(), { kind: "crown", topping: "cherry" }],
       5400,

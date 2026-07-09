@@ -63,7 +63,6 @@ export interface Patron {
 
 export function createGiant(): Patron {
   let nagged = false; // the Giant repeats himself, but only tightens once
-  let demanded = false; // ...and springs his cherry surprise once
   return {
     name: "The Giant",
     act(ctx: PatronContext): PatronAct {
@@ -98,41 +97,13 @@ export function createGiant(): Patron {
         }
       }
 
-      // 3. The bake half done and no crown promised? He wants one NOW.
-      //    Progress-based (not rows-met — a fully met order ENDS before he
-      //    can speak), NORMALIZED per row (plans/07): each row contributes
-      //    its own fraction done, so the frost row's 0.3 target weighs the
-      //    same as a 3-sprinkle row — raw sums would let fractions poison
-      //    the arithmetic. Coverage now feeds the trigger: he demands the
-      //    crown when the cake is actually getting dressed (the 2D
-      //    "cherry when the cake looks good" rule, real at last). The
-      //    demand appends the ONLY cherry row that ever exists — the
-      //    one-number law's enforcement half.
-      const rows = ctx.checks.length;
-      const progress = ctx.checks.reduce(
-        (n, c) => n + Math.min(1, c.current / Math.max(c.target, 1e-9)),
-        0,
-      );
-      //    ONE-NUMBER LAW guard on the TOPPING, not just the kind (audit
-      //    2026-07-03): today no template orders cherries, but a future
-      //    order with a cherry count row must suppress the demand too —
-      //    "3 × cherry" + "1 × cherry AS THE CROWN" is the exact arithmetic
-      //    the law exists to kill.
-      if (
-        !demanded &&
-        rows > 0 &&
-        progress * 2 >= rows &&
-        !ctx.order.requirements.some(
-          (r) => r.kind === "crown" || ("topping" in r && r.topping === "cherry"),
-        )
-      ) {
-        demanded = true;
-        ctx.order.requirements.push({ kind: "crown", topping: "cherry" });
-        return {
-          utterance: "...IT NEEDS A CHERRY. ON THE VERY TOP. NOTHING ABOVE IT.",
-          patienceDeltaSeconds: 0,
-        };
-      }
+      // 3. [SHELVED — the flourish amendment, plans/13 §1, slice 4.]
+      //    The progress-triggered REQUIRED-crown demand lived here and was
+      //    condemned: a demand that appends a requirement punishes good
+      //    play (and on cake-6 would make playing WELL the run-ending
+      //    mistake). The cherry returns in slice 4b as the Giant's DESIRE —
+      //    an optional flourish offered when coverage turns great, never a
+      //    gate. The one-number law's topping guard moves there with it.
 
       // 4. The clock runs low and a box is still empty? A pointed reminder.
       //    Urgency outranks whimsy, so this sits before the whim.

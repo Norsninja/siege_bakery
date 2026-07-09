@@ -56,10 +56,17 @@
  */
 import { FIXED_DT } from "../core/constants";
 
-/** Nominal order clock, seconds (see effective-clock note above). */
+/** Nominal order clock, seconds. ANCHOR REFERENCE since the ladder went
+ * live (plans/13 slice 4): the LIVE game reads each rung's clockSeconds
+ * from game/campaign.ts RUNGS — this constant is rung 3's number, pinned
+ * equal there (campaign.test.ts). Edit the ladder, not this.
+ * (See effective-clock note above — patience is the real clock.) */
 export const ORDER_SECONDS = 300;
 /** Shots for full waste credit — a good line's count, not a perfect one:
- * ~20 frost + 2 sprinkles + 1 crown + slack (plans/08 math above). */
+ * ~20 frost + 2 sprinkles + 1 crown + slack (plans/08 math above).
+ * ANCHOR REFERENCE (slice 4): the live game reads each rung's parShots
+ * column ({solo, duo} — campaign.ts header formula); this is rung 3's
+ * solo number, pinned equal there. */
 export const ORDER_PAR_SHOTS = 24;
 /** How long a finished order's banner lingers before the fresh deal —
  * ALSO the whole town-switch window (the gates stand open only here).
@@ -112,9 +119,10 @@ export const TOWN_POTENTIAL: readonly number[] = [0, 0.9, 1.0, 1.0, 1.0];
  * every number in this file (plans/08). */
 export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
 
-/** The standing order's frost row: the PASS ask, as a fraction of
- * potential (plans/08 — "50% is just passing"; the 2D game asked 50 too,
- * of a cake it could fully reach). */
+/** The frost PASS ask, as a fraction of potential (plans/08 — "50% is
+ * just passing"; the 2D game asked 50 too, of a cake it could fully
+ * reach). ANCHOR REFERENCE (slice 4): the live game deals each rung's
+ * asks.frostFrac from RUNGS; this is rung 3's, pinned equal there. */
 export const FROST_FRAC = 0.5;
 /** The star tiers, fractions of potential (plans/08: stars come from
  * coverage tiers, not score arithmetic — "encourage 70 and 90"). Gate 2
@@ -137,7 +145,9 @@ export const COVERAGE_EXCELLENT = 0.9;
  * against AIM + BURIAL loss only. The handoff's "may want raising" was
  * rejected: the eye says the amount reads right in play — no signal it is
  * too easy, so no speculative tightening. (The Patron's nag tightens it +1
- * — a comedy crumb now: one more grain.) */
+ * — a comedy crumb now: one more grain.) ANCHOR REFERENCE (slice 4): the
+ * live game deals each rung's asks.sprinkles from RUNGS; this is rung
+ * 3's, pinned equal there. */
 export const SPRINKLES_NEEDED = 60;
 
 /** Patience burns, seconds of clock per Patron look (patron.ts rules).

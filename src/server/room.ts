@@ -47,7 +47,7 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "../game/judgment";
-import { specForRung } from "../game/campaign";
+import { rungRow, specForRung, validateRungs } from "../game/campaign";
 import { evaluateOrder } from "../game/order";
 import { OrderFlow, standardRequirements } from "../game/order-flow";
 import { RunFlow } from "../game/run-flow";
@@ -162,6 +162,10 @@ export class Room {
   private readonly shotSeed = mulberry32(0x5eed5);
 
   constructor() {
+    // The ladder's authoring tripwire (slice 4): every RUNGS row must
+    // name a real spec row before anything deals — fails loud at boot,
+    // not undefined at rung 5.
+    validateRungs();
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
@@ -500,11 +504,16 @@ export class Room {
           judgment: this.lingerVerdict,
         });
       } else if (this.run.orderConcluded(this.endedWon) === "nextRung") {
-        // "redeal" on a WON order: the ladder climbs — THE FRESH-CAKE LAW
-        // (2026-07-05): the finished dessert is gone and the next rung's
-        // wheels out (redealDessert — the per-spec swap since plans/13
-        // §3). Everything ON it leaves with it; floor litter is the
-        // crew's mess, not the dessert's; it stays, all run long.
+        // "lingerOver" on a WON order below the top: the ladder climbs.
+        // THE DEAL DECISION IS THE ROOM'S (plans/13 slice 4): the rung
+        // incremented in orderConcluded ABOVE, so the deal prices the
+        // rung the crew climbed TO — a flow self-deal would have priced
+        // the old rung's asks over the new rung's cake. Then THE
+        // FRESH-CAKE LAW (2026-07-05): the finished dessert is gone and
+        // the next rung's wheels out (redealDessert — the per-spec swap,
+        // plans/13 §3). Everything ON it leaves with it; floor litter is
+        // the crew's mess, not the dessert's; it stays, all run long.
+        this.flow.dealFresh(rungRow(this.run.rung));
         this.redealDessert();
         this.roster.broadcast({
           t: "order",
@@ -515,11 +524,14 @@ export class Room {
         });
         this.broadcastRun();
       } else {
-        // "redeal" on a LOST order: THE RUN IS OVER (plans/13 — one
-        // failed order ends it). No fresh deal goes out: the sad cake
-        // stays on display under the run report; the flow's internally
-        // dealt order lies dormant until the next run's startRun. The
-        // frozen verdict stays for mid-report joiners.
+        // "lingerOver" on a LOST order — or the TOP rung WON (MASTER
+        // BAKER, §1 flourish amendment): THE RUN IS OVER either way. No
+        // fresh deal goes OUT: the final cake stays on display under the
+        // run report (sad or triumphant — runWire carries `won`). The
+        // dormant lobby order still deals internally as the next run's
+        // rung 1 (exactly the old self-deal's timing; never broadcast as
+        // live), and the frozen verdict stays for mid-report joiners.
+        this.flow.dealFresh(rungRow(1));
         this.broadcastRun();
       }
     }
@@ -544,7 +556,7 @@ export class Room {
    * lobby warmup mess on the cake is wiped and floor litter honestly
    * carries into the run. */
   private startRun(): void {
-    this.flow.dealFresh();
+    this.flow.dealFresh(rungRow(this.run.rung)); // rung 1 — tickReady set it
     this.redealDessert();
     this.roster.broadcast({
       t: "order",
@@ -560,6 +572,9 @@ export class Room {
     return {
       phase: this.run.phase,
       rung: this.run.rung,
+      // The triumph flag (§1 flourish amendment): only a runover that
+      // CONQUERED the top rung wears it — MASTER BAKER.
+      ...(this.run.phase === "runover" && this.run.won ? { won: true as const } : {}),
       ...(this.run.phase === "countdown"
         ? { countdownTicks: this.run.countdownLeft }
         : {}),

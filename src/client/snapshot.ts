@@ -19,13 +19,16 @@ import * as THREE from "three";
 import { CAKE_Z } from "../core/arena";
 import type { CakeTier } from "../core/dessert";
 
-/** The tripod: ~15m out and 12m up, aimed at the cake's waist. Pitch
- * ≈ −40° — steep enough that the summit tier reads as a top-down disc,
- * shallow enough that the tier walls (half the census) stay in frame.
- * Aimed per DEAL since the spec refactor (aimAt below) — LEDGER ITEM
- * (plans/13 §9): a cake-6 summit near y 9.5 will walk out of this frame;
- * the tripod learns to step back when a tall spec actually deals. */
-const SNAP_POS = new THREE.Vector3(10, 12, CAKE_Z);
+/** The tripod PLACES ITSELF per deal since the ladder went live (plans/13
+ * slice 4 — the §9 ledger item paid: cake-6's y-9.5 summit walked out of
+ * the old fixed frame). The law: aim at the dessert's WAIST (summit/2),
+ * stand at 45° elevation, and step back exactly far enough that the whole
+ * cake plus SNAP_MARGIN fits the 45° vertical fov — so every spec fills
+ * its photo the same way. On the anchor (cake-3, summit y 5) this lands
+ * at (10.25, 12.75) aiming y 2.5 — the old fixed tripod (10, 12 → y 2)
+ * within half a meter, the giant's vantage preserved. */
+const SNAP_MARGIN = 3.5;
+const SNAP_HALF_VFOV = Math.PI / 8; // 45° camera, half-angle
 /** 4:3. The frame is ~10% of the screen now (min(27vw, 48vh) — up to
  * ~690px wide on a 2560 display), so the film matches: crisp at that
  * size, still one cheap read per order end. */
@@ -39,17 +42,23 @@ export class DessertSnapshot {
 
   constructor(private readonly renderer: THREE.WebGLRenderer) {
     this.camera = new THREE.PerspectiveCamera(45, SNAP_W / SNAP_H, 0.1, 200);
-    this.camera.position.copy(SNAP_POS);
     this.target = new THREE.WebGLRenderTarget(SNAP_W, SNAP_H);
     this.film = document.createElement("canvas");
     this.film.width = SNAP_W;
     this.film.height = SNAP_H;
   }
 
-  /** Aim at THIS deal's waist (the base tier's top — cake-3's y 2,
-   * verbatim the old fixed target). Called with every dessert rebind. */
+  /** Place AND aim the tripod for THIS deal (header law): waist aim, 45°
+   * elevation, range from the summit so tall specs step back and the
+   * cupcake leans in. Called with every dessert rebind — main.ts binds
+   * at boot before any shutter click, so the camera never fires unaimed. */
   aimAt(tiers: readonly CakeTier[]): void {
-    this.camera.lookAt(new THREE.Vector3(0, tiers[0]?.top ?? 2, CAKE_Z));
+    const summit = tiers[tiers.length - 1]?.top ?? 5;
+    const waist = summit / 2;
+    const range = (waist + SNAP_MARGIN) / Math.tan(SNAP_HALF_VFOV);
+    const leg = range * Math.SQRT1_2; // 45°: equal ground and height legs
+    this.camera.position.set(leg, waist + leg, CAKE_Z);
+    this.camera.lookAt(new THREE.Vector3(0, waist, CAKE_Z));
   }
 
   /** One shutter click: render the scene from the tripod, develop to a

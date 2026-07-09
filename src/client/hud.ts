@@ -198,8 +198,10 @@ export function snapshotCaption(verdict: Judgment | null): string {
 }
 
 /** The run report's one fact (plans/13): how far the crew climbed.
- * `rung` is the rung the run DIED on; cleared = rung − 1. */
-export function runOverLine(rung: number): string {
+ * `rung` is the rung the run DIED on (cleared = rung − 1) — or, in
+ * TRIUMPH (`won`, §1 flourish amendment), the top rung CONQUERED. */
+export function runOverLine(rung: number, won = false): string {
+  if (won) return `all ${rung} rungs conquered — the realm eats well tonight`;
   const cleared = Math.max(0, rung - 1);
   return cleared === 0
     ? "the Giant left hungry at the first dessert"
@@ -207,8 +209,12 @@ export function runOverLine(rung: number): string {
 }
 
 /** The run-over banner (plans/13): the report holds the screen, the
- * filthy floor is the trophy, and the lobby circle is the next move. */
-export function runOverText(rung: number): string {
+ * filthy floor is the trophy, and the lobby circle is the next move.
+ * TRIUMPH (§1 flourish amendment): the MASTER BAKER banner — the
+ * skeleton of the moment; trophy/fanfare/credits are a content pass. */
+export function runOverText(rung: number, won = false): string {
+  if (won)
+    return `👑 MASTER BAKER 👑\n${runOverLine(rung, true)}\n— gather in the gold circle to bake again`;
   return `THE RUN IS OVER\n${runOverLine(rung)}\n— gather in the gold circle to run again`;
 }
 
@@ -267,7 +273,11 @@ export function hudLines(v: HudView): string[] {
             "▸ hold the circle! stepping out cancels",
           ]
         : v.run.phase === "runover"
-          ? [`RUN OVER — ${runOverLine(v.run.rung)}   [${who}]`]
+          ? [
+              v.run.won
+                ? `👑 MASTER BAKER — ${runOverLine(v.run.rung, true)}   [${who}]`
+                : `RUN OVER — ${runOverLine(v.run.rung)}   [${who}]`,
+            ]
           : [
               `RUNG ${v.run.rung} · THE ORDER · ${clock}   [${who}]`,
               ...v.checks.map(

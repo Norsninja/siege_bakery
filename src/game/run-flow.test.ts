@@ -1,8 +1,11 @@
 /**
- * The run container's laws (plans/13 slice 1): the honest ready gate, the
- * ladder climb at the redeal boundary, one lost order ends the run.
+ * The run container's laws (plans/13 slice 1; the MASTER BAKER terminal
+ * since slice 4): the honest ready gate, the ladder climb at the redeal
+ * boundary, one lost order ends the run — and winning the TOP rung ends
+ * it in triumph (§1 flourish amendment).
  */
 import { describe, it, expect } from "vitest";
+import { RUNGS } from "./campaign";
 import { RunFlow } from "./run-flow";
 import { READY_COUNTDOWN_TICKS, RUNOVER_TICKS } from "./tuning";
 
@@ -82,6 +85,31 @@ describe("RunFlow — the ladder and the run's end", () => {
     expect(toLobby).toBe(1);
     expect(r.phase).toBe("lobby");
     expect(r.rung).toBe(0); // the next run starts its own story
+  });
+
+  it("winning the TOP rung ends the run in TRIUMPH — MASTER BAKER (§1 flourish amendment)", () => {
+    const r = running();
+    for (let i = 1; i < RUNGS.length; i++)
+      expect(r.orderConcluded(true)).toBe("nextRung");
+    expect(r.rung).toBe(RUNGS.length); // standing on the top
+    expect(r.orderConcluded(true)).toBe("runWon"); // no silent replay
+    expect(r.phase).toBe("runover");
+    expect(r.won).toBe(true);
+    expect(r.rung).toBe(RUNGS.length); // conquered, not died on
+    // The triumph is the RUN's story: the lobby starts clean.
+    let toLobby = 0;
+    for (let i = 0; i < RUNOVER_TICKS; i++)
+      if (r.tickRunover() === "lobby") toLobby++;
+    expect(toLobby).toBe(1);
+    expect(r.won).toBe(false);
+    expect(r.rung).toBe(0);
+  });
+
+  it("a lost run never wears the crown — won stays false through its runover", () => {
+    const r = running();
+    r.orderConcluded(false);
+    expect(r.phase).toBe("runover");
+    expect(r.won).toBe(false);
   });
 
   it("tickRunover is a no-op outside runover", () => {

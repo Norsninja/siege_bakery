@@ -22,6 +22,10 @@ export interface RunWire {
   /** Rung being played (running) or died on (runover — the crew CLEARED
    * rung − 1); 0 in the lobby, where the next run's rung 1 awaits. */
   rung: number;
+  /** runover only, and only in TRIUMPH (§1 flourish amendment): the crew
+   * won the top rung — MASTER BAKER. The report crowns instead of
+   * mourning; absent means the run died on `rung`. */
+  won?: true;
   /** countdown only: ticks until rung 1 deals (clients may predict a
    * local count between broadcasts, predictClock-style). */
   countdownTicks?: number;
