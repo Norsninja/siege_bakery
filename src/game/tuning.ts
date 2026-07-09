@@ -91,7 +91,13 @@ export const RUNOVER_TICKS = Math.round(12 / FIXED_DT); // 12s
  * EVERYTHING (union 100.0% at ≤8 clicks already). [3]/[4] are 1.0 by
  * SUPERSET (any extra town's reach contains the two-town union), not by
  * measurement. NEVER handed to orders — that is TOWN_ASK_POTENTIAL's
- * job below. */
+ * job below. LADDER NOTE (plans/13 slice 3, 2026-07-08): measured
+ * per-spec across all seven authored rows (research/11, spec-
+ * parameterized, clamped ladder) — solo reach 89.4–92.1% on every cake
+ * row and union 100.0% on EVERY row, so these pins generalize to the
+ * whole ladder unchanged (no per-spec table needed). One outlier: the
+ * cupcake measures 97.1% solo, served by the same 0.9 — a hair more
+ * under than usual, honest direction. */
 export const TOWN_POTENTIAL: readonly number[] = [0, 0.9, 1.0, 1.0, 1.0];
 
 /** AUTHORED: the potential the standing order actually hands its frost

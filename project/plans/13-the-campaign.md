@@ -314,6 +314,27 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
    new spec is measured under the clamped ladder ONCE instead of
    full-ladder-then-remeasure. Rider: the render-contract check that
    the visual arm rides the same tilt constants.
+   **[BUILT 2026-07-08 (fourth session). Tools parameterized with ZERO
+   DRIFT proven (research/11 reproduces the RE-RUN numbers exactly at
+   BOTH ladders — the maxNotch-12 run doubling as the clamp check;
+   research/13 reproduces 910/0, 27 combos, c7n0–3, n14-plinth); the
+   grid/splat mirrors DELETED in favor of importing the real
+   buildCensus/splatSamples. TILT_MAX_NOTCH 18→12 landed (notches
+   13–18 bought zero coverage; scene.test.ts pins the render
+   contract). All seven rows measured under the shipped ladder; the
+   RUNGS table (7 rows — the cupcake is rung 4) authored in
+   game/campaign.ts with the measurement record in its header and
+   pins in campaign.test.ts. THE LADDER'S TOP: cake-6's summit takes
+   ZERO shipped (click, notch) combos — windows exist in physics
+   (~0.5–1° at tilt 13°/18°) but fall between notches, so the
+   envelope dies by QUANTIZATION; cake-6 asks no crown (ask-honesty)
+   and is near-impossible by workload instead. The crown ladder
+   narrows 22 → 16 → 12 → 8 → 7 → 4 → 0 summit combos; the potential
+   tables GENERALIZE (solo 89.4–92.1% ≈ the 0.9 pin on every row;
+   union 100.0% everywhere — frost never gates the ladder; cupcake
+   97.1% outlier, served by the same pin). specForRung STILL deals
+   cake-3 — the slice-3 boundary is pinned by test; slice 4 flips
+   deal + asks + clock together.]**
 4. **The ladder live**: per-rung deal/asks/clock; separator rebuilds
    colliders; run-over report.
 5. **Purse + pay + shop stall** with town-2 and fudge purchases.
@@ -322,8 +343,11 @@ LOBBY ──all in circle──▶ RUNG(1) ──won──▶ SEPARATOR ──�
 
 ## 9. Open items (flagged, not blocking the bless)
 
-- Tier radii/heights for cake-4+ — proposed in §4, PINNED ONLY by the
-  slice-3 measurements.
+- ~~Tier radii/heights for cake-4+~~ PINNED 2026-07-08 (fourth
+  session): the §4 hypothesis steps measured well — the ladder's top
+  is cake-6 (summit dead by notch quantization, see §8.3 build
+  record); no cake-7 (cake-5 is the last honest crown; cake-6 is the
+  near-impossible finale by workload).
 - Prices/pay scale — §5's table is a starting hypothesis for the feel
   pass.
 - ~~Whether rung 1's humble cake wants to BE the cupcake spec row~~
