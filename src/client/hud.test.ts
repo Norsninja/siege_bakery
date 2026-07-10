@@ -222,14 +222,16 @@ describe("bannerText — three endings, culprit always named", () => {
     const order = { ...createOrder([], 100), status: "won" as const };
     // Rung 3, 2★: 30 + 2×5 = 40 — the same arithmetic the Room's award
     // runs, so the words and the wallet agree.
+    // THE REALM PAYS (plans/17): the giants are guests — the pay line
+    // names the payer (the semantic audit's lore alignment).
     const text = bannerText(order, rows, judgment({ stars: 2 }), 2, undefined, 3);
-    expect(text).toContain("🪙 +40 coins to the purse");
+    expect(text).toContain("🪙 the realm pays +40 coins");
     expect(text).not.toContain("for the style");
     // The coda adds its named bonus: 40 + 10.
     const styled = bannerText(
       order, rows, judgment({ stars: 2, flourish: true }), 2, undefined, 3,
     );
-    expect(styled).toContain("🪙 +50 coins to the purse — 10 of them for the style");
+    expect(styled).toContain("🪙 the realm pays +50 coins — 10 of them for the style");
     // No rung (pre-run callers): no pay line — the pre-slice-5 banner.
     const plain = bannerText(order, rows, judgment({ stars: 2 }), 2);
     expect(plain).not.toContain("🪙");
@@ -242,7 +244,7 @@ describe("bannerText — three endings, culprit always named", () => {
       away: true, // no carry-home follows a loss; the warning would lie
       runEnds: true,
     });
-    expect(text).toContain("the run ends in 6s");
+    expect(text).toContain("the bakery closes in 6s");
     expect(text).not.toContain("a new order");
     expect(text).not.toContain("carried home");
   });
@@ -257,7 +259,7 @@ describe("runOverText — the run report banner", () => {
     expect(runOverText(7, true)).not.toContain("ULTRA");
     // Ultra never dresses a loss (the wire never sends it without won,
     // and the words agree).
-    expect(runOverText(3, false, true)).toContain("THE RUN IS OVER");
+    expect(runOverText(3, false, true)).toContain("CLOSING TIME");
   });
 
   it("the report tells the purse's end (slice 5) — and stays silent at zero", () => {
@@ -294,9 +296,11 @@ const view = (over: Partial<HudView> = {}): HudView => ({
 
 describe("hudLines", () => {
 
-  it("headline rung + clock + solo tag; checklist rows carry progress", () => {
+  it("headline patron + clock + solo tag; checklist rows carry progress", () => {
+    // The rung number IS the patron's number on screen (the semantic
+    // audit, item 12 — the header names the guest, never the ladder).
     const lines = hudLines(view());
-    expect(lines[0]).toBe("RUNG 1 · THE ORDER · 1:11   [solo bakery]");
+    expect(lines[0]).toBe("PATRON 1 · THE ORDER · 1:11   [solo bakery]");
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
   });
 
@@ -305,10 +309,10 @@ describe("hudLines", () => {
       view({ order: createOrder([], 71 * 60, { hands: 1 }) }),
     );
     expect(lone[0]).toBe(
-      "RUNG 1 · THE ORDER · 1:11 · 🖐 one pair of hands   [solo bakery]",
+      "PATRON 1 · THE ORDER · 1:11 · 🖐 one pair of hands   [solo bakery]",
     );
     const duo = hudLines(view({ order: createOrder([], 71 * 60, { hands: 2 }) }));
-    expect(duo[0]).toBe("RUNG 1 · THE ORDER · 1:11   [solo bakery]");
+    expect(duo[0]).toBe("PATRON 1 · THE ORDER · 1:11   [solo bakery]");
     // The stamp is the TICKET's pricing, not the live headcount: an
     // unstamped (pre-amendment) order reads full labor.
     expect(hudLines(view())[0]).not.toContain("one pair of hands");
@@ -330,7 +334,8 @@ describe("hudLines", () => {
       view({ run: { phase: "lobby", rung: 0, readyIn: 1, readyOf: 3 } }),
     );
     expect(lines[0]).toContain("THE BAKERY WAITS");
-    expect(lines[1]).toContain("stand in the gold circle");
+    expect(lines[0]).toContain("the first patron is on his way");
+    expect(lines[1]).toContain("stand in the gold circle to open the bakery");
     expect(lines[1]).toContain("(1/3 in)");
     expect(lines.join("\n")).not.toContain("THE ORDER");
   });
@@ -339,14 +344,14 @@ describe("hudLines", () => {
     const lines = hudLines(
       view({ run: { phase: "countdown", rung: 0, countdownTicks: 130 } }),
     );
-    expect(lines[0]).toContain("the run begins in 3…");
+    expect(lines[0]).toContain("the bakery opens in 3…");
     expect(lines[1]).toContain("stepping out cancels");
   });
 
-  it("run over: the report names the rungs cleared (died on rung → cleared − 1)", () => {
+  it("run over: the report counts patrons fed (died on rung → fed rung − 1)", () => {
     const lines = hudLines(view({ run: { phase: "runover", rung: 3 } }));
-    expect(lines[0]).toContain("RUN OVER");
-    expect(lines[0]).toContain("cleared 2 rungs");
+    expect(lines[0]).toContain("CLOSING TIME");
+    expect(lines[0]).toContain("fed 2 patrons");
     // Dying on rung 1 cleared nothing — the Giant left hungry.
     const first = hudLines(view({ run: { phase: "runover", rung: 1 } }));
     expect(first[0]).toContain("left hungry at the first dessert");
@@ -357,8 +362,8 @@ describe("hudLines", () => {
       view({ run: { phase: "runover", rung: 7, won: true } }),
     );
     expect(lines[0]).toContain("MASTER BAKER");
-    expect(lines[0]).toContain("all 7 rungs conquered");
-    expect(lines[0]).not.toContain("RUN OVER");
+    expect(lines[0]).toContain("all 7 patrons fed");
+    expect(lines[0]).not.toContain("CLOSING TIME");
   });
 
   it("THE GOLDEN ROW (slice 4b): the revealed desire renders after the checklist — style, not required", () => {
@@ -391,7 +396,7 @@ describe("hudLines", () => {
       finishTicksLeft: 300,
     };
     const lines = hudLines(view({ order }));
-    expect(lines[0]).toBe("RUNG 1 · ⭐ FINISH IT! 5s ⭐   [solo bakery]");
+    expect(lines[0]).toBe("PATRON 1 · ⭐ FINISH IT! 5s ⭐   [solo bakery]");
     expect(lines.join("\n")).not.toContain("THE ORDER ·");
   });
 
@@ -400,7 +405,7 @@ describe("hudLines", () => {
       view({ run: { phase: "runover", rung: 7, won: true, ultra: true } }),
     );
     expect(lines[0]).toContain("ULTRA MASTER BAKER OF THE REALMS");
-    expect(lines[0]).toContain("all 7 rungs conquered");
+    expect(lines[0]).toContain("all 7 patrons fed");
   });
 
   it("machine line: traverse, arc glyph, tension, bucket, hands", () => {

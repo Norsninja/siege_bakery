@@ -204,16 +204,19 @@ export function applyServerMsg(
         // the town re-address BEFORE this run word, so yourTown already
         // indexes home (C-MED-2's invariant, guarded by the max).
         view.machines.length = Math.max(1, view.yourTown + 1);
-        fx.flash(`THE RUN BEGINS — RUNG 1! the Giant is seated`, 5000);
+        // THE SEMANTIC AUDIT (item 12) + the line fiction (plans/16,
+        // plans/18): each rung is the NEXT giant in the queue stepping
+        // up — the screen speaks patrons, the code keeps its rungs.
+        fx.flash(`THE BAKERY OPENS — the first patron is seated!`, 5000);
       }
       else if (
         msg.phase === "running" &&
         prev.phase === "running" &&
         msg.rung !== prev.rung
       )
-        fx.flash(`RUNG ${msg.rung} — the Giant orders again!`, 5000);
+        fx.flash(`PATRON ${msg.rung} steps up to the table!`, 5000);
       else if (msg.phase === "lobby" && prev.phase === "runover")
-        fx.flash("back to the bakery — gather in the circle to run again", 6000);
+        fx.flash("back to the bakery — gather in the circle to bake again", 6000);
       break;
     }
   }

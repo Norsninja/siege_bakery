@@ -214,7 +214,9 @@ export function bannerText(
         pay.base +
         verdict.stars * pay.perStar +
         (verdict.flourish ? FLOURISH_BONUS_COINS : 0);
-      payLine = `\n🪙 +${coins} coins to the purse${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
+      // THE REALM PAYS (plans/17): the giants are guests — relief
+    // contracts settle the order, so the pay line says who's paying.
+    payLine = `\n🪙 the realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
     }
     text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}${coda}${payLine}\n${list}\n${scoreLine}`;
   } else if (verdict?.met) {
@@ -229,7 +231,7 @@ export function bannerText(
   // A run-ending loss says what actually comes: the report, not a deal.
   const coming = next
     ? next.runEnds
-      ? `the run ends in ${next.seconds}s…`
+      ? `the bakery closes in ${next.seconds}s…`
       : next.away
         ? `a new order in ${next.seconds}s — YOU ARE NOT IN YOUR TOWN!\nwhen it lands you'll be carried home. HURRY!`
         : `a new order in ${next.seconds}s — the gates close with it…`
@@ -254,11 +256,14 @@ export function snapshotCaption(verdict: Judgment | null): string {
  * `rung` is the rung the run DIED on (cleared = rung − 1) — or, in
  * TRIUMPH (`won`, §1 flourish amendment), the top rung CONQUERED. */
 export function runOverLine(rung: number, won = false): string {
-  if (won) return `all ${rung} rungs conquered — the realm eats well tonight`;
+  // THE SEMANTIC AUDIT (plans/15 item 12, landed 2026-07-10): the screen
+  // counts PATRONS FED, never rungs — the queue fiction (plans/16 line,
+  // plans/18 forge) is the standing read; `rung` stays code vocabulary.
+  if (won) return `all ${rung} patrons fed — the realm eats well tonight`;
   const cleared = Math.max(0, rung - 1);
   return cleared === 0
     ? "the Giant left hungry at the first dessert"
-    : `the crew cleared ${cleared} rung${cleared === 1 ? "" : "s"}`;
+    : `the crew fed ${cleared} patron${cleared === 1 ? "" : "s"}`;
 }
 
 /** The run-over banner (plans/13): the report holds the screen, the
@@ -279,7 +284,7 @@ export function runOverText(
     // ULTRA (§1 finish-it amendment): the triumph's verdict wore the coda —
     // the title upgrades; the ceremony rides the MASTER BAKER content pass.
     return `${ultra ? "👑 ULTRA MASTER BAKER OF THE REALMS 👑" : "👑 MASTER BAKER 👑"}\n${runOverLine(rung, true)}${coins}\n— gather in the gold circle to bake again`;
-  return `THE RUN IS OVER\n${runOverLine(rung)}${coins}\n— gather in the gold circle to run again`;
+  return `CLOSING TIME\n${runOverLine(rung)}${coins}\n— gather in the gold circle to bake again`;
 }
 
 /** THE FIRING MEMORY (plans/15 item 5, constraint a): the settings the
@@ -435,27 +440,30 @@ export function hudLines(v: HudView): string[] {
   const top =
     v.run.phase === "lobby"
       ? [
-          `THE BAKERY WAITS — rung 1 awaits the crew   [${who}]`,
-          `▸ stand in the gold circle to start the run (${v.run.readyIn ?? 0}/${v.run.readyOf ?? 0} in)`,
+          `THE BAKERY WAITS — the first patron is on his way   [${who}]`,
+          `▸ stand in the gold circle to open the bakery (${v.run.readyIn ?? 0}/${v.run.readyOf ?? 0} in)`,
         ]
       : v.run.phase === "countdown"
         ? [
-            `ALL IN — the run begins in ${Math.max(1, Math.ceil((v.run.countdownTicks ?? 0) * FIXED_DT))}…   [${who}]`,
+            `ALL IN — the bakery opens in ${Math.max(1, Math.ceil((v.run.countdownTicks ?? 0) * FIXED_DT))}…   [${who}]`,
             "▸ hold the circle! stepping out cancels",
           ]
         : v.run.phase === "runover"
           ? [
               v.run.won
                 ? `👑 ${v.run.ultra ? "ULTRA MASTER BAKER OF THE REALMS" : "MASTER BAKER"} — ${runOverLine(v.run.rung, true)}   [${who}]`
-                : `RUN OVER — ${runOverLine(v.run.rung)}   [${who}]`,
+                : `CLOSING TIME — ${runOverLine(v.run.rung)}   [${who}]`,
             ]
           : [
               // THE FINISH IT WINDOW (plans/13 §1, slice 4b): the outcome
               // is decided — the header swaps the dead order clock for the
               // window's own countdown; the golden row below names the ask.
+              // THE SEMANTIC AUDIT (item 12): the rung number IS the
+              // patron's place in the line (plans/16 queue, plans/18) —
+              // the header names the guest, never the ladder.
               v.order.finishTicksLeft > 0
-                ? `RUNG ${v.run.rung} · ⭐ FINISH IT! ${Math.ceil(v.order.finishTicksLeft * FIXED_DT)}s ⭐   [${who}]`
-                : `RUNG ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
+                ? `PATRON ${v.run.rung} · ⭐ FINISH IT! ${Math.ceil(v.order.finishTicksLeft * FIXED_DT)}s ⭐   [${who}]`
+                : `PATRON ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
               ...v.checks.map(
                 (c) =>
                   `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,

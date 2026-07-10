@@ -381,11 +381,31 @@ party-game channel; the tower sells the JOB, not a system.
 
 ## 12. THE SEMANTIC AUDIT — player-facing strings speak BAKERY, never engine
 
-**Status: opened 2026-07-09 (visionary's sighting: the boot screen
-says "rung 1 awaits the crew" — 'rung' means nothing to a stranger).
-ADOPTED INTO the plans/16 milestone (strings ARE presentation) —
-built as a plans/16 slice; recorded here so the ledger knows its
-home.**
+**Status: DONE 2026-07-10 (eleventh session; rulings from the same
+discussion that recorded plans/17 the lore and plans/18 the forge).
+The sweep found the blacklist already MOSTLY clean — deal, linger,
+census, phase never reached the screen; the offenders were "rung"
+(5 sightings) and "run" (6). THE REPLACEMENTS, all visionary-agreed:
+the rung number IS the patron's number on screen (PATRON 3 · THE
+ORDER — written to survive plans/16 slice 2 AND the plans/18 queue:
+each rung is the NEXT giant in the line, the standing fiction now);
+the run is THE BAKERY'S DAY (open the bakery / ALL IN — the bakery
+opens in 3… / CLOSING TIME / the bakery closes in Ns / gather to
+bake again); the report counts PATRONS FED, never rungs cleared
+(all 7 patrons fed — the realm eats well tonight); and the pay line
+names the payer per plans/17 (🪙 the realm pays +N coins). CLEARED
+UNCHANGED, recorded so nobody re-sweeps: artillery vocabulary
+(exempt flavor, the ruling below), every verdict string, the m/s
+corner record (item 13's ruling), control/status lines (WASD,
+CONNECTION LOST — UI, not fiction), shop/purse/town/gates/circle
+(already diegetic). Code identifiers keep rung/run — the law binds
+the SCREEN, never the engine's own names. hud.ts + net-handlers.ts +
+one main.ts flash; pins re-pinned in hud.test.ts + net-handlers.test
+.ts. 394 tests, both tsc legs. LIVE: lobby "THE BAKERY WAITS — the
+first patron is on his way / stand in the gold circle to open the
+bakery (0/1 in)"; ready-circle teleport rolled it to "PATRON 1 · THE
+ORDER · 2:25 · 🖐 one pair of hands". Eye pass rides the visionary's
+next run.**
 
 The law: every player-facing string (banners, flashes, HUD lines,
 verdicts, lobby copy) speaks the FANTASY's language — orders,

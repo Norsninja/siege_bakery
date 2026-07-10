@@ -449,7 +449,7 @@ async function main(): Promise<void> {
           const home = TOWNS[view.yourTown] ?? TOWNS[0]!;
           baker.teleport(home.spawn);
           input.yaw = (home.facingDeg * Math.PI) / 180;
-          flash("the run begins — you were carried home to your town!", 5000);
+          flash("the bakery opens — you were carried home to your town!", 5000);
         }
       }
       lastRunPhase = view.run.phase;

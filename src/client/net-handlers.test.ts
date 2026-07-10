@@ -234,13 +234,15 @@ describe("applyServerMsg", () => {
     );
     expect(h.view.run).toEqual({ phase: "lobby", rung: 0, readyIn: 1, readyOf: 2 });
     expect(h.flashes).toEqual([]);
-    // The run starts: RUNG 1 is spoken once.
+    // The run starts: the opening is spoken once — in BAKERY words (the
+    // semantic audit, plans/15 item 12: the screen never says rung/run).
     applyServerMsg(h.view, { t: "run", phase: "countdown", rung: 0, countdownTicks: 180 }, h.fx);
     applyServerMsg(h.view, { t: "run", phase: "running", rung: 1 }, h.fx);
-    expect(h.flashes.pop()).toContain("THE RUN BEGINS — RUNG 1");
-    // The ladder climbs at the separator's end.
+    expect(h.flashes.pop()).toContain("THE BAKERY OPENS — the first patron is seated!");
+    // The ladder climbs at the separator's end: the NEXT patron steps up
+    // (the line fiction — plans/16 queue, plans/18 forge).
     applyServerMsg(h.view, { t: "run", phase: "running", rung: 2 }, h.fx);
-    expect(h.flashes.pop()).toContain("RUNG 2");
+    expect(h.flashes.pop()).toContain("PATRON 2 steps up to the table!");
     // Run over → lobby speaks the gather-again line.
     applyServerMsg(h.view, { t: "run", phase: "runover", rung: 2 }, h.fx);
     applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
