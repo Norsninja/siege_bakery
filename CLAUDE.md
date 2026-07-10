@@ -88,54 +88,45 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
-THE AESTHETIC PASS (2026-07-09, ninth session): four slices BUILT,
-live-verified, visionary-approved ("all working as we intended") —
-389 tests, both tsc legs, ending 2f3f182 (that fifth commit is the
-PARALLEL session's GROUND-PLANE BOOT BUG fix: the first rAF dt can
-be NEGATIVE and HTMLMediaElement.volume THROWS outside [0,1] — ALL
-volume math now flows through music.fadeStep, pure + pinned; never
-assign el.volume raw). (1) TRAILS (plans/15 item
-4): TrailRibbon comet in shots-view.ts — fixed-tick samples,
-camera-billboarded strip, RGBA vertex fade, topping-colored; grains
-never trail; a ribbon releases when its arc dissolves AND its body
-is gone/at rest (no idle pile-up — the rings lesson); eye-passed
-"beautiful". Item 9 RECORDED: the pre-shot preview arc is a DESIGN
-BOUNDARY — trivially computable (pure parabola), deliberately
-unbuilt: trails are feedback, a preview is an answer key. (2) POST
-HUD (item 5, promoted): winch panel DEAD CENTER and BIG (giant neon
-count, live click fill), gunner cluster BOTTOM-LEFT (center owns the
-aim), bucket chip unmissable in topping color; posts.POST_KEYS is
-THE ONE KEY TABLE (postOp reads it, panels render it, hud.test pins
-them EQUAL); LastShot firing memory client-side off shot broadcasts
-(no wire change); manned lines left the corner block; TONE SET:
-bright pink/cyan fantasy, Vegas energy (index.html CSS vocabulary:
-keycaps, glow, pop). (3+4) THE JUKEBOX (item 10): music.ts PLAYLISTS
-mood table — order [kitchen-chaos, kitchen-mayhem] + lobby
-[hearth-harvest, hearthside-yeast] filled; linger/runover rows named
-and waiting (visionary composing); future songs are DROP-INS (file →
-public/audio + one row; public/audio is the COPY OF RECORD, ships in
-dist/; project/files/audio is the gitignored inbox). nextTrack never
-repeats (n=2 alternates); deriveMood off run.phase/order.status (the
-finish-it window keeps the order's music); fade out 1.5s / in 0.8s;
-BG_VOLUME 0.35 one dial; autoplay unlocks on first real gesture; M
-mute + upper-right #mute-btn — the ONE pointer-events overlay,
-painted under #snapshot, BLURRED after click (a focused button turns
-Space into "click", and Space winds the winch). Clients unsynced by
-design; core/game untouched — all client/ presentation. Flash toasts
-DEFERRED (next aesthetics slice; the CSS vocabulary is ready). THE
-LONE HERO stands as built (plans/13 §5 BUILT block, eighth session):
-ask = REACH × LABOR (CREW_LABOR [—,0.35,1,1,1], measured saturation
-study) at deal time via Room.dealAt; sprinkles scale (ceil);
-OrderState.hands stamps the ticket; crew 2+ verbatim; anchor seam
-deals full labor. NEXT SESSION (visionary's agenda): review the four
-commits → TECH-DEBT hunt (post-hud.ts, music.ts, trail lifecycle,
-main.ts growth) → discuss further pre-friend-test improvements —
-every one de-risks the WEEKEND friend test (plans/12, runbook
-current). Pending ear/eye passes: music volume/fades, winch-panel
-coverage while cranking, fudge chip, item-3 banner composition,
-lone-hero tag. Standing ledger: plans/15 items 6/8 post-campaign
-discussion; items 7/9 are recorded boundaries; audit tranche C
-post-friend-test (snapshot-encode hitch, litter growth); wind plan +
-Bite/integrity re-pin ownerless; cupcake hot-arrival +
-fudge-counts-toward-frost watches. Port map:
-research/01-port-gap-analysis.md.
+THE TENTH SESSION (2026-07-10): tech debt paid + THE COMIC WORD —
+394 tests, both tsc legs, ending 55f25a4. THE REMOTE EXISTS:
+https://github.com/Norsninja/siege_bakery (origin/main; push after
+every commit batch). Standing ninth-session laws: THE VOLUME LAW —
+all volume math flows through music.fadeStep (pure, pinned;
+el.volume THROWS outside [0,1], the first rAF dt can be NEGATIVE,
+and a first-frame throw kills the rAF chain — never assign el.volume
+raw); POST_KEYS is THE ONE KEY TABLE (postOp reads it, panels render
+it, hud.test pins them EQUAL); jukebox songs are DROP-INS
+(public/audio is the COPY OF RECORD + one PLAYLISTS row;
+linger/runover rows await the visionary's compositions); BG_VOLUME
+0.35; M mute + #mute-btn (the ONE pointer-events overlay, BLURRED
+after click — Space winds the winch); item 9 boundary: NO pre-shot
+preview arc, ever. TENTH-SESSION LAWS: (1) THE TRAIL IS THE FLIGHT —
+ribbons HALT at first contact (core Impact.bodyHandle, a plain
+number so the event stays broadcastable; no speed thresholds; the
+streak is the flight, never the roll); (2) the winch unwind DRAINS
+the top lit segment right-to-left (the sign of fillPct picks
+.seg-fill vs .seg-drain — letting out must never wear winding's
+costume); (3) report-view.ts owns the banner/photo/linger DOM
+(hud.ts words it pure, bannerLatch decides edges; the carry-home
+teleport stays in main — baker movement is main's authority); (4)
+THE COMIC WORD (plans/15 item 13): SPLAT!/plop./POP! are
+world-anchored sprites at YOUR OWN town's impacts — NEVER screen
+toasts (the center of the screen is where people see what is going
+on); depth-test OFF so far-side landings announce over the cake's
+crest; grains silent; the corner line keeps the m/s record; spatial
+SFX will pair on the SAME impact events (plans/16's sound slice).
+THE LONE HERO stands (plans/13 §5 BUILT block). NEXT SESSION
+(visionary's stated plan): review the tenth's four commits, then
+discuss next steps — the candidates: plans/16 §6 open rulings, the
+semantic audit (item 12: strings speak BAKERY, never engine — the
+strongest pre-test slice), or rest until the WEEKEND friend test
+(plans/12, runbook current). Pending ear/eye passes: music
+volume/fades, winch coverage + the new drain, fudge chip, banner
+composition, lone-hero tag, comic-word size/timing at play
+distances, trail-halt-at-first-bounce feel. Standing ledger: items
+6/8 post-campaign; 7/9 recorded boundaries; item 11 (spotter tower)
+post-milestone design; audit tranche C post-friend-test
+(snapshot-encode hitch, litter growth); wind plan + Bite/integrity
+re-pin ownerless; cupcake hot-arrival + fudge-counts-toward-frost
+watches. Port map: research/01-port-gap-analysis.md.
