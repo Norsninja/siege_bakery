@@ -43,6 +43,7 @@ import { interactionActs, resolveEEdge } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
+import { loadModel } from "./assets";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
@@ -98,6 +99,19 @@ async function main(): Promise<void> {
   shotsView.onStuck = (_topping, pos, normal) =>
     sprinklesView.add(pos, normal, frostingView.coatsNear(pos));
   const ghosts = new GhostManager(scene);
+
+  // THE PIPELINE PROOF (plans/16 slice 1): the first real asset through
+  // Blender → glTF → the loader seam. Decor beside town 0's pantry —
+  // no collider, no interaction; if the .glb is missing the seam yields
+  // null and the scene simply doesn't gain the crate (the fallback law:
+  // assetless boot is a normal Tuesday). Front = glTF +Z (Blender -Y);
+  // yaw π turns the label toward the run.
+  void loadModel("crate").then((crate) => {
+    if (!crate) return;
+    crate.position.set(2.6, 0, 12.4);
+    crate.rotation.y = Math.PI;
+    scene.add(crate);
+  });
 
   const hud = document.getElementById("hud");
   const postHud = new PostHud();

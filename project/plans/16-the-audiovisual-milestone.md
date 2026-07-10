@@ -88,6 +88,20 @@ toy-like, hand-painted?), and what the concept art does NOT settle
 
 ### Slice 1 — Pipeline proof (one small asset, end to end)
 
+**Status: BUILT 2026-07-10 (eleventh session). The SPRINKLES crate
+went Blender (driven via MCP) → glTF → GLTFLoader → standing beside
+town 0's pantry, live-verified with a committed capture
+(project/concept/captures/2026-07-10-slice1-crate.jpg). The
+CONVENTIONS OF RECORD are pinned in the art bible §8 (units, front =
+−Y Blender / +Z three, origin at standing point, join-with-slots,
+text-to-mesh, export settings, homes: project/blender/ source +
+public/models/ shipping copy). The loader seam landed first
+(assets.ts, 282ae77): loadModel() → null when headless/missing/
+broken, primitive fallbacks forever, one fetch per name — pinned in
+assets.test.ts. Budget: crate.glb 175 KB, ~3.2k tris (label glyphs
+dominate — fine for heroes, budget repeats), no boot impact. 397
+tests, both tsc legs.**
+
 ONE asset — recommend the pantry crate or a single topping, NOT the
 giant — through Blender → glTF export → GLTFLoader → standing in the
 scene. This slice's deliverable is CONVENTIONS, pinned in the art

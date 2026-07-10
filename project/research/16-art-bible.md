@@ -149,6 +149,50 @@ visible in the pantry. The giant is the LAST thing to model, not the
 first — by then the pipeline conventions (units, axes, export, load
 seam, fallbacks) are proven on cheap geometry.
 
+**PROVEN 2026-07-10 (eleventh session) — THE CONVENTIONS OF RECORD,
+learned by driving the crate end to end (Blender MCP → glTF →
+GLTFLoader → the live scene; capture:
+`project/concept/captures/2026-07-10-slice1-crate.jpg`):**
+
+- **Units:** 1 Blender unit = 1 m, metric, scale 1.0. Author at world
+  size (the crate is 0.8 × 0.7 × 0.7 and stands hip-high in game).
+- **Axes/front:** author Z-up in Blender as normal; the glTF exporter
+  converts (+Y up). THE FRONT OF A PROP FACES −Y IN BLENDER, which
+  lands as +Z in three.js — a placement wanting the label toward the
+  player at −Z applies `rotation.y = Math.PI`.
+- **Origin:** at the STANDING POINT (bottom center, z_min = 0) — a
+  prop drops onto the ground by position alone.
+- **Mesh shape:** apply all modifiers per part, JOIN into one mesh
+  with material slots (the crate: 4 materials, one draw-friendly
+  object), apply all transforms. Object name = asset name.
+- **Text-on-mesh:** Blender Text object (extrude ~0.006, offset
+  +0.002 for chunky glyphs) → convert to mesh BEFORE export — no
+  font dependency rides in the file. Glyphs dominate the tri count
+  (the crate is ~3.2k tris, most of it "SPRINKLES") — fine for
+  hero props, budget it on repeated ones.
+- **Style execution:** bevel EVERYTHING (0.02 width, 2 segments —
+  the chunky-toy law); material colors from §3 via Principled BSDF
+  base color (convert hex sRGB → linear), roughness ~0.85; no
+  textures needed at this stage.
+- **Export:** `export_scene.gltf` with GLB format, `use_selection`,
+  `export_apply`. Select only the asset object (the check camera/sun
+  in the .blend never export).
+- **Homes:** `project/blender/*.blend` is the SOURCE of record
+  (git-tracked, small and curated like project/concept/);
+  `public/models/*.glb` is the SHIPPING copy (Vite → dist/, the room
+  server serves it through the one tunneled port).
+- **The loader seam** (src/client/assets.ts, landed 282ae77):
+  `loadModel(name)` → `/models/<name>.glb`; null when headless,
+  missing, or broken — the caller's primitive fallback carries.
+  One fetch per name; multi-placers clone().
+- **Budget facts:** crate.glb = 175 KB (geometry + materials, no
+  textures); export takes ~0.1 s; load is one fetch, no measurable
+  boot impact. The ~25 MB dist alarm (plans/16 §4) is far away.
+- **Blender-MCP gotcha, recorded in blood:** `primitive_cube_add(
+  size=1)` then `ob.scale = dims` gives FULL dimensions equal to the
+  scale values — do NOT halve them (the first crate exploded into a
+  constellation of half-size parts at full-size positions).
+
 ## 9. The dwarf turnaround sheet (`dwarf_four_angles.png`)
 
 A proper four-angle character reference — front and back in T-pose,
