@@ -79,7 +79,15 @@ Handoffs in `project/handoffs/`, plans in `project/plans/`, research in
 playtest notes with buckets and claim lines (rings-per-catapult, tilt
 clamp, report inset, trails = pre-friend-test; post HUD = aesthetics;
 power-ups = post-campaign discussion). Claim items there; don't
-re-triage. Current state:
+re-triage.
+**AUDIOVISUAL MILESTONE: `project/plans/16-the-audiovisual-milestone.md`**
+— DRAFTED 2026-07-09 (MVP-audit discussion): the fantasy gets a face —
+patron embodied (the plans/03 brain already exists; body only), the
+line of patrons, dwarf bakers, delicious dessert, SFX, verdict
+spectacle, front door. Zero systems; client/ + assets only; §6 open
+rulings need the visionary BEFORE building. Concept art of record is
+IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
+the images directly). Current state:
 THE AESTHETIC PASS (2026-07-09, ninth session): four slices BUILT,
 live-verified, visionary-approved ("all working as we intended") —
 389 tests, both tsc legs, ending 2f3f182 (that fifth commit is the
