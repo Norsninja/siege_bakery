@@ -299,6 +299,18 @@ flourish → verdict spectacle → line advances).
    Decided by BOTH theory and camera: stand a graybox giant behind
    the arena early (slice 2's first act, or sooner as a cheap
    cylinder) and eyeball from the catapult post.
+   **TESTED SAME SESSION (graybox lineup 12/16/20 m beside the
+   catapult, cake-3 reference standing at the plinth): 12 m reads
+   "big person," 16–20 m read plausible, and framing survives past
+   20 m. RULED: 20+ m — "fantastic scale makes it fun." TWO
+   PLACEMENT RULINGS rode along (visionary): the ordering patron
+   stands OUTSIDE the town walls, never inside a town (the graybox
+   at z=−52 stood in town 1's yard — wrong; he leans over the wall
+   toward the table, the concept art's exact read), and BEHIND him
+   the queue of waiting patrons recedes (distinct species, ruling
+   1 — the line lives outside the walls too). Camera note for slice
+   2: the loom lives in the LEAN and the BULK as much as the height
+   — a chunky 20 m at the table beats a skinny 24 m behind it.**
 
 1. **Patron variety in the line:** the same giant re-tinted with prop
    swaps (cheap, one rig) vs distinct characters (expensive, real
