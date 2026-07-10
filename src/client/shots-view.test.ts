@@ -25,6 +25,7 @@ import {
   unpackShotTag,
   ShotsView,
   TRAIL_WINDOW_TICKS,
+  WORD_LIFE_TICKS,
 } from "./shots-view";
 import type { ShotMsg } from "./net-handlers";
 import { FrostingView } from "./frosting-view";
@@ -166,6 +167,8 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
     (
       v as unknown as { meshes: Array<{ body: RAPIER.RigidBody }> }
     ).meshes.map((m) => m.body);
+  const words = (v: ShotsView): Array<{ text: string }> =>
+    (v as unknown as { words: Array<{ text: string }> }).words;
   const lob = (topping: string): ShotMsg => ({
     t: "shot",
     town: 0,
@@ -245,6 +248,23 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
     expect(trails(view).length).toBe(0);
   });
 
+  it("THE COMIC WORD rides the pop: YOUR carrier's burst says POP!, its grains land wordless", () => {
+    const { view } = rig();
+    view.spawn(lob("sprinkles")); // town 0 — and yourTown defaults to 0
+    let popped = false;
+    for (let i = 0; i < 600 && !popped; i++) {
+      view.step(GEOM, noop);
+      popped = bodies(view).length > 1;
+    }
+    expect(popped).toBe(true);
+    expect(words(view).map((w) => w.text)).toEqual(["POP!"]);
+    // The grains rain down over the next beats — quiet, per the law: no
+    // word ever joins (or replaces) the pop's own.
+    for (let i = 0; i < 40; i++) view.step(GEOM, noop);
+    for (const w of words(view)) expect(w.text).toBe("POP!");
+    expect(words(view).length).toBeLessThanOrEqual(1);
+  });
+
   it("sync billboards the ribbon: a newborn draws nothing, a flying arc draws its strip", () => {
     const { view } = rig();
     const camera = new THREE.PerspectiveCamera();
@@ -256,5 +276,55 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
     view.sync(camera);
     // 6 samples → 5 segments → 2 triangles each → 30 indices drawn.
     expect(trails(view)[0]!.geometry.drawRange.count).toBe(30);
+  });
+});
+
+describe("THE COMIC WORD (plans/15 item 13): your own landings speak in the world", () => {
+  const words = (v: ShotsView): Array<{ text: string }> =>
+    (v as unknown as { words: Array<{ text: string }> }).words;
+  const landing = (town: number, speed: number, grain = false) => ({
+    pos: { x: 2, y: 1, z: CAKE_Z },
+    speed,
+    topping: "cherry",
+    tag: packShotTag(0, town),
+    bodyHandle: -1,
+    ...(grain ? { grain: true } : {}),
+  });
+
+  it("hot SHOUTS, gentle whispers: SPLAT! over the splat, plop. over the placement", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [landing(0, 20)] });
+    shotsView.step(GEOM, noop);
+    setEvents({ ...empty, impacts: [landing(0, 1)] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).map((w) => w.text)).toEqual(["SPLAT!", "plop."]);
+  });
+
+  it("only YOUR town's shots speak — the teammate crew's landings stay wordless, and the filter follows a town switch", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [landing(1, 20)] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(0); // town 1's shot, our town 0 eyes
+    shotsView.yourTown = 1; // the pickTown ack moved us (main's bindTown)
+    setEvents({ ...empty, impacts: [landing(1, 20)] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).map((w) => w.text)).toEqual(["SPLAT!"]);
+  });
+
+  it("grains never speak (the quiet-grain law holds at the word layer too)", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [landing(0, 20, true)] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(0);
+  });
+
+  it("the word lives its beat and leaves — nothing piles up", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [landing(0, 20)] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(1);
+    setEvents(empty);
+    for (let i = 0; i <= WORD_LIFE_TICKS; i++) shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(0);
   });
 });

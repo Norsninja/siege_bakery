@@ -182,7 +182,12 @@ async function main(): Promise<void> {
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
-    bindTown: (t) => gs.bindTown(t),
+    bindTown: (t) => {
+      gs.bindTown(t);
+      // The comic word (plans/15 item 13) speaks for YOUR machine only —
+      // the view keeps the town, ShotsView needs its own current copy.
+      shotsView.yourTown = t;
+    },
   };
   let welcomeSeen: (() => void) | null = null;
   const firstWelcome = new Promise<void>((res) => (welcomeSeen = res));

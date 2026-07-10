@@ -348,3 +348,85 @@ in-page reboots, zero errors, camera at eye height every time.
 Driver lesson in memory: the preview console does NOT capture
 uncaught page errors — arm a window 'error' listener and re-import
 main with a cache-bust to catch a first-frame death.**
+
+## 11. The observation tower / spotter perch — POST-MILESTONE DESIGN DISCUSSION
+
+**Status: shape recorded 2026-07-09 (MVP-audit discussion session);
+visionary's note, deliberately deferred — FIRST discussion after the
+plans/16 audiovisual milestone. A real system (level geometry, maybe
+movement tech) — excluded from the milestone by its own §1 law.**
+
+The shape (visionary): a tower the dwarves can CLIMB to see the cake
+— or a dwarf-tech cherry-picker that goes up and down. One player
+becomes a spotter (formally or informally), calling corrections down
+to the crew. Also, honestly: a place for dwarves to jump off for no
+reason (correct party-game instinct; nobody dies — splat comedy).
+
+Why it's load-bearing, not decoration (record of the discussion): the
+preview arc is a forbidden answer key (item 9) — aim information must
+be EARNED. A spotter up a tower yelling "two more clicks!" is the
+SANCTIONED form of the same information: earned through a body, a
+climb, and a job — information as teamwork, the game's soul. And the
+need GROWS with the ladder: taller cakes hide their far side and
+crown from the firing line exactly as the asks get harder; the
+spotter closes the feedback loop mid-order instead of at the report.
+
+Engineering notes binding on the design session: (a) a static tower
++ stairs/ramp is nearly free IF the kinematic baker controller walks
+slopes — CHECK THIS FIRST (one minute, before designing around it);
+(b) the cherry-picker is a RIDDEN MOVING PLATFORM — classic fiddly
+kinematic-controller work; build the dumb tower first, the dwarf-tech
+elevator as a later flourish; (c) no spotting UI — voice/couch is the
+party-game channel; the tower sells the JOB, not a system.
+
+## 12. THE SEMANTIC AUDIT — player-facing strings speak BAKERY, never engine
+
+**Status: opened 2026-07-09 (visionary's sighting: the boot screen
+says "rung 1 awaits the crew" — 'rung' means nothing to a stranger).
+ADOPTED INTO the plans/16 milestone (strings ARE presentation) —
+built as a plans/16 slice; recorded here so the ledger knows its
+home.**
+
+The law: every player-facing string (banners, flashes, HUD lines,
+verdicts, lobby copy) speaks the FANTASY's language — orders,
+patrons, the bakery — never the architecture's. Jargon blacklist as
+screen nouns: rung, deal, linger, census, phase, run. ARTILLERY
+vocabulary is EXEMPT — traverse, winch, tension are flavor, not
+leakage (a dwarf siege engineer talks like that); the audit removes
+scaffolding, not character. Write replacements to SURVIVE plans/16
+slice 2: once the giant is visible, "Your first patron awaits" beats
+"Order #1" beats "rung 1" — strings and embodiment should land
+pointing at each other.
+
+## 13. THE COMIC WORD — SPLAT! floats up from your own landings
+
+**Status: BUILT 2026-07-09 (tenth session; rulings from the same
+discussion). The flash-toast deferral (item 5) concluded here as a
+DIFFERENT thing: the visionary ruled the CENTER SCREEN is where people
+see what is going on — almost nothing goes there — and asked whether
+SPLAT! could be a comic-panel word OVER THE ACTION instead. It is:
+SplashWord in shots-view.ts — a canvas-texture sprite born at the
+impact point, stamps in fat, settles, floats up ~2.2m (ease-out, clears
+the cake crest early), fades its last third, ~1.1s life, disposed on
+its beat (the ribbons' lifecycle discipline — nothing piles up).
+Depth-test OFF (ruled): the word ignores the cake's silhouette — the
+far-hemisphere lob is exactly the landing you cannot physically see,
+so the word rises over the crest and announces it. LAWS: YOUR OWN
+town's shots only (shotsView.yourTown, kept current by main's bindTown
+— welcome + pickTown ack; a teammate crew's landings stay wordless,
+their trails and rings still speak); hot SHOUTS (SPLAT!, 2.4m) and
+gentle whispers (plop., 1.5m) by the same SPLAT_SPEED predicate the
+rings read; POP! at your carrier's burst; grains stay silent (the
+quiet-grain law holds at the word layer); topping-colored with a dark
+comic outline; the corner flash line stays as the quiet m/s record;
+words say HOW it landed, never where to aim (item 9 stands). Node has
+no canvas: the texture is guarded, the sprite lives its lifecycle
+faceless in tests — pins are lifecycle+text (+5, 394 total; both tsc
+legs). Live: plop. born y3.1 → rose to 5.0 → faded 1/0.69/0 →
+disposed, zero page errors; SPLAT! screenshot over the machine block
+(depth-test-off proof). PAIRING RECORDED: spatial SFX rides these
+same impact events (they carry the position) — the plans/16 sound
+slice should hook the splat/pop sounds exactly here, so the word and
+the sound land as one announcement. Dials named in shots-view.ts:
+WORD_LIFE_TICKS, WORD_RISE_M, the two widths — the eye pass tunes
+them.**

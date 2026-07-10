@@ -63,6 +63,25 @@ export const TRAIL_WINDOW_TICKS = 36; // 0.6s of arc at the 60Hz tick
 export const TRAIL_HEAD_ALPHA = 0.45; // translucent at the ball…
 export const TRAIL_WIDTH = PROJECTILE_RADIUS; // …tapering to a point behind
 
+/** THE COMIC WORD (plans/15 item 13, ruled 2026-07-09): SPLAT!/plop./POP!
+ * floats up from YOUR OWN machine's landings — a comic-panel onomatopoeia
+ * in the WORLD, never a screen toast (the center of the screen is where
+ * people see what is going on — the visionary's ruling). Depth-test OFF:
+ * the word ignores the cake's silhouette and rises high enough to be seen
+ * from behind it — the far-hemisphere lob is exactly the shot whose
+ * landing you cannot physically see, so the cake announces it over its
+ * own crest. It says HOW it landed, never where to aim (item 9 stands).
+ * Other towns' shots stay wordless for you (their trails and rings still
+ * speak); grains stay quiet (the POP! marks the burst). The corner flash
+ * line stays as the quiet m/s record. Spatial SFX will ride these same
+ * impact events (plans/16's sound slice — the events carry the position).
+ * These are the aesthetics-pass dials: */
+export const WORD_LIFE_TICKS = 66; // ~1.1s of comic stamp
+export const WORD_RISE_M = 2.2; // floats up over the cake's crest
+const WORD_START_ABOVE_M = 0.6; // born clear of the topping it marks
+const WORD_SPLAT_WIDTH_M = 2.4; // landing energy = word size…
+const WORD_PLOP_WIDTH_M = 1.5; // …a gentle placement whispers
+
 // Per-frame scratch for the ribbon rebuild — no allocation in the loop.
 const _tangent = new THREE.Vector3();
 const _toCam = new THREE.Vector3();
@@ -214,6 +233,90 @@ class TrailRibbon {
   }
 }
 
+/** The word's face — a canvas-drawn texture. Node has no canvas (the
+ * headless test rig): the sprite still exists and lives its full
+ * lifecycle there, just faceless — the pins are the lifecycle; the
+ * pixels are the eye pass's job (the post-hud precedent). */
+const wordMaterial = (text: string, colorHex: number): THREE.SpriteMaterial => {
+  const mat = new THREE.SpriteMaterial({
+    transparent: true,
+    depthTest: false, // the word ignores the cake's silhouette (header)
+    depthWrite: false,
+  });
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 160;
+    const ctx = canvas.getContext("2d")!;
+    ctx.font = "900 108px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 16;
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(20, 8, 30, 0.9)"; // comic outline, readable on sky and sponge
+    ctx.strokeText(text, 256, 84);
+    ctx.fillStyle = `#${colorHex.toString(16).padStart(6, "0")}`;
+    ctx.fillText(text, 256, 84);
+    mat.map = new THREE.CanvasTexture(canvas);
+  }
+  return mat;
+};
+
+/** One landing's onomatopoeia: stamps in big, settles, floats up, fades.
+ * Ages on the fixed tick like the ribbons (honest under __timeScale);
+ * THREE.Sprite billboards itself — no per-frame work. */
+class SplashWord {
+  /** Peeked by the tests (which word did the landing speak?). */
+  readonly text: string;
+  private readonly sprite: THREE.Sprite;
+  private readonly baseY: number;
+  private readonly width: number;
+  private age = 0;
+
+  constructor(
+    text: string,
+    colorHex: number,
+    pos: Vec3,
+    widthM: number,
+    private readonly scene: THREE.Scene,
+  ) {
+    this.text = text;
+    this.width = widthM;
+    this.baseY = pos.y + WORD_START_ABOVE_M;
+    this.sprite = new THREE.Sprite(wordMaterial(text, colorHex));
+    this.sprite.position.set(pos.x, this.baseY, pos.z);
+    this.sprite.renderOrder = 999; // depth-test off: paint last, over everything
+    this.scene.add(this.sprite);
+    this.pose();
+  }
+
+  /** One fixed tick; true when the word's beat is over. */
+  tick(): boolean {
+    this.age++;
+    if (this.age > WORD_LIFE_TICKS) return true;
+    this.pose();
+    return false;
+  }
+
+  private pose(): void {
+    const t = this.age / WORD_LIFE_TICKS;
+    // The comic stamp: lands fat, settles over the first ~10 ticks.
+    const stamp = 1 + 0.6 * Math.max(0, 1 - this.age / 10);
+    const w = this.width * stamp;
+    this.sprite.scale.set(w, w * (160 / 512), 1);
+    // Ease-out rise — clears the cake crest early, drifts after.
+    this.sprite.position.y = this.baseY + WORD_RISE_M * (1 - (1 - t) * (1 - t));
+    // Hold, then fade the last third.
+    this.sprite.material.opacity = t < 0.65 ? 1 : 1 - (t - 0.65) / 0.35;
+  }
+
+  dispose(): void {
+    this.scene.remove(this.sprite);
+    this.sprite.material.map?.dispose();
+    this.sprite.material.dispose();
+  }
+}
+
 export class ShotsView {
   private readonly shots = new ProjectileManager();
   private readonly meshes: Array<{ body: RAPIER.RigidBody; mesh: THREE.Mesh }> =
@@ -225,6 +328,12 @@ export class ShotsView {
   /** Every lever-pulled lob's ribbon (plans/15 item 4) — grains and
    * welcome-restored resting toppings never get one. */
   private readonly trails: TrailRibbon[] = [];
+  /** The comic words in flight (plans/15 item 13) — your own machine's
+   * landings only; ~1s each, disposed on their beat, nothing piles up. */
+  private readonly words: SplashWord[] = [];
+  /** Whose crew this client bakes for — main keeps it current (the
+   * welcome and every pickTown ack). Only THIS town's landings speak. */
+  yourTown = 0;
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). The topping
    * rides along: fudge paints under its own splat law and renders dark. */
@@ -357,6 +466,18 @@ export class ShotsView {
         this.meshes.push({ body: b.grains[gi]!, mesh });
       }
       flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
+      // The comic word (item 13): YOUR crew's pop announces itself in the
+      // world; the grains land wordless below it (the quiet-grain law).
+      if (unpackShotTag(b.tag).town === this.yourTown)
+        this.words.push(
+          new SplashWord(
+            "POP!",
+            TOPPING_COLORS[b.topping] ?? 0xc23b4e,
+            b.pos,
+            WORD_SPLAT_WIDTH_M,
+            this.scene,
+          ),
+        );
     }
     // IMPACTS BEFORE STUCK — the mirror of the Room's tickScoringPhase
     // ordering (room.ts: the impacts loop's BURIAL filter runs while
@@ -381,6 +502,19 @@ export class ShotsView {
       this.addLandingMarker(town, im.pos.x, im.pos.y, im.pos.z, splat);
       if (isPaint(im.topping) && deal === this.deal)
         this.onPaintImpact?.(im.topping, im.pos, im.speed);
+      // The comic word (item 13): your own machine's landing speaks at the
+      // spot — hot lands SHOUT, gentle ones whisper. Stale shots included:
+      // they visibly land (the rings' precedent), so they honestly speak.
+      if (town === this.yourTown)
+        this.words.push(
+          new SplashWord(
+            splat ? "SPLAT!" : "plop.",
+            TOPPING_COLORS[im.topping] ?? 0xc23b4e,
+            im.pos,
+            splat ? WORD_SPLAT_WIDTH_M : WORD_PLOP_WIDTH_M,
+            this.scene,
+          ),
+        );
       flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );
@@ -396,6 +530,13 @@ export class ShotsView {
       if (this.trails[i]!.done) {
         this.trails[i]!.dispose();
         this.trails.splice(i, 1);
+      }
+    }
+    // The comic words age on the same tick — a word's beat ends, it leaves.
+    for (let i = this.words.length - 1; i >= 0; i--) {
+      if (this.words[i]!.tick()) {
+        this.words[i]!.dispose();
+        this.words.splice(i, 1);
       }
     }
   }
