@@ -120,9 +120,11 @@ lacks a client-visible trigger, it waits.
 
 Waiting patrons behind the orderer — the remaining rungs made
 visible. Client derives count from run state (current rung vs the
-authored ladder). During the linger the line advances one. Cheap by
-design: reuse the giant (tint/prop/scale variation per §6 ruling);
-instanced or shared-skeleton if perf asks. The run-over screenshot
+authored ladder). During the linger the line advances one.
+(§6 ruling 1, 2026-07-10: the line is DISTINCT SPECIES, not one
+re-tinted rig — it may debut thin, ogre-only or few-species, and
+grow as the library does; instanced or shared-skeleton if perf
+asks.) The run-over screenshot
 gains its second comedy layer: the mess on the floor AND the line
 still waiting.
 
@@ -239,6 +241,50 @@ capture: lobby → ready circle → deal → patron look → scramble →
 flourish → verdict spectacle → line advances).
 
 ## 6. Open rulings for the visionary (walk these before building)
+
+**RULINGS OF RECORD — walked 2026-07-10 (eleventh session):**
+
+1. **DISTINCT CHARACTERS — the re-tint recommendation is OVERRULED.**
+   The patron library is species-diverse: giant tree-folk, dragons,
+   giant orcs — whatever else is giant in the fantasy stories
+   (plans/17: they are all refugees of the same wars). Milestone
+   scope: the ogre (the art's patron) is built FIRST and the line may
+   debut thin; the destination is distinct species, never one rig in
+   five tints. (Forge hook, noted not ruled: species → palate is a
+   natural plans/18 taste axis — a dragon wants it TORCHED.)
+2. **GRUMBLE-AUDIO: YES** — slice 6 rows, visionary-sourced like the
+   music; real VO never; the grumble accompanies the flash text,
+   never replaces it (the line is load-bearing comedy).
+3. **FIRST-PERSON HANDS: YES** — hands + the carried topping, built
+   as slice 4's rider; simple rounded mitts (the art bible's style
+   law makes the cheap thing the correct thing).
+4. **THE NAME: STILL OPEN.** "Siege Bakery" stands as working title;
+   the visionary rates "Lord of the Cakes" pretty good; "The Great
+   Dwarven Bakeoff" is the origin. The concept art's carved sign is
+   a TEMPLATE — every in-art word is AI-generated, nothing is locked
+   (the bible §6 general law re-affirmed). This is a pure-joy project
+   with no obligations; the name decides itself when it's ready.
+   Slice 8 blocks on this and nothing else does.
+5. **SLICE ORDER 2–5: UNRULED** ("unsure") — the recommended order
+   (Patron → Line → Bakers → Dessert) stands as the working
+   assumption, freely re-orderable as the build teaches.
+6. **THE WEEKEND: a gift, not a deadline.** Whatever lands by
+   Saturday rides along; work resumes Sunday. The fallback law
+   (assetless boot, §4) makes partial work safe by construction.
+7. **HUD-NEON IS NOT CANON.** The visionary's own read: the minimal
+   aesthetic came out cyberpunk — too futuristic for this game. Not
+   binding; the DOM look may be reverted/enriched toward the warm
+   fantasy aesthetic as a sanctioned future aesthetics slice. Not
+   milestone-gating; world-first meanwhile.
+8. **PROPORTIONS: blessed** (dwarf 1.2 m, catapult ~2.5 m, crates
+   ~0.7 m, cake conforms to the sim) — **EXCEPT THE GIANT, re-ruled
+   BIGGER**: he must plausibly EAT the dessert, and cake-3 is 8 m
+   across × 5 m tall (cake-6: 9.5 m). Plausibility band ~12–20 m
+   (a 12 m giant faces cake-3 as a person faces a 1.2 m feast cake;
+   the bible's 6–8 m reads as a catering table, not his dessert).
+   Decided by BOTH theory and camera: stand a graybox giant behind
+   the arena early (slice 2's first act, or sooner as a cheap
+   cylinder) and eyeball from the catapult post.
 
 1. **Patron variety in the line:** the same giant re-tinted with prop
    swaps (cheap, one rig) vs distinct characters (expensive, real

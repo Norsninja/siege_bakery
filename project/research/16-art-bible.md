@@ -78,11 +78,13 @@ accident (plans/16 §6 walk: add this as ruling 7).
 - Catapult: ~2.5 m at the A-frame apex, ~3.5 m long
 - Cake: matches existing sim geometry (the art's three tiers ≈ the
   shipped cake-3 — the sim is the truth, art conforms to colliders)
-- THE GIANT: ~6–8 m to the crown — in the art he is roughly 5× dwarf
-  height and reads over the WALLS; he must loom in a normal gameplay
-  camera without being framed out. Pick the number by standing a
-  graybox giant behind the arena and eyeballing from the catapult
-  post — camera truth beats a ratio on paper.
+- THE GIANT: RE-RULED BIGGER (§6 walk 2026-07-10) — the 6–8 m
+  proposal fails the eating test: cake-3 is 8 m across × 5 m tall,
+  and he must plausibly claim it as HIS dessert. Plausibility band
+  ~12–20 m (a 12 m giant faces cake-3 as a person faces a 1.2 m
+  feast cake). Pick the number by standing a graybox giant behind
+  the arena and eyeballing from the catapult post — camera truth
+  beats a ratio on paper.
 - Crates: hip-high to the dwarf (~0.7 m) — readable labels at a
   sprint.
 
