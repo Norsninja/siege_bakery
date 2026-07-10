@@ -27,26 +27,23 @@ import type { ServerMsg, HeldOp } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
 import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
 import {
-  bannerText,
   hudLines,
   postPanel,
-  runOverText,
-  snapshotCaption,
   type InteractableKind,
   type LastShot,
 } from "./hud";
 import { PostHud } from "./post-hud";
+import { ReportView } from "./report-view";
 import { deriveMood, MusicBox } from "./music";
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
 import { createMatchView, myMachine, predictClock, shopState } from "./state";
-import { bannerLatch, interactionActs, resolveEEdge } from "./interactions";
+import { interactionActs, resolveEEdge } from "./interactions";
 import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
-import { ORDER_RESET_TICKS } from "../game/tuning";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";
@@ -108,15 +105,12 @@ async function main(): Promise<void> {
   // last-fired solution, recorded off the shot broadcast — client-local,
   // no wire change. The panels' "last shot" line reads it by town.
   const lastShot: Record<number, LastShot> = {};
-  const banner = document.getElementById("banner");
-  // The dessert report (client/snapshot.ts): the tripod, its corner frame,
-  // and the caption slot. Photo taken on the banner-show edge below.
+  // The dessert report (client/snapshot.ts): the tripod, re-aimed by every
+  // rebind below; report-view.ts hangs the banner + photo and clicks the
+  // shutter on the show edge.
   const snapshot = new DessertSnapshot(renderer);
-  snapshot.aimAt(view.dessert.spec.tiers); // re-aimed by every rebind
-  const snapEl = document.getElementById("snapshot");
-  const snapImg = snapEl?.querySelector("img") ?? null;
-  const snapCaption = snapEl?.querySelector("figcaption") ?? null;
-  let bannerShown = false;
+  snapshot.aimAt(view.dessert.spec.tiers);
+  const report = new ReportView(snapshot, scene);
   let flashMsg = "";
   let flashUntil = 0;
   const flash = (msg: string, ms = 4000): void => {
@@ -293,8 +287,6 @@ async function main(): Promise<void> {
   /** The zone the baker stood in last tick — HUD invitation line. */
   let nearPostShown: Post | null = null;
   let tickCounter = 0;
-  /** Linger countdown, in ticks — armed when the banner shows. */
-  let lingerTicks = 0;
   /** The run phase last tick — the run-start carry-home edge (plans/13). */
   let lastRunPhase = view.run.phase;
   /** The last pickTown spoken this linger — edge guard, re-armed when the
@@ -457,86 +449,19 @@ async function main(): Promise<void> {
       }
       lastRunPhase = view.run.phase;
 
-      if (banner) {
-        if (view.run.phase === "runover") {
-          // THE RUN REPORT (plans/13): replaces the order banner; the
-          // loss's photo stays hung — the filthy floor is the trophy.
-          bannerShown = true;
-          banner.style.display = "flex";
-          banner.textContent = runOverText(
-            view.run.rung,
-            view.run.won ?? false,
-            view.run.ultra ?? false,
-            view.run.purse ?? 0,
-          );
-        } else if (view.run.phase !== "running") {
-          // The lobby (or the countdown): everything comes down. No deal
-          // edge fired here — the run start deals fresh and the latch
-          // below picks that up in the running phase.
-          if (bannerShown) {
-            bannerShown = false;
-            banner.style.display = "none";
-            if (snapEl) snapEl.style.display = "none";
-          }
-        } else {
-        const b = bannerLatch(view.order.status, bannerShown);
-        if (b === "show") {
-          bannerShown = true;
-          // The linger countdown, predicted locally off ORDER_RESET_TICKS
-          // (advisory, like predictClock — the deal itself is server
-          // truth). A mid-linger JOINER over-reads by however deep the
-          // server already is; the carry-home below still fires on time.
-          lingerTicks = ORDER_RESET_TICKS;
-          banner.style.display = "flex";
-          // THE SHUTTER (dessert report): one photo of the dessert as the
-          // Giant judged it, hung in the corner for the linger. Taken on
-          // the show edge — linger shots happen AFTER the photo, exactly
-          // as they happen after the frozen verdict.
-          if (snapEl && snapImg) {
-            snapImg.src = snapshot.take(scene);
-            snapEl.style.display = "block";
-          }
-        } else if (b === "hide") {
-          // The room dealt a fresh order — clear the slate.
-          bannerShown = false;
-          banner.style.display = "none";
-          if (snapEl) snapEl.style.display = "none"; // the photo comes down
-          // THE CARRY-HOME LAW (visionary, 2026-07-07): the deal PLACES a
-          // baker who isn't in his town at his town's spawn — the linger
-          // banner warned him first. Client-side like all baker movement
-          // (plans/02); the gate then latches shut behind him as usual.
-          if (depthIntoTown(view.yourTown, baker.position()) <= 0) {
-            const home = TOWNS[view.yourTown] ?? TOWNS[0]!;
-            baker.teleport(home.spawn);
-            input.yaw = (home.facingDeg * Math.PI) / 180;
-            flash("the order landed — you were carried home to your town!", 5000);
-          }
-        }
-        if (bannerShown) {
-          // Re-worded every tick: the countdown + the away warning live.
-          lingerTicks = Math.max(0, lingerTicks - 1);
-          banner.textContent = bannerText(
-            view.order,
-            view.checks,
-            view.verdict,
-            view.dessert.topTier,
-            {
-              seconds: Math.ceil(lingerTicks / 60),
-              away: depthIntoTown(view.yourTown, baker.position()) <= 0,
-              // A lost order ends the run (plans/13): no deal follows this
-              // linger — the banner must not promise one.
-              runEnds: view.order.status === "lost",
-            },
-            // The concluded rung prices the banner's pay line (§5
-            // amendment) — the climb happens at the redeal, after this
-            // banner comes down, so run.rung is still the rung just won.
-            view.run.rung,
-          );
-          // Caption rides the same cadence: the verdict can land a beat
-          // after the show edge (its broadcast races the status flip).
-          if (snapCaption) snapCaption.textContent = snapshotCaption(view.verdict);
-        }
-        }
+      // The banner, the run report, and the photo live in report-view.ts;
+      // main hears the fresh-deal edge back because the carry-home is
+      // baker movement — this file's own authority.
+      const away = depthIntoTown(view.yourTown, baker.position()) <= 0;
+      if (report.tick(view, away) === "dealt" && away) {
+        // THE CARRY-HOME LAW (visionary, 2026-07-07): the deal PLACES a
+        // baker who isn't in his town at his town's spawn — the linger
+        // banner warned him first. Client-side like all baker movement
+        // (plans/02); the gate then latches shut behind him as usual.
+        const home = TOWNS[view.yourTown] ?? TOWNS[0]!;
+        baker.teleport(home.spawn);
+        input.yaw = (home.facingDeg * Math.PI) / 180;
+        flash("the order landed — you were carried home to your town!", 5000);
       }
       accumulator -= FIXED_DT;
     }
