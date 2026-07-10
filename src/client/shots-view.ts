@@ -62,12 +62,6 @@ export const GRAIN_PALETTE = [0xe4572e, 0x29bb89, 0x4a7cdb, 0xf2c14e, 0xd05ce3, 
 export const TRAIL_WINDOW_TICKS = 36; // 0.6s of arc at the 60Hz tick
 export const TRAIL_HEAD_ALPHA = 0.45; // translucent at the ball…
 export const TRAIL_WIDTH = PROJECTILE_RADIUS; // …tapering to a point behind
-/** Below this speed² the body is AT REST for trail purposes — a settled
- * cherry must not wear a head-alpha dot forever; its ribbon ages out (and
- * honestly resumes if a later shot nudges it). Freefall can never dip under
- * this (gravity alone is ~0.16 m/s after one tick), so an airborne lob
- * always feeds. */
-const TRAIL_MIN_SPEED_SQ = 0.01; // (0.1 m/s)²
 
 // Per-frame scratch for the ribbon rebuild — no allocation in the loop.
 const _tangent = new THREE.Vector3();
@@ -76,9 +70,13 @@ const _side = new THREE.Vector3();
 
 /** One lob's ribbon: a ring buffer of recent positions, rebuilt each frame
  * as a camera-facing strip with per-vertex RGBA fade (three.js renders
- * 4-component vertex colors natively — no shader). The ribbon OUTLIVES its
- * body: after impact/burst it stops feeding and the arc dissolves over the
- * window; the ring (plans/15 item 1) is the landing record. */
+ * 4-component vertex colors natively — no shader). THE TRAIL IS THE FLIGHT
+ * (visionary ruling 2026-07-09, amending the at-rest law): the streak a
+ * fast shot draws through the air — it HALTS at first contact (halt(),
+ * keyed by the impact's bodyHandle) and the arc dissolves over the window
+ * while the topping may still visibly roll. The ribbon outlives its body
+ * the same way after a consume/pop (the body vanishes mid-feed); the ring
+ * (plans/15 item 1) is the landing record. */
 class TrailRibbon {
   /** Oldest first; the head (the ball) is last. Age in fixed ticks. */
   private readonly samples: Array<{
@@ -92,10 +90,14 @@ class TrailRibbon {
   private readonly pos: THREE.BufferAttribute;
   private readonly rgba: THREE.BufferAttribute;
   private readonly color = new THREE.Color();
-  private body: RAPIER.RigidBody | null;
+  private readonly body: RAPIER.RigidBody;
+  private readonly bodyHandle: number;
+  /** True until first impact (or the body leaves the world). */
+  private feeding = true;
 
   constructor(body: RAPIER.RigidBody, colorHex: number, scene: THREE.Scene) {
     this.body = body;
+    this.bodyHandle = body.handle;
     this.color.setHex(colorHex);
     const max = TRAIL_WINDOW_TICKS + 1; // ages 0..WINDOW live at once
     this.geometry = new THREE.BufferGeometry();
@@ -125,30 +127,41 @@ class TrailRibbon {
     scene.add(this.mesh);
   }
 
-  /** One fixed tick: age the arc out the tail, sample the live body at the
-   * head (while it MOVES — see TRAIL_MIN_SPEED_SQ). */
+  /** One fixed tick: age the arc out the tail; while still in FLIGHT,
+   * sample the body at the head. Runs right after the world stepped, so
+   * on the impact tick the head sample IS the contact point — then halt()
+   * (called from the impact event) stops the feed for good. */
   tick(): void {
     for (const s of this.samples) s.age++;
     while (this.samples.length && this.samples[0]!.age > TRAIL_WINDOW_TICKS)
       this.samples.shift();
-    if (this.body && !this.body.isValid()) this.body = null;
-    if (!this.body) return;
-    const v = this.body.linvel();
-    if (v.x * v.x + v.y * v.y + v.z * v.z <= TRAIL_MIN_SPEED_SQ) return;
+    if (!this.feeding) return;
+    if (!this.body.isValid()) {
+      // Consumed glob or popped carrier — the body left mid-feed.
+      this.feeding = false;
+      return;
+    }
     const t = this.body.translation();
     this.samples.push({ x: t.x, y: t.y, z: t.z, age: 0 });
   }
 
-  /** Arc dissolved AND the body gone or at rest — the ribbon leaves the
-   * scene. Settled solids do NOT keep an idle ribbon against a future
-   * nudge: lobby test shots litter the floor forever (the rings lesson,
-   * plans/15 item 1), and an unbounded idle-mesh list is the same
-   * pile-up in scene-graph form. Lobs wear ribbons; litter doesn't. */
+  /** First contact (the impact event names this ribbon by body handle):
+   * the flight is over, the streak stops here — a landed topping may roll
+   * on, trail-less. */
+  halt(): void {
+    this.feeding = false;
+  }
+
+  isFor(bodyHandle: number): boolean {
+    return this.bodyHandle === bodyHandle;
+  }
+
+  /** Feed stopped AND the arc dissolved — the ribbon leaves the scene.
+   * Every lob impacts (or vanishes) eventually, so nothing idles: lobby
+   * test litter must not grow the scene without bound (the rings lesson,
+   * plans/15 item 1, found live at 159 idle ribbons). */
   get done(): boolean {
-    if (this.samples.length) return false;
-    if (!this.body) return true;
-    const v = this.body.linvel();
-    return v.x * v.x + v.y * v.y + v.z * v.z <= TRAIL_MIN_SPEED_SQ;
+    return !this.feeding && this.samples.length === 0;
   }
 
   /** Per frame: rebuild the strip facing the camera. Width and alpha fade
@@ -328,6 +341,12 @@ export class ShotsView {
    * — the slice-2 ruling; this view outlives the deal). */
   step(dessert: DessertGeometry, flash: (msg: string, ms?: number) => void): void {
     const ev = this.shots.step(this.world, dessert);
+    // Trails age and sample FIRST (the world just stepped, so an impact
+    // tick's head sample is the contact point); the impacts loop below
+    // then halts the landed ones, and the cull at the bottom sweeps the
+    // dissolved. The trail is the FLIGHT (ruling 2026-07-09): it stops at
+    // first contact even though the topping may roll on.
+    for (const tr of this.trails) tr.tick();
     // Bursts: the carrier's mesh leaves with its body (sync sweeps it);
     // every grain gets a confetti capsule. One flash for the whole pop.
     for (const b of ev.bursts) {
@@ -349,6 +368,9 @@ export class ShotsView {
     // same tick a grain grips under its footprint must bury it on NEITHER
     // side; only a strictly-LATER glob buries (the burial law's word).
     for (const im of ev.impacts) {
+      // First contact ends the flight — the lob's ribbon stops feeding
+      // (grains have no ribbon; find() simply misses).
+      this.trails.find((t) => t.isFor(im.bodyHandle))?.halt();
       // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
       // and 40 rings — the burst already told the story.
       if (im.grain) continue;
@@ -368,15 +390,11 @@ export class ShotsView {
     // stale burst visibly sticking to the fresh cake is accepted décor
     // (plans/10 §8), cleared with the next fresh deal.
     for (const st of ev.stuck) this.onStuck?.(st.topping, st.pos, st.normal);
-    // Trails ride the fixed tick AFTER the world stepped — the head sample
-    // is this tick's true position. A done ribbon (body gone, arc
-    // dissolved) leaves the scene here; no fresh-deal clearing needed,
-    // nothing outlives its 0.6s window.
+    // A done ribbon (feed halted, arc dissolved) leaves the scene; no
+    // fresh-deal clearing needed, nothing outlives its 0.6s window.
     for (let i = this.trails.length - 1; i >= 0; i--) {
-      const tr = this.trails[i]!;
-      tr.tick();
-      if (tr.done) {
-        tr.dispose();
+      if (this.trails[i]!.done) {
+        this.trails[i]!.dispose();
         this.trails.splice(i, 1);
       }
     }

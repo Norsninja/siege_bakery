@@ -130,7 +130,21 @@ numerically (accrete → cap 37 → dissolve → dispose); probe lesson
 recorded in memory: store COPIES in window probes, not references —
 a stored live sample aged to its terminal 37 before the read and
 faked a bug. EYE PASS: the visionary's own run — "the trails are
-beautiful."**
+beautiful."
+AMENDED 2026-07-09 (tenth session, visionary ruling): THE TRAIL IS
+THE FLIGHT — the metaphor is the streak a fast-moving shot draws, so
+the ribbon HALTS at FIRST CONTACT and dissolves while the topping may
+still visibly roll (before: it kept feeding until the body slowed
+under TRAIL_MIN_SPEED — a bouncing cherry wore its comet across the
+cake). core's Impact event grew `bodyHandle` (a plain number, the
+shape stays broadcastable; the Room ignores it — Settled already
+carried its whole body); ShotsView halts the matching ribbon in the
+impacts loop; the at-rest speed law retired — every lob impacts or
+vanishes, so nothing idles and the no-pile-up guarantee holds by
+construction. Pinned: the halt test replaced the settled-solid test
+1:1 (389 holds). Live: feeding true through flight (samples capped
+37), flipped false AT contact with the body still valid as litter,
+arc drained 36→5→disposed, zero page errors.**
 
 Rulings of the discussion (2026-07-09, visionary agreed):
 - RIBBON, not puffs and not a 1px line: a custom camera-facing triangle
@@ -192,7 +206,17 @@ legs. LIVE (worker-driven E-dispatch at the anchors): winch 2/10 big
 pointer-events none verified. Screenshots both panels; the deep eye
 pass rides the visionary's next run. Deferred from the discussion's
 slice list: flash-message center toasts (Vegas event celebration) —
-the next aesthetics slice, not this one.**
+the next aesthetics slice, not this one.
+AMENDED 2026-07-09 (tenth session, visionary-confirmed sighting):
+unwinding wore winding's costume — the painter rendered |fillPct|
+into the segment ABOVE the count in BOTH directions, so letting out
+read exactly like winding up. Now the sign picks the element: winding
+FILLS the next segment left-to-right (pink, as before); unwinding
+DRAINS the top lit segment right-to-left (.seg-drain — the panel's
+dark tint eating the cyan). Live-driven at the post: fill 38→82%
+under W with the drain dead; under S the fill pinned at 0% while the
+drain grew 11→29→47%. Rode along: the gunner's structural key shed
+its per-frame JSON.stringify (hand-rolled key, same rebuilds).**
 
 The original ask (kept for the record): at each post, that post's
 stats front and center — no corner-left glances. Winch: tension

@@ -69,6 +69,7 @@ const coveringImpact = {
   speed: 20,
   topping: "frosting",
   tag: 0,
+  bodyHandle: -1, // no ribbon to halt in the stub rigs
 };
 const grip = { pos: { ...G }, normal: { ...N }, topping: "sprinkles", tag: 0 };
 const empty: StepEvents = { impacts: [], settled: [], bursts: [], stuck: [] };
@@ -103,6 +104,7 @@ describe("landing rings: one per catapult (plans/15 item 1)", () => {
     speed: 20,
     topping: "frosting",
     tag: packShotTag(deal, town),
+    bodyHandle: -1, // no ribbon to halt in the stub rigs
   });
 
   it("the tag round-trips (deal, town) — and the fixtures' tag 0 IS deal 0, town 0", () => {
@@ -220,17 +222,26 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
     expect(trails(view).length).toBe(1); // the carrier's — and only ever the carrier's
   });
 
-  it("a settled solid's ribbon dissolves AND leaves — no idle pile-up (the rings lesson)", () => {
+  it("THE FLIGHT IS THE TRAIL (ruling 2026-07-09): a solid's ribbon HALTS at first impact, then dissolves — no idle pile-up (the rings lesson)", () => {
     const { view } = rig();
     view.spawn(lob("cherry"));
-    for (let i = 0; i < 5; i++) view.step(GEOM, noop);
-    const body = bodies(view)[0]!;
-    body.setLinvel({ x: 0, y: 0, z: 0 }, false);
-    body.sleep(); // the settled pose — under TRAIL_MIN_SPEED, honestly at rest
+    // Fly the real lob to its first contact (the flash speaks only there:
+    // a cherry has no burst, and its landing is the rig's only impact).
+    let impacted = false;
+    for (let i = 0; i < 600 && !impacted; i++)
+      view.step(GEOM, () => (impacted = true));
+    expect(impacted).toBe(true);
+    const atImpact = trails(view)[0]!.samples.length;
+    // The feed stopped AT contact: each further tick only ages the arc out
+    // — exactly one sample leaves the tail, none joins the head, even
+    // though the body may still be rolling.
+    view.step(GEOM, noop);
+    view.step(GEOM, noop);
+    expect(trails(view)[0]!.samples.length).toBe(atImpact - 2);
     for (let i = 0; i < TRAIL_WINDOW_TICKS + 2; i++) view.step(GEOM, noop);
     // The body lives on as floor litter; its ribbon must NOT idle beside it
     // forever — lobby test shots would grow the scene without bound.
-    expect(body.isValid()).toBe(true);
+    expect(bodies(view)[0]!.isValid()).toBe(true);
     expect(trails(view).length).toBe(0);
   });
 

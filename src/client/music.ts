@@ -23,6 +23,9 @@
  * namespace stays audited).
  */
 
+import type { OrderState } from "../game/order";
+import type { RunPhase } from "../game/run-flow";
+
 export type Mood = "order" | "lobby" | "linger" | "runover";
 
 /** Mood → playlist. Paths are public/ URLs (Vite copies them into dist/,
@@ -73,13 +76,14 @@ export function fadeStep(v: number, target: number, dtMs: number): number {
 }
 
 /** Which mood the match is in — pure off the broadcast state the HUD
- * already renders by. The finish-it window keeps the ORDER's music
+ * already renders by (the real unions, not strings — a typo'd caller is
+ * a compile error). The finish-it window keeps the ORDER's music
  * (status stays "running" — peak excitement is not an interlude);
  * won/lost during the linger is the interlude; countdown shares the
  * lobby's record. */
 export function deriveMood(
-  runPhase: string,
-  orderStatus: string,
+  runPhase: RunPhase,
+  orderStatus: OrderState["status"],
 ): Mood {
   if (runPhase === "running")
     return orderStatus === "running" ? "order" : "linger";

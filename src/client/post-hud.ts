@@ -47,9 +47,16 @@ const bucketHtml = (loaded: string | null): string =>
 const winchHtml = (p: WinchPanel): string => {
   const segs = Array.from({ length: p.max }, (_, i) => {
     const cls = i < p.clicks ? "seg on" : "seg";
-    // The boundary segment carries the live winding fill (in-place).
-    const fill = i === p.clicks ? `<i class="seg-fill"></i>` : "";
-    return `<span class="${cls}">${fill}</span>`;
+    // The segment ABOVE the count carries the live winding fill; the TOP
+    // LIT one carries the drain overlay — unwinding eats it right-to-left
+    // (both patched in place; the sign of fillPct picks which moves).
+    const inner =
+      i === p.clicks
+        ? `<i class="seg-fill"></i>`
+        : i === p.clicks - 1
+          ? `<i class="seg-drain"></i>`
+          : "";
+    return `<span class="${cls}">${inner}</span>`;
   }).join("");
   return (
     `<div class="pp-title">${esc(p.title)}</div>` +
@@ -100,7 +107,11 @@ export class PostHud {
     const key =
       panel.post === "winch"
         ? `w|${panel.clicks}|${panel.lastFired}`
-        : `g|${panel.tiltNotch}|${panel.loaded}|${JSON.stringify(panel.last)}`;
+        : `g|${panel.tiltNotch}|${panel.loaded}|${
+            panel.last === null
+              ? "-"
+              : `${panel.last.tensionClicks},${panel.last.traverseDeg},${panel.last.tiltNotch}`
+          }`;
     if (key !== this.key) {
       this.key = key;
       this.el.className = panel.post;
@@ -109,8 +120,15 @@ export class PostHud {
     }
     // In-place continuous updates — no rebuild, no pop.
     if (panel.post === "winch") {
+      // Signed fillPct (plans/14): winding FILLS the next segment left-to-
+      // right; unwinding DRAINS the top lit one right-to-left. Before the
+      // amendment (2026-07-09) both directions grew the fill — letting out
+      // read exactly like winding up.
+      const pct = `${Math.min(100, Math.abs(panel.fillPct))}%`;
       const fill = this.el.querySelector<HTMLElement>(".seg-fill");
-      if (fill) fill.style.width = `${Math.min(100, Math.abs(panel.fillPct))}%`;
+      const drain = this.el.querySelector<HTMLElement>(".seg-drain");
+      if (fill) fill.style.width = panel.fillPct > 0 ? pct : "0%";
+      if (drain) drain.style.width = panel.fillPct < 0 ? pct : "0%";
     } else {
       const trav = this.el.querySelector<HTMLElement>(".pp-trav");
       if (trav) trav.textContent = fmtDeg(panel.traverseDeg);

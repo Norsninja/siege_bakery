@@ -83,6 +83,11 @@ export interface Impact {
   topping: string;
   /** The spawn's generation tag, echoed back (see spawn opts). */
   tag: number;
+  /** The impacted body's handle — the client matches the lob's trail
+   * ribbon to it (the trail HALTS at first contact: the streak is the
+   * flight, never the roll — plans/15 item 4 ruling 2026-07-09). A plain
+   * number, so the shape stays broadcastable; the Room ignores it. */
+  bodyHandle: number;
   /** A burst payload grain landing — QUIET on the client (no flash, no
    * marker: 40 grains must not be 40 toasts), nothing for the Room (grains
    * score at rest like any solid). */
@@ -489,6 +494,7 @@ export class ProjectileManager {
           speed: shot.lastSpeed,
           topping: shot.topping,
           tag: shot.tag,
+          bodyHandle: shot.body.handle,
           ...(shot.grain ? { grain: true } : {}),
         });
         // Paint: the impact IS the landing — no absorption, no settle wait.
