@@ -88,45 +88,47 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
-THE TENTH SESSION (2026-07-10): tech debt paid + THE COMIC WORD —
-394 tests, both tsc legs, ending 55f25a4. THE REMOTE EXISTS:
-https://github.com/Norsninja/siege_bakery (origin/main; push after
-every commit batch). Standing ninth-session laws: THE VOLUME LAW —
-all volume math flows through music.fadeStep (pure, pinned;
-el.volume THROWS outside [0,1], the first rAF dt can be NEGATIVE,
-and a first-frame throw kills the rAF chain — never assign el.volume
-raw); POST_KEYS is THE ONE KEY TABLE (postOp reads it, panels render
-it, hud.test pins them EQUAL); jukebox songs are DROP-INS
-(public/audio is the COPY OF RECORD + one PLAYLISTS row;
-linger/runover rows await the visionary's compositions); BG_VOLUME
-0.35; M mute + #mute-btn (the ONE pointer-events overlay, BLURRED
-after click — Space winds the winch); item 9 boundary: NO pre-shot
-preview arc, ever. TENTH-SESSION LAWS: (1) THE TRAIL IS THE FLIGHT —
-ribbons HALT at first contact (core Impact.bodyHandle, a plain
-number so the event stays broadcastable; no speed thresholds; the
-streak is the flight, never the roll); (2) the winch unwind DRAINS
-the top lit segment right-to-left (the sign of fillPct picks
-.seg-fill vs .seg-drain — letting out must never wear winding's
-costume); (3) report-view.ts owns the banner/photo/linger DOM
-(hud.ts words it pure, bannerLatch decides edges; the carry-home
-teleport stays in main — baker movement is main's authority); (4)
-THE COMIC WORD (plans/15 item 13): SPLAT!/plop./POP! are
-world-anchored sprites at YOUR OWN town's impacts — NEVER screen
-toasts (the center of the screen is where people see what is going
-on); depth-test OFF so far-side landings announce over the cake's
-crest; grains silent; the corner line keeps the m/s record; spatial
-SFX will pair on the SAME impact events (plans/16's sound slice).
-THE LONE HERO stands (plans/13 §5 BUILT block). NEXT SESSION
-(visionary's stated plan): review the tenth's four commits, then
-discuss next steps — the candidates: plans/16 §6 open rulings, the
-semantic audit (item 12: strings speak BAKERY, never engine — the
-strongest pre-test slice), or rest until the WEEKEND friend test
-(plans/12, runbook current). Pending ear/eye passes: music
-volume/fades, winch coverage + the new drain, fudge chip, banner
-composition, lone-hero tag, comic-word size/timing at play
-distances, trail-halt-at-first-bounce feel. Standing ledger: items
-6/8 post-campaign; 7/9 recorded boundaries; item 11 (spotter tower)
-post-milestone design; audit tranche C post-friend-test
-(snapshot-encode hitch, litter growth); wind plan + Bite/integrity
-re-pin ownerless; cupcake hot-arrival + fudge-counts-toward-frost
-watches. Port map: research/01-port-gap-analysis.md.
+THE ELEVENTH SESSION (2026-07-10): lore + forge recorded, the
+semantic audit landed, the pipeline PROVEN, the giant ruled — seven
+commits ending e166c74, 397 tests, both tsc legs. NEW CANON:
+plans/17 THE LORE (giants are refugees of the fantasy wars; THE
+REALM PAYS — giants are guests; patrons still picky; not a metaphor,
+not bittersweet); plans/18 THE ORDER FORGE (post-milestone shape:
+patrons-with-taste x constructable desserts x authored envelope; the
+MEASURED-ATOMS LAW — the generator only asks what the census can
+count and only of measured desserts; DISCUSS before build). THE
+SEMANTIC AUDIT (item 12 DONE): the screen speaks bakery — PATRON N
+never RUNG N (the line-of-giants fiction stands), the run is the
+bakery's day (opens / CLOSING TIME / bake again), patrons fed never
+rungs cleared, "the realm pays +N coins"; code identifiers keep
+rung/run; artillery vocabulary exempt. PLANS/16 s6 RULED: distinct
+SPECIES in the line (re-tint overruled; ogre first); grumble-audio
+yes, VO never; first-person hands yes (slice 4 rider); name OPEN
+(only slice 8 blocks); HUD neon NOT canon (future warm re-skin
+sanctioned); THE GIANT 20+ M (graybox camera lineup; placement
+OUTSIDE the town walls leaning toward the table, the queue of
+patrons receding behind him — loom lives in lean and bulk as much
+as height). SLICE 1 BUILT: the SPRINKLES crate went Blender (MCP,
+localhost:9876) -> GLB -> loadModel seam -> beside town 0's pantry;
+CONVENTIONS OF RECORD in art bible s8 (1 BU = 1 m; front = -Y
+Blender = +Z three; origin at standing point; join-with-slots;
+text->mesh; project/blender/ source + public/models/ shipping;
+size=1 cube scale IS dims). THE LOADER SEAM (assets.ts): null is
+normal — headless/missing/broken all fall to primitive fallbacks;
+one fetch per name; core/game never import it. Standing prior laws
+hold: fadeStep volume law, POST_KEYS one table, drop-in jukebox
+(linger/runover rows still await compositions), BG_VOLUME 0.35, M
+mute + blurred #mute-btn, no preview arc ever, trail-is-the-flight,
+winch drain, report-view DOM split, comic word laws. NEXT SESSION
+(visionary's words): review the eleventh's commits, DISCUSS the
+next slice BEFORE any design or code edits, then model THE OGRE
+(slice 2: 20+ m, concept-art canon, one skinned mesh, three verdict
+poses + look-lean + breathing idle; silhouette judged in-game
+first). Friend test is a casual weekend visit (gift, not deadline);
+work resumes Sunday. Pending ear/eye passes (8): music volume/fades,
+winch coverage + drain, fudge chip, banner composition, lone-hero
+tag, comic-word size/timing, trail-halt feel, audit strings at
+speed. Standing ledger: items 6/8 post-campaign; 7/9 boundaries;
+11 post-milestone; audit tranche C post-friend-test; wind +
+Bite/integrity re-pin ownerless. Port map:
+research/01-port-gap-analysis.md.
