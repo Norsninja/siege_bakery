@@ -278,6 +278,15 @@ Learned driving the first one end to end:
   meshy road is for ORGANIC / STATIC subjects. Articulated mechanisms
   come out as fused 50 MB blobs with no part separation and no
   pivots — they walk §11's hand road instead.
+- **THE SHIPPING DIET (adopted 2026-07-11, after the friend test):**
+  every meshy GLB goes through `npm run diet -- <name>` before it
+  ships (scripts/model-diet.mjs): black emissive dropped (meshy packs
+  one on every export — measured, never assumed), baseColor/normal
+  capped 1024², metallicRoughness 512², JPEG q90 one-pass. The script
+  hard-fails if node/bone names change. Authoring keeps full res (the
+  .blend / the meshy account); only the shipping copy slims. The ogre
+  proved it: 9.62 → 2.46 MB with the grin, bib emblem, and choreography
+  intact. Hand-road GLBs don't need it (flat colors ship in KB).
 
 ## 11. THE HAND ROAD (articulated machines — conventions, proven 2026-07-11)
 

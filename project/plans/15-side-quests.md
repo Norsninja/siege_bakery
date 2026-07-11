@@ -451,7 +451,7 @@ the sound land as one announcement. Dials named in shots-view.ts:
 WORD_LIFE_TICKS, WORD_RISE_M, the two widths — the eye pass tunes
 them.**
 
-## 14. THE ASSET DIET — dist crossed the 25 MB alarm — SLICE DUE (unclaimed)
+## 14. THE ASSET DIET — dist crossed the 25 MB alarm — FIRST SERVING BUILT
 
 **Status: TRIGGERED 2026-07-11 (visionary's measurement, thirteenth
 session). plans/16 §4's law — "if dist crosses ~25MB, compression
@@ -461,6 +461,22 @@ the lifted roughness PNG compresses worse), dwarf.glb 4.4 MB, four
 MP3s at ~2.9 MB each. No build yet; recorded so the slice is claimed
 deliberately, BEFORE the cast grows (slice 3's line and the machine
 model are both incoming weight).**
+
+**FIRST SERVING 2026-07-11 (fourteenth session, after the friend test
+measured 15–30 s loads): menu item (a) built as a PIPELINE STEP, not
+per-asset surgery — `npm run diet -- <name>` (scripts/model-diet.mjs,
+gltf-transform + sharp): drops a measured-black emissive, baseColor +
+normal → 1024² (dwarf precedent), metallicRoughness → 512² (wall-ORM
+precedent), JPEG q90 in ONE re-encode pass, HARD-FAILS if node/bone
+names change (the drive vocabulary). ogre.glb 9.62 → 2.46 MB; decoded
+VRAM ~67 → ~13 MB. Quality auditioned in Blender face close-ups
+(slight skin-noise softening at framings gameplay never reaches) and
+the rig live-smoked (PatronBody binds, look-lean hits recipe offsets).
+dwarf.glb same pass: 4.42 → 1.15 MB (its emissive was black too);
+ghost dress live-smoked (dwarf_export at the upserted pose, feet drop
+−0.85). dist 29 → 19 MB — back under the alarm with headroom. Menu
+items (b) KTX2 / (c) Draco / (d) audio bitrate remain open — audio is
+now the heaviest block by far (11.3 MB of the 19).**
 
 The menu for the slice, in expected-yield order: (a) texture resize —
 the meshy GLBs pack AI-generated textures; the dwarf already ships at

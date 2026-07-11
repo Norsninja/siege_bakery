@@ -9,7 +9,8 @@
     "build": "tsc && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "tsc --noEmit && tsc -p tsconfig.headless.json && vitest run"
+    "check": "tsc --noEmit && tsc -p tsconfig.headless.json && vitest run",
+    "diet": "node scripts/model-diet.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
@@ -17,6 +18,7 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.4.1",
     "@types/node": "^26.1.0",
     "@types/three": "^0.185.0",
     "@types/ws": "^8.18.1",
