@@ -450,3 +450,26 @@ slice should hook the splat/pop sounds exactly here, so the word and
 the sound land as one announcement. Dials named in shots-view.ts:
 WORD_LIFE_TICKS, WORD_RISE_M, the two widths — the eye pass tunes
 them.**
+
+## 14. THE ASSET DIET — dist crossed the 25 MB alarm — SLICE DUE (unclaimed)
+
+**Status: TRIGGERED 2026-07-11 (visionary's measurement, thirteenth
+session). plans/16 §4's law — "if dist crosses ~25MB, compression
+becomes a slice, not a shrug" — has fired: dist/ measures 27.9 MB.
+The weight: ogre.glb 8.8 MB (9.6 after the same-session shiny fix —
+the lifted roughness PNG compresses worse), dwarf.glb 4.4 MB, four
+MP3s at ~2.9 MB each. No build yet; recorded so the slice is claimed
+deliberately, BEFORE the cast grows (slice 3's line and the machine
+model are both incoming weight).**
+
+The menu for the slice, in expected-yield order: (a) texture resize —
+the meshy GLBs pack AI-generated textures; the dwarf already ships at
+1024² (halved in import, art bible §10), the ogre likely ships larger
+— re-export cheap; (b) KTX2/Basis texture compression and (c) Draco
+mesh compression — real pipeline work, loader changes ride the seam;
+(d) audio bitrate — the MP3s are the visionary's compositions,
+re-export at a leaner bitrate with his ear on the result. Partial
+relief landed same session: the dwarf now lazy-loads on the first
+remote ghost (solo boot never fetches it), but the wire weight
+itself is untouched. The budget law stays plans/16 §4's; this item
+is its claim line.

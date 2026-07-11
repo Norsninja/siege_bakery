@@ -44,6 +44,11 @@ const MIME: Record<string, string> = {
   ".css": "text/css",
   ".wasm": "application/wasm",
   ".svg": "image/svg+xml",
+  // The asset cast (plans/16): explicit types beat octet-stream sniffing
+  // through a tunnel — GLB fetches and MP3 range plays must not depend
+  // on browser generosity (friend-test note 2026-07-11).
+  ".glb": "model/gltf-binary",
+  ".mp3": "audio/mpeg",
 };
 
 /** It's a party game for a handful of friends; a join flood is not a party. */

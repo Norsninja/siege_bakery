@@ -49,10 +49,17 @@ interface Ghost {
 export class GhostManager {
   private readonly ghosts = new Map<number, Ghost>();
   private dwarfTemplate: THREE.Group | null = null;
+  private dwarfRequested = false;
 
-  constructor(private readonly scene: THREE.Scene) {
-    // Fire-and-forget through the seam: null (headless/missing/broken)
-    // simply leaves every ghost a capsule — a normal Tuesday.
+  constructor(private readonly scene: THREE.Scene) {}
+
+  /** LAZY through the seam, on the first ghost (budget note 2026-07-11):
+   * a solo boot never fetches the 4.4 MB dwarf — remote players are the
+   * only wearers. Fire-and-forget: null (headless/missing/broken) simply
+   * leaves every ghost a capsule — a normal Tuesday. */
+  private requestDwarf(): void {
+    if (this.dwarfRequested) return;
+    this.dwarfRequested = true;
     void loadModel("dwarf").then((m) => {
       if (!m) return;
       this.dwarfTemplate = m;
@@ -79,6 +86,7 @@ export class GhostManager {
   }
 
   upsert(pose: PlayerPose): void {
+    this.requestDwarf();
     const existing = this.ghosts.get(pose.id);
     if (existing) {
       existing.target = pose;
