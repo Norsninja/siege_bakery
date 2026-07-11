@@ -134,6 +134,26 @@ the meshy pivot does NOT change: the brain's broadcasts are the same.
 Ruling-1 consequence: distinct species went from expensive to a
 weekend — the line (slice 3) is suddenly cheap to cast.**
 
+**SECOND ACT BUILT 2026-07-11 — THE RIG AND THE BREATH. The blessed
+(non-T-pose) ogre rigged anyway: a stationary reactor needs spine/head
+theatre, not locomotion, and the bind pose only closes doors we never
+open (big arm sweeps). 10 bones (root/spine/chest/head + arm chains,
+NO leg bones — his feet never move), auto weights on the decimated
+58k, all four moves auditioned clean in Blender renders (ogre-rig.blend
+holds the rig live): look-lean (spine x+14°, head x+8° z+25°),
+DELIGHTED (chest x−10°, head x−18°, arms x−40° z∓15°), REFUSED (spine
+z+28°, chest x−6° z+10°, head x−14° z+18°), HUNGRY (spine x+16°, chest
+x+10°, head x+24°, arms x+18°) — the pose recipes of record for the
+choreography act. Face never changes (grin is texture-baked): verdicts
+are BODY theatre. GLB re-exported with the skin LIVE (8.4 MB);
+client/patron-body.ts drives bones — breathing idle shipped (chest
+heave + lagged head nod, frame-driven), verified live at ±0.015 rad
+about rest. LAW LEARNED IN BLOOD: glTF bones carry REST rotations in
+their node transforms — every drive is an OFFSET from captured rest,
+never an overwrite (the first breath bent him at the waist).
+REMAINING: choreography (look-lean on `patron` messages, verdict poses
+on order end, arrival during linger) — PatronBody is built to host it.**
+
 The giant from the concept art, at the table, LOOMING — scaled per
 the art bible chart, framed so he reads in every gameplay screenshot.
 Choreography keyed ENTIRELY off existing client knowledge:

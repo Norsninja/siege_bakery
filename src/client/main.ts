@@ -44,6 +44,7 @@ import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
 import { loadModel } from "./assets";
+import { PatronBody } from "./patron-body";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
@@ -113,16 +114,19 @@ async function main(): Promise<void> {
     scene.add(crate);
   });
 
-  // THE OGRE SILHOUETTE (plans/16 slice 2, first act): the ruled patron
-  // graybox — 20+ m, OUTSIDE the walls on the cake row, perpendicular to
-  // the pantry↔pantry axis, leaning toward the table (e166c74). Decor
-  // like the crate: no collider, null-safe. Front = glTF +Z; yaw −π/2
-  // turns him to face the cake at (0, −30) from his +x post.
+  // THE OGRE (plans/16 slice 2): the patron at his ruled post — 20+ m,
+  // OUTSIDE the walls on the cake row, perpendicular to the pantry↔pantry
+  // axis, leaning toward the table (e166c74). No collider, null-safe.
+  // Front = glTF +Z; yaw −π/2 turns him to face the cake at (0, −30)
+  // from his +x post. The GLB carries a live skin; PatronBody breathes
+  // through it (and hosts the look-lean + verdict acts to come).
+  let patronBody: PatronBody | null = null;
   void loadModel("ogre").then((ogre) => {
     if (!ogre) return;
     ogre.position.set(21, 0, -30);
     ogre.rotation.y = -Math.PI / 2;
     scene.add(ogre);
+    patronBody = new PatronBody(ogre);
   });
 
   const hud = document.getElementById("hud");
@@ -529,6 +533,7 @@ async function main(): Promise<void> {
       );
 
     ghosts.update();
+    patronBody?.update();
     shotsView.sync(camera);
     // The portcullis panel shows exactly while its fence is shut — the
     // fence must never be an invisible wall.
@@ -615,6 +620,7 @@ async function main(): Promise<void> {
       },
       getGhosts: () => ghosts.ids(),
       ghosts,
+      getPatronBody: () => patronBody,
       getNetStatus: () => view.netStatus,
       getMyId: () => view.myId,
       setDebugInput: (i: BakerInput | null) => {
