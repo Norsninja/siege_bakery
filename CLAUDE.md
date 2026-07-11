@@ -88,47 +88,48 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
-THE TWELFTH SESSION (2026-07-10/11): THE MESHY PIVOT — four commits
-ending 10098bb, 397 tests, both tsc legs, dist rebuilt. meshy.ai
-(playtest friend's tip) generates near-canon textured models; the
-conventions are ART BIBLE s10 (import audit: origin at feet, front
--Y, SCALE BY ARITHMETIC target/source; decimate LIVE ~0.1; GLB is
-the copy of record for AI assets — heavy import .blends untracked,
-*.blend1 gitignored; license tier check OPEN). SLICE 2 TWO ACTS
-BUILT: the ogre (578k->58k, 21 m) stands at (21, 0, -30) — outside
-the walls, cake row, facing the table — BLESSED "a pro asset";
-rigged WITHOUT a T-pose (10 bones, NO legs, auto weights; verdicts
-are BODY theatre — the grin is texture-baked); skin ships LIVE in
-ogre.glb (8.4 MB); patron-body.ts breathes (chest +/-0.015 rad about
-rest). REST-OFFSET LAW: glTF bones carry rest rotations — drive as
-offset from captured rest, NEVER overwrite. Pose recipes of record
-in plans/16 slice 2 status. SLICE 4 FIRST ACT: dwarf from the
-turnaround sheet IN T-POSE (24k tris, 1.2 m authored), 13-bone rig
-posed T->CARRY, baked static (dwarf.glb); ghosts.ts dresses remote
-players — capsule fallback forever, clones share template resources
-(remove WITHOUT dispose), naive bob+rock walk; ghost visual scales
-to the SIM capsule (DWARF_VISUAL_SCALE from core constants — sim is
-the truth; eyeline residual PARKED). Rig sources: ogre-rig.blend +
-dwarf-rig.blend (live armatures, tracked). Stale-dist gotcha: the
-5175 server page serves the last npm run build. The eleventh's canon
-stands: plans/17 LORE, plans/18 FORGE (discuss-before-build), the
-semantic audit, s6 rulings (species line, grumble yes, hands yes,
-name OPEN, giant 20+ m), art bible s8 pipeline conventions, loader
-seam. Standing prior laws hold: fadeStep volume law, POST_KEYS one
-table, drop-in jukebox (linger/runover rows await compositions),
-BG_VOLUME 0.35, M mute + blurred #mute-btn, no preview arc ever,
-trail-is-the-flight, winch drain, report-view DOM split, comic word
-laws. NEXT SESSION (visionary's words): continue THE OGRE before
-the weekend friend test — the CHOREOGRAPHY ACT (pure code:
-look-lean on patron messages, verdict poses on order end, relax
-through the linger; patron-body.ts hosts it, recipes in plans/16);
-then the shiny fix (ogre reads too glossy) and the pane-open
-capture. THE MACHINE model needs a design discussion before any
-build (articulated MachineRig vs one mesh). Pending ear/eye passes
-(8): music volume/fades,
-winch coverage + drain, fudge chip, banner composition, lone-hero
-tag, comic-word size/timing, trail-halt feel, audit strings at
-speed. Standing ledger: items 6/8 post-campaign; 7/9 boundaries;
-11 post-milestone; audit tranche C post-friend-test; wind +
-Bite/integrity re-pin ownerless. Port map:
-research/01-port-gap-analysis.md.
+THE THIRTEENTH SESSION (2026-07-11): THE OGRE ACTS + THE MACHINE
+DRESSES — six commits ending df29a7d, 410 tests, both tsc legs, dist
+rebuilt (29.3 MB — plans/15 item 14 THE ASSET DIET is a due slice).
+SLICE 2 THIRD ACT LIVE + PLAYTESTED: patron-body.ts hosts the
+choreography state machine — look-lean on a fresh patron seq (~2.5s),
+verdict snap-and-hold on order end (banner's two-gate read), relax
+through the linger, breathing additive; the seam POLLS view state
+(main.ts passes lastPatron.seq + verdict — async load and mid-banner
+joiners recover; a nag NEVER yanks a verdict). Head-turn audited:
+clean to 50°, his knife is the ceiling (~55°); HEAD_TURN_MAX_RAD 35°,
+lean turn 20° tunable. LAW: GLTFLoader SANITIZES node names (dots
+stripped — upper_armL); no dots in rig bones. Shiny FIXED (roughness
+G lifted 1-(1-G)*0.45, pattern in art bible s10; ogre.glb 9.6 MB).
+SLICE 4.5 THE MACHINE, whole arc in one session: meshy FAILED the
+turnaround (THE MESHY BOUNDARY, s10 — organic/static only); the HAND
+ROAD (art bible s11 NEW) built catapult.blend on the sim's exact
+pivot scaffold, three visionary rounds (GIMBAL BASKET — dish
+counter-rotates -(tilt+arm), level in the world, cradles the topping;
+LAUNCH PARITY — seat sweeps 1.32-1.89 m around the sim's 1.2 m spawn,
+ballistics.ts untouchable; swing clearance SWEPT numerically, 7.5 cm
+min). catapult.glb 520 KB; MachineRig gained DRIVE NODES (greybox =
+default, the fallback IS the machine) + dress() (clone per rig, abort
+on any missing named node); bucket raycast proxy + topping reparent
+into the dish (Raycaster ignores visibility — deliberate). MACHINES
+AUTHOR NOSE = +Y BLENDER (1:1 into machine space; the character -Y
+convention + pi yaw MIRRORS the wheel across the posts); articulated
+nodes export at ZERO rotation. Winch post moved mid-flank (1.5, 0.15)
+on the visionary's eye pass. Verify POSITIONS, never renders (renders
+lied 3x: cameras, half-size cubes — scale IS the dimension on a
+size=1 primitive — and the group-space parenting slip). MIME .glb/
+.mp3 explicit (long-running servers need ONE restart for headers);
+dwarf lazy-loads on first ghost. Standing prior canon holds: meshy
+road s10, rest-offset law, shared-clone law, sim-is-truth scaling,
+plans/17 LORE, plans/18 FORGE, semantic audit, s6 rulings, fadeStep,
+POST_KEYS/POST_SPOTS one-table, drop-in jukebox (linger/runover rows
+await compositions), no preview arc, trail-is-the-flight, comic word
+laws. NEXT SESSION (visionary's words): replace remaining greybox
+with models (crates, stall, pennant — the cake stays slice 5), then
+THE FRIEND TEST TUNNEL from his PC (no laptop): build + room server
+5175 + a websocket-carrying tunnel (cloudflared quick tunnel first
+try), friend joins by URL, served page auto-joins. Pending: capture
+(pane open once), meshy license, asset diet, ear/eye passes (8).
+Standing ledger: items 6/8 post-campaign; 7/9 boundaries; 11
+post-milestone; audit tranche C post-friend-test; wind + Bite re-pin
+ownerless. Port map: research/01-port-gap-analysis.md.
