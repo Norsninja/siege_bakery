@@ -614,6 +614,7 @@ async function main(): Promise<void> {
         view.carrying = t;
       },
       getGhosts: () => ghosts.ids(),
+      ghosts,
       getNetStatus: () => view.netStatus,
       getMyId: () => view.myId,
       setDebugInput: (i: BakerInput | null) => {

@@ -163,6 +163,28 @@ still waiting.
 
 ### Slice 4 — BAKERS EMBODIED
 
+**Status: FIRST ACT BUILT 2026-07-10 (twelfth session, riding the
+meshy road the ogre proved same-day): the dwarf generated from the
+turnaround sheet in T-POSE (the pose that makes rigging possible),
+audited per art bible §10, decimated 692k→24k tris, textures halved
+to 1024², scaled to 1.2 m, GROUNDED (the import floated 0.3 m).
+Rigged with a minimal 13-bone armature + auto weights
+(project/blender/dwarf-rig.blend, the hand-authored source of
+record), posed from T into a CARRY stance (hands forward at belly
+height, palms up — ready to receive a topping), baked static, and
+shipped as dwarf.glb (4.2 MB). GHOSTS DRESSED: ghosts.ts swaps the
+remote-player capsule for a dwarf clone through the seam — capsule
+fallback forever (headless/missing keeps it); clones share the
+template's geometry/materials so removal never disposes them; naive
+walk = bob + rock, frame-driven, dressed bodies only. Verified
+structurally in the hidden tab (feet drop −0.85, yaw π, lerp, rock);
+the LIVE eye pass needs two clients (ws server + second tab) — the
+visionary's run. REMAINING: first-person hands (the §6.3 rider);
+carried-topping-in-hands for OTHERS needs wire archaeology (PlayerPose
+carries no held item — find what broadcasts pickups before designing);
+per-player identity (all dwarves are twins today — tint/prop swap
+question, ruling territory).**
+
 A four-angle TURNAROUND SHEET exists (`project/concept/
 dwarf_four_angles.png` — front/back T-pose + profiles, the exact
 format Blender orthographic reference images want; art bible §9 for

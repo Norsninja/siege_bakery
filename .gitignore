@@ -16,6 +16,7 @@ project/files/audio/
 # public/models/*.glb is the copy of record for AI assets; only hand-authored
 # .blends stay "small and curated" in project/blender/.
 project/blender/Meshy_Ogre.blend
+project/blender/Meshy_Dwarf.blend
 project/blender/Ogre_textured.blend
 project/blender/Wynne_Ogre.blend
 project/blender/ogre_turnaround.blend
