@@ -128,7 +128,8 @@ style, startlingly on-canon — and the visionary blessed it in-game as
 export through the seam; ogre.glb 7.75 MB (textures dominate).
 Conventions in art bible §10. REMAINING in slice 2: the committed
 capture (pending an open pane); the SHINY fix (visionary's own note —
-material/roughness pass, later); the rig — three verdict poses +
+DONE 2026-07-11, roughness channel lifted, art bible §10 records the
+pattern; eye pass pending); the rig — three verdict poses +
 look-lean + breathing idle — and the choreography wiring below, which
 the meshy pivot does NOT change: the brain's broadcasts are the same.
 Ruling-1 consequence: distinct species went from expensive to a
@@ -153,6 +154,34 @@ their node transforms — every drive is an OFFSET from captured rest,
 never an overwrite (the first breath bent him at the waist).
 REMAINING: choreography (look-lean on `patron` messages, verdict poses
 on order end, arrival during linger) — PatronBody is built to host it.**
+
+**THIRD ACT BUILT 2026-07-11 (thirteenth session) — THE CHOREOGRAPHY.
+Pure code, zero Blender edits, scope guard held (no new messages, no
+game/ changes). patron-body.ts hosts the state machine: look-lean when
+a fresh `patron` line lands (~2.5s hold, eased), verdict snap-and-hold
+when the order ends (~4s at a fast lerp that reads as a snap), then
+RELAX THROUGH THE LINGER — the banner stays, the body eases home; the
+breathing idle rides ADDITIVELY under every pose. The seam is POLLING,
+not NetFx events: main.ts passes view.lastPatron?.seq + view.verdict
+each frame, so the async-loaded ogre and mid-banner joiners recover
+state that events would have missed; a stale seq is adopted silently on
+first update (no replayed nag), and a patron line during a verdict is
+adopted, never acted on (visionary ruling: nothing yanks him out of
+DELIGHTED). Verdict classification is the banner's exact two-gate read.
+THE HEAD TURN (visionary's question, auditioned in Blender renders same
+session): the ogre has no neck — deformation stays clean through 50° of
+head-Y twist; the true ceiling is his own raised knife at the chin past
+~55°. HEAD_TURN_MAX_RAD = 35° pinned in code; the look-lean gained a
+20° turn ingredient (LOOK_TURN_RAD, one-constant tunable — sign +Y =
+his right/knife side; flip on the eye pass if it reads wrong). LAW
+FOUND LIVE: GLTFLoader SANITIZES node names for PropertyBinding —
+Blender's `upper_arm.L` arrives as `upper_armL`; dotted names silently
+drove nothing. Pinned: patron-body.test.ts (9 — real bone hierarchy,
+scene.test.ts culture; rest-offset law on all three axes). Live-smoked
+against the real skeleton: every pose hits recipe offsets, mirrored
+arms, relax to zero, chest still breathing. 406 tests. REMAINING in
+slice 2: eye pass (turn sign/size, hold timings), committed capture,
+arrival-during-linger beat (needs the line, slice 3 territory).**
 
 The giant from the concept art, at the table, LOOMING — scaled per
 the art bible chart, framed so he reads in every gameplay screenshot.

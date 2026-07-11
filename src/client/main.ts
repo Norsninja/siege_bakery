@@ -533,7 +533,9 @@ async function main(): Promise<void> {
       );
 
     ghosts.update();
-    patronBody?.update();
+    // The choreography polls view state (async load + mid-banner joiners
+    // recover; NetFx events would miss both — patron-body.ts header).
+    patronBody?.update(view.lastPatron?.seq ?? null, view.verdict);
     shotsView.sync(camera);
     // The portcullis panel shows exactly while its fence is shut — the
     // fence must never be an invisible wall.
