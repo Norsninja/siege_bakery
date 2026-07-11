@@ -8,7 +8,8 @@ describe("postAnchors", () => {
     const a = postAnchors({ x: 0, y: 1, z: -12 }, 0);
     expect(a).toEqual([
       { post: "gunner", x: -1, z: -10.4, r: 0.6 },
-      { post: "winch", x: 1.5, z: -12.55, r: 1.2 },
+      // Mid-flank beside the drum's crank (eye pass 2026-07-11).
+      { post: "winch", x: 1.5, z: -11.85, r: 1.2 },
     ]);
   });
 
@@ -20,7 +21,7 @@ describe("postAnchors", () => {
     expect(gunner.x).toBeCloseTo(1, 10);
     expect(gunner.z).toBeCloseTo(-49.6, 10);
     expect(winch.x).toBeCloseTo(-1.5, 10);
-    expect(winch.z).toBeCloseTo(-47.45, 10);
+    expect(winch.z).toBeCloseTo(-48.15, 10);
   });
 });
 

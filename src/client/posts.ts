@@ -52,7 +52,10 @@ export const POST_SPOTS: readonly {
   // sightline, so the spot came out. The wheel lives on the left
   // anyway; the gunner works from the wheel side.
   { post: "gunner", x: -1.0, z: 1.6, r: 0.6 },
-  { post: "winch", x: 1.5, z: -0.55, r: 1.2 },
+  // Mid-flank beside the dressed drum's crank (visionary eye pass
+  // 2026-07-11: the old front-right spot read "over the wall" once the
+  // catapult.glb body landed — the drum lives at machine z +0.15).
+  { post: "winch", x: 1.5, z: 0.15, r: 1.2 },
 ];
 
 export interface PostAnchor {
