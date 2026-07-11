@@ -34,6 +34,7 @@ import {
   TILT_MAX_NOTCH,
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
+import { loadModel } from "./assets";
 import { MACHINE_CONTROL_KINDS, type InteractableKind } from "./hud";
 import { POST_SPOTS } from "./posts";
 
@@ -111,6 +112,7 @@ export class MachineRig {
   readonly group: THREE.Group; // yaw (traverse) only
   private readonly tiltFrame: THREE.Group;
   private readonly armPivot: THREE.Group;
+  private readonly screwGroup: THREE.Group;
   readonly bucketMesh: THREE.Mesh;
   readonly toppingMesh: THREE.Mesh;
   readonly wheelMesh: THREE.Mesh;
@@ -120,6 +122,24 @@ export class MachineRig {
   readonly leverKnob: THREE.Mesh;
   readonly screwPost: THREE.Mesh;
   readonly screwHandle: THREE.Mesh;
+  /** THE DRIVE NODES — update() speaks only to these. They start as the
+   * greybox parts (fallback law: no model, same machine as ever) and
+   * dress() re-points them at the catapult.glb nodes; the update math is
+   * identical either way because the model is AUTHORED on the sim's
+   * pivot scaffold (catapult.blend: same pivots, same rest dimensions). */
+  private tiltNode: THREE.Object3D;
+  private armNode: THREE.Object3D;
+  private drumNode: THREE.Object3D;
+  private postNode: THREE.Object3D;
+  private handleNode: THREE.Object3D;
+  /** THE GIMBAL BASKET (visionary ruling 2026-07-11): the model's dish
+   * hangs on its own hinge; update() counter-rotates it against tilt +
+   * arm so the bowl stays LEVEL IN THE WORLD and visibly cradles the
+   * topping at every tension. Greybox has no hinge — null keeps it off. */
+  private scoopNode: THREE.Object3D | null = null;
+  /** The jack handle's authored rest height — greybox 0.62, model 0.66;
+   * captured so the postScale reposition works for either body. */
+  private handleRestY = 0.62;
   private lastTiltNotch = 0;
   private totalCrankSpins = 0; // visual-only: winch drum angle
   private lastCrankTicks = 0;
@@ -214,8 +234,60 @@ export class MachineRig {
     const screwGroup = new THREE.Group();
     screwGroup.position.set(-0.55, 0, -0.75);
     this.group.add(screwGroup);
+    this.screwGroup = screwGroup;
     this.screwPost = box(0.1, 0.6, 0.1, 0x5a5a66, 0, 0.3, 0, screwGroup);
     this.screwHandle = box(0.4, 0.06, 0.06, 0x8a6b3d, 0, 0.62, 0, screwGroup);
+
+    // Drive nodes start greybox (the fallback IS the machine until — and
+    // unless — catapult.glb dresses it).
+    this.tiltNode = this.tiltFrame;
+    this.armNode = this.armPivot;
+    this.drumNode = this.drumMesh;
+    this.postNode = this.screwPost;
+    this.handleNode = this.screwHandle;
+  }
+
+  /**
+   * THE MACHINE DRESSES (plans/16, the hand road): swap the greybox for
+   * the catapult.glb body. The model is authored ON the sim's pivot
+   * scaffold with NOSE = +Y Blender (art bible: machines map 1:1 into
+   * rig space — no runtime flip, no mirror), so update()'s absolute
+   * rotations drive its named nodes unchanged. Clones share the cached
+   * template's geometry/materials (the ghosts' law: never dispose).
+   * Any missing node aborts — greybox forever (assetless-boot law).
+   */
+  dress(template: THREE.Object3D): void {
+    const model = template.clone();
+    const tilt = model.getObjectByName("tilt_frame");
+    const arm = model.getObjectByName("arm_pivot");
+    const scoop = model.getObjectByName("scoop_pivot");
+    const drum = model.getObjectByName("winch_drum");
+    const post = model.getObjectByName("screw_post");
+    const handle = model.getObjectByName("screw_handle");
+    if (!tilt || !arm || !scoop || !drum || !post || !handle) return;
+    // The greybox retires by VISIBILITY, never disposal — it is the
+    // standing fallback and the raycast proxies live on.
+    this.tiltFrame.visible = false;
+    this.screwGroup.visible = false;
+    // The bucket is the one machine part still on the crosshair (walk-up
+    // load): its raycast proxy and the topping visual move INTO the dish
+    // so the aim point rides the arm honestly. Raycaster ignores
+    // visibility — the invisible proxy still catches the crosshair.
+    const seatY = model.getObjectByName("topping_seat")?.position.y ?? 0.2;
+    scoop.add(this.toppingMesh);
+    this.toppingMesh.position.set(0, seatY, 0);
+    scoop.add(this.bucketMesh);
+    this.bucketMesh.position.set(0, seatY - 0.12, 0);
+    this.bucketMesh.visible = false;
+    // Re-point the drives; update() carries on with the same math.
+    this.tiltNode = tilt;
+    this.armNode = arm;
+    this.scoopNode = scoop;
+    this.drumNode = drum;
+    this.postNode = post;
+    this.handleNode = handle;
+    this.handleRestY = handle.position.y;
+    this.group.add(model);
   }
 
   /** Per-frame animation from THIS town's machine state. `clunk` fires
@@ -236,13 +308,13 @@ export class MachineRig {
       ),
     );
     const tiltRad = (tiltDeg * Math.PI) / 180;
-    this.tiltFrame.rotation.x = tiltRad;
+    this.tiltNode.rotation.x = tiltRad;
     const noseLift = 1.45 * Math.sin(tiltRad); // nose height at the screw
     const postScale = (0.6 + noseLift) / 0.6;
-    this.screwPost.scale.y = postScale;
-    this.screwPost.position.y = 0.3 * postScale;
-    this.screwHandle.position.y = 0.6 * postScale + 0.02;
-    this.screwHandle.rotation.y = tm.screwTicks * 0.3; // the jack handle works
+    this.postNode.scale.y = postScale;
+    this.postNode.position.y = 0.3 * postScale;
+    this.handleNode.position.y = this.handleRestY * postScale + 0.02;
+    this.handleNode.rotation.y = tm.screwTicks * 0.3; // the jack handle works
     if (tm.machine.tiltNotch !== this.lastTiltNotch) {
       clunk(tm.machine.tiltNotch);
       this.lastTiltNotch = tm.machine.tiltNotch;
@@ -250,12 +322,17 @@ export class MachineRig {
     const tensionFrac =
       (tm.machine.tensionClicks + tm.crankTicks / CRANK_TICKS_PER_CLICK) /
       TENSION_MAX_CLICKS;
-    this.armPivot.rotation.x = 0.5 + tensionFrac * 0.7; // arm winches down and back
+    const armRad = 0.5 + tensionFrac * 0.7; // arm winches down and back
+    this.armNode.rotation.x = armRad;
+    // The gimbal basket hangs level IN THE WORLD: counter the whole
+    // pitch chain (frame tilt + arm) so the dish cradles the topping at
+    // every tension (visionary ruling 2026-07-11).
+    if (this.scoopNode) this.scoopNode.rotation.x = -(tiltRad + armRad);
     if (tm.crankTicks !== this.lastCrankTicks) {
       this.totalCrankSpins += 1;
       this.lastCrankTicks = tm.crankTicks;
     }
-    this.drumMesh.rotation.x = this.totalCrankSpins * 0.05;
+    this.drumNode.rotation.x = this.totalCrankSpins * 0.05;
     this.toppingMesh.visible = tm.machine.loaded !== null;
     if (tm.machine.loaded !== null)
       (this.toppingMesh.material as THREE.MeshStandardMaterial).color.setHex(
@@ -273,7 +350,7 @@ export class MachineRig {
    * arc is real ballistics, so a frame that tilted differently would
    * teach the machine wrong. */
   get shownTiltRad(): number {
-    return this.tiltFrame.rotation.x;
+    return this.tiltNode.rotation.x;
   }
 }
 
@@ -377,6 +454,12 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // 180° rotation flips local offsets by `s`, so each crew's "left is
   // left" holds for the furniture too (plans/11 §3).
   const rigs: MachineRig[] = [];
+  // THE MACHINE DRESSES (plans/16, the hand road): one fetch through the
+  // seam, every rig clones the template. Null (headless/missing/broken)
+  // leaves the greybox machines — a normal Tuesday.
+  void loadModel("catapult").then((t) => {
+    if (t) for (const rig of rigs) rig.dress(t);
+  });
   const townInteractables: Array<Record<InteractableKind, THREE.Mesh[]>> = [];
   for (let ti = 0; ti < TOWNS.length; ti++) {
     const t = TOWNS[ti]!;

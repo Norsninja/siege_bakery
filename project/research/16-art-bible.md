@@ -274,3 +274,41 @@ Learned driving the first one end to end:
   live 2026-07-11: the dotted names in patron-body.ts silently drove
   nothing). Client code speaks the SANITIZED name; prefer dot-free
   bone names in future rigs so the .blend and the runtime agree.
+- **THE MESHY BOUNDARY (learned on the catapult, 2026-07-11):** the
+  meshy road is for ORGANIC / STATIC subjects. Articulated mechanisms
+  come out as fused 50 MB blobs with no part separation and no
+  pivots — they walk §11's hand road instead.
+
+## 11. THE HAND ROAD (articulated machines — conventions, proven 2026-07-11)
+
+The catapult proved the second pipeline: hand-built primitives in
+Blender ON THE SIM'S PIVOT SCAFFOLD, exported with named nodes, rebound
+at runtime. Binding conventions:
+
+- **The pivot scaffold comes first.** Empties at the exact hinge points
+  the client rig drives (scene.ts is the brief, concept art is the
+  costume): the machine's tilt_frame / arm_pivot / scoop_pivot /
+  winch_drum / screw_post / screw_handle names ARE the rebind
+  vocabulary — MachineRig.dress() finds them by name and re-points its
+  drive nodes; any missing name aborts to the greybox (fallback law).
+- **MACHINES AUTHOR NOSE = +Y BLENDER** (unlike characters' −Y): the
+  exporter's axis map then lands the model 1:1 in machine space (nose
+  −Z, x unmirrored) with NO runtime flip. The character convention +
+  a π yaw MIRRORS left/right — the wheel crosses to the wrong post.
+- **Articulated nodes export at ZERO rotation** — the runtime drives
+  ABSOLUTE rotations (greybox contract), not offsets. Pose the .blend
+  for viewing AFTER export; zero again before the next export.
+- **Sim-parity is measured, not eyeballed:** the launch origin
+  (ballistics.ts, 1.2 m) must sit inside the dish's tension sweep; the
+  counterweight's arc is SWEPT numerically against every deck member
+  (≥5 cm clearance); interactable props sit at the greybox coordinates
+  the crew posts expect. Verify positions, not renders — the renders
+  lied twice (camera distortion, then half-size boxes).
+- **THE GIMBAL BASKET:** the dish hangs on scoop_pivot; update()
+  counter-rotates it by −(tilt + arm) so the bowl stays level in the
+  world and cradles the topping at every tension (visionary ruling).
+- **Check props stay in the .blend, out of the GLB:** check_topping /
+  check_cam / check_sun / ground_check / ref_turnaround are authoring
+  furniture — export selects the machine_root subtree minus checks.
+- catapult.glb ships 520 KB (bevels + flat colors, no textures) — the
+  hand road is nearly free against the §10 asset diet.

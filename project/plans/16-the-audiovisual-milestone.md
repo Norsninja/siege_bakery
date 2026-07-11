@@ -245,6 +245,33 @@ past each other with cherries). First-person self: hands + held
 topping only per §6 ruling. Walk cycle can be naive (bob + lean);
 chunky-cute forgives stiffness.
 
+### Slice 4.5 — THE MACHINE (the hand road; added + BUILT 2026-07-11)
+
+**Status: DESIGNED, BLOCKED OUT, AND REBOUND IN ONE SESSION (thirteenth).
+The design discussion ruled: meshy fails articulated mechanisms (the
+turnaround came back a fused 50 MB blob — the meshy boundary, art bible
+§10), so the machine walks THE HAND ROAD (art bible §11 NEW): primitives
+hand-built in Blender on the sim's exact pivot scaffold, styled from the
+visionary's catapult turnaround, iterated through THREE review rounds
+(gimbal basket ruling — the dish hangs level and cradles the topping at
+every tension; launch parity — the seat sweeps 1.32–1.89 m around the
+sim's 1.2 m spawn; swing clearance — counterweight arc swept numerically,
+min gap 7.5 cm). catapult.blend = hand-authored source of record;
+catapult.glb ships 520 KB. THE REBIND: MachineRig gained drive nodes
+(greybox by default — the fallback IS the machine) and dress(): one
+fetch through the seam, each rig clones the template, update()'s same
+math drives the model's named nodes, plus the gimbal counter-rotation.
+The bucket's raycast proxy + topping visual reparent into the dish (the
+one machine part still on the crosshair). Render contract holds on the
+model's tilt node — pinned (scene.test.ts +4, 410 total). Machines
+author NOSE = +Y Blender (art bible §11: 1:1 into machine space, no
+flip — the character convention would mirror the wheel across the
+posts). Live-verified: both towns dressed, wheel/drum/lever/jack at
+greybox-parity coordinates, greybox hidden not disposed, zero console
+errors. REMAINING: the visionary's eye pass in-game; texture/paint pass
+(flat colors today); arm THROW animation is a later juice pass (the
+release stays instant, honest to the sim).**
+
 ### Slice 5 — THE DESSERT DELICIOUS
 
 Material pass on the scoreable object: frosting with gloss and the
