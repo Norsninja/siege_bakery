@@ -74,7 +74,15 @@ accident (plans/16 §6 walk: add this as ruling 7).
 
 ## 4. Proportion chart (PROPOSALS, in meters — bless before modeling)
 
-- Dwarf baker: 1.2 m tall (chunky, ~3 heads)
+- Dwarf baker: 1.2 m tall (chunky, ~3 heads) — **AMENDED 2026-07-10
+  (twelfth session, live finding): the SIM's baker predates this
+  number — a 1.7 m capsule, eye at 1.5 m — and the sim is the truth
+  (the cake precedent). The first two-client run had the local eye
+  towering 0.3 m over the other dwarf's toque. The dwarf stays
+  AUTHORED at 1.2 m; the ghost body scales to the capsule in code
+  (ghosts.ts DWARF_VISUAL_SCALE, derived from core constants), so
+  crews meet eye to eye. On-screen dwarf height is therefore ~1.7 m;
+  crates/catapult still read right (hip-high, chest-high).**
 - Catapult: ~2.5 m at the A-frame apex, ~3.5 m long
 - Cake: matches existing sim geometry (the art's three tiers ≈ the
   shipped cake-3 — the sim is the truth, art conforms to colliders)

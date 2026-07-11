@@ -21,6 +21,15 @@ import { removeAndDispose } from "./scene";
 
 const GHOST_COLORS = [0xe6b455, 0x6fb1e0, 0xc580d1, 0x7fcf9a, 0xd98f6d];
 
+/** The dwarf model is authored 1.2 m tall (art bible §4) — but the SIM'S
+ * baker is a 1.7 m capsule with the eye at 1.5 m, and the sim is the
+ * truth (the cake precedent: art conforms to colliders). Scale the visual
+ * to the capsule so crews meet roughly eye to eye; derived, not hardcoded,
+ * so a capsule change carries the body with it. */
+const DWARF_AUTHORED_HEIGHT_M = 1.2;
+const DWARF_VISUAL_SCALE =
+  (2 * (CAPSULE_HALF_HEIGHT + CAPSULE_RADIUS)) / DWARF_AUTHORED_HEIGHT_M;
+
 /** Walk-cycle feel (client-only juice, frame-driven — no wall clock):
  * phase advances only while the ghost is closing on its relayed pose. */
 const WALK_PHASE_PER_FRAME = 0.35; // ~3.3 bobs/s at 60fps
@@ -58,6 +67,7 @@ export class GhostManager {
     if (!this.dwarfTemplate || g.dressed) return;
     for (const child of [...g.group.children]) removeAndDispose(child);
     const body = this.dwarfTemplate.clone();
+    body.scale.setScalar(DWARF_VISUAL_SCALE);
     // pose.y is the capsule CENTER; the model's origin is its standing
     // point (art bible §8) — drop it to the feet.
     body.position.y = -STAND_CENTER_Y;
