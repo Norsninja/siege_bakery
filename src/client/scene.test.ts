@@ -16,7 +16,8 @@ import {
   turnScrew,
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
-import { MachineRig } from "./scene";
+import { WALLS } from "../core/arena";
+import { MachineRig, WALL_SEG_LEN, wallSegments } from "./scene";
 
 const rad = (deg: number): number => (deg * Math.PI) / 180;
 const tm = (tiltNotch: number, screwTicks = 0): TownMachine => ({
@@ -147,5 +148,52 @@ describe("MachineRig dressed in catapult.glb", () => {
     expect(rig.toppingMesh.parent).toBe(homeBefore);
     rig.update(tm(2), noClunk);
     expect(rig.shownTiltRad).toBeCloseTo(rad(2 * TILT_DEG_PER_NOTCH), 10);
+  });
+});
+
+/** THE WALL TILING (meshy road, wall.glb): the stone section is authored
+ * at the collider's exact cross-section, so the only degrees of freedom
+ * are count, placement, and width-stretch along the wall — pure math,
+ * pinned here; the buildGameScene painter stays thin. */
+describe("wallSegments — stone sections tile the collider slabs", () => {
+  it("covers every slab exactly: N stretched sections sum to the slab length", () => {
+    for (const w of WALLS) {
+      const segs = wallSegments([w]);
+      const len = Math.max(w.hx, w.hz) * 2;
+      const covered = segs.reduce((sum, s) => sum + s.scaleX * WALL_SEG_LEN, 0);
+      expect(covered).toBeCloseTo(len, 10);
+      // Sections butt end to end: centers are one stretched width apart.
+      const alongX = w.hx >= w.hz;
+      for (let i = 1; i < segs.length; i++) {
+        const gap = alongX
+          ? segs[i]!.x - segs[i - 1]!.x
+          : segs[i]!.z - segs[i - 1]!.z;
+        expect(gap).toBeCloseTo(segs[i]!.scaleX * WALL_SEG_LEN, 10);
+      }
+      // …and the run is centered on the collider.
+      const first = segs[0]!;
+      const last = segs[segs.length - 1]!;
+      expect(alongX ? (first.x + last.x) / 2 : (first.z + last.z) / 2)
+        .toBeCloseTo(alongX ? w.x : w.z, 10);
+    }
+  });
+
+  it("a z-running wall turns the section a quarter; alternates yaw-flip", () => {
+    const zWall = { hx: 0.25, hy: 0.5, hz: 4, x: -8, z: 0 };
+    const segs = wallSegments([zWall]);
+    expect(segs.length).toBe(4); // 8 m / 1.899 → 4 sections
+    for (const [i, s] of segs.entries()) {
+      expect(s.x).toBe(-8); // never drifts off the collider line
+      expect(s.rotY).toBeCloseTo(Math.PI / 2 + (i % 2 ? Math.PI : 0), 10);
+    }
+    const xWall = { hx: 4, hy: 0.5, hz: 0.25, x: 0, z: -13 };
+    expect(wallSegments([xWall])[0]!.rotY).toBe(0);
+  });
+
+  it("stretch stays chunky-tolerable across the real arena, shortest flank included", () => {
+    for (const s of wallSegments(WALLS)) {
+      expect(s.scaleX).toBeGreaterThan(0.85);
+      expect(s.scaleX).toBeLessThan(1.35); // the 2.5 m gate flank is the ceiling
+    }
   });
 });

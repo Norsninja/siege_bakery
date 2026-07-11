@@ -23,6 +23,7 @@ import {
   PLINTH_HALF,
   READY_CIRCLE,
   SHOP_HALF,
+  type WallDef,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
 import type { CakeTier } from "../core/dessert";
@@ -88,6 +89,47 @@ export const sphere = (
   parent.add(m);
   return m;
 };
+
+/** Authored width of one wall.glb stone section (the meshy road,
+ * 2026-07-11): the .blend conforms depth (0.5 m) and height (1 m,
+ * WALL_HEIGHT) to the wall colliders exactly — the render contract —
+ * and the width is the tiling unit. */
+export const WALL_SEG_LEN = 1.899;
+
+export interface WallSegment {
+  x: number;
+  z: number;
+  rotY: number;
+  scaleX: number;
+}
+
+/** THE WALL TILING (pure — the painter in buildGameScene stays thin):
+ * each collider slab is covered by an integer count of stone sections,
+ * width-stretched to land exactly on the slab's length (the chunky style
+ * forgives ±a third of a block). z-running walls turn the section a
+ * quarter; alternate sections yaw-flip so the repeating block pattern
+ * doesn't read as wallpaper. */
+export function wallSegments(
+  walls: readonly WallDef[],
+  segLen = WALL_SEG_LEN,
+): WallSegment[] {
+  const out: WallSegment[] = [];
+  for (const w of walls) {
+    const alongX = w.hx >= w.hz;
+    const len = (alongX ? w.hx : w.hz) * 2;
+    const n = Math.max(1, Math.round(len / segLen));
+    for (let s = 0; s < n; s++) {
+      const off = ((s + 0.5) / n - 0.5) * len;
+      out.push({
+        x: w.x + (alongX ? off : 0),
+        z: w.z + (alongX ? 0 : off),
+        rotY: (alongX ? 0 : Math.PI / 2) + (s % 2 ? Math.PI : 0),
+        scaleX: len / n / segLen,
+      });
+    }
+  }
+  return out;
+}
 
 /** Remove a TRANSIENT object from its parent and free its GPU resources
  * (checkpoint audit 2026-07-03: nothing in the client disposed anything —
@@ -413,8 +455,25 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // town-0-only until the client's two-town step (plans/11 §10 step 8).
   box(GROUND_HALF_X * 2, 0.2, GROUND_HALF_Z * 2, 0x7a9e6b,
     0, -0.1, GROUND_CENTER_Z, scene); // ground — spans both forts
-  for (const w of WALLS)
-    box(w.hx * 2, WALL_HEIGHT, w.hz * 2, 0x9a9a9a, w.x, WALL_HEIGHT / 2, w.z, scene);
+  // THE WALLS DRESS (meshy road, wall.glb 0.34 MB): stone sections tile
+  // every collider slab per wallSegments(). The grey slabs retire by
+  // VISIBILITY, never disposal — the standing fallback (null from the
+  // seam keeps them forever, a normal Tuesday). Clones share the cached
+  // template's geometry/materials (the ghosts' law: never dispose).
+  const wallSlabs = WALLS.map((w) =>
+    box(w.hx * 2, WALL_HEIGHT, w.hz * 2, 0x9a9a9a, w.x, WALL_HEIGHT / 2, w.z, scene),
+  );
+  void loadModel("wall").then((t) => {
+    if (!t) return;
+    for (const seg of wallSegments(WALLS)) {
+      const m = t.clone();
+      m.position.set(seg.x, 0, seg.z);
+      m.rotation.y = seg.rotY;
+      m.scale.x = seg.scaleX;
+      scene.add(m);
+    }
+    for (const slab of wallSlabs) slab.visible = false;
+  });
   for (const t of TOWNS) {
     box(PANTRY_HALF.x * 2, PANTRY_HALF.y * 2, PANTRY_HALF.z * 2, 0xb98a4a,
       t.pantry.x, t.pantry.y, t.pantry.z, scene);
