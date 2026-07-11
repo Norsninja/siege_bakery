@@ -121,10 +121,17 @@ async function main(): Promise<void> {
   // from his +x post. The GLB carries a live skin; PatronBody breathes
   // through it (and hosts the look-lean + verdict acts to come).
   let patronBody: PatronBody | null = null;
+  // THE SCALE AUDITION (friend-test debrief, 2026-07-11): the GLB ships
+  // 21 m (§6 ruling 8's "20+"), but beside cake-3 (8 m across) he reads
+  // like a person facing a feast, not HIS dessert. 36/21 under the
+  // visionary's eye from the catapult post — pin or revert on his word.
+  // Bone recipes are scale-independent; the choreography rides along.
+  const OGRE_SCALE = 36 / 21;
   void loadModel("ogre").then((ogre) => {
     if (!ogre) return;
     ogre.position.set(21, 0, -30);
     ogre.rotation.y = -Math.PI / 2;
+    ogre.scale.setScalar(OGRE_SCALE);
     scene.add(ogre);
     patronBody = new PatronBody(ogre);
   });

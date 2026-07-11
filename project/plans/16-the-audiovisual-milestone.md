@@ -419,7 +419,12 @@ flourish → verdict spectacle → line advances).
    **TESTED SAME SESSION (graybox lineup 12/16/20 m beside the
    catapult, cake-3 reference standing at the plinth): 12 m reads
    "big person," 16–20 m read plausible, and framing survives past
-   20 m. RULED: 20+ m — "fantastic scale makes it fun." TWO
+   20 m. RULED: 20+ m — "fantastic scale makes it fun."
+   RE-RULED 2026-07-11 (fourteenth session, friend-test debrief): at
+   21 m the cake read as ~40% of his height — a feast, not HIS
+   dessert. Auditioned 36 m in-game (OGRE_SCALE in main.ts, the GLB
+   still ships 21): "I think it works" — 36 m stands, provisional
+   until the region backdrop either confirms or argues. TWO
    PLACEMENT RULINGS rode along (visionary): the ordering patron
    stands OUTSIDE the town walls, never inside a town (the graybox
    at z=−52 stood in town 1's yard — wrong; he leans over the wall
