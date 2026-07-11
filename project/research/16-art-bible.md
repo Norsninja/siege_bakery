@@ -260,5 +260,17 @@ Learned driving the first one end to end:
 - **OPEN — license:** verify the Meshy tier grants commercial use
   before the funding deck leans on these assets.
 - Known snag on the ogre: reads TOO SHINY in-game (visionary,
-  blessing note) — roughness/metallic pass pending, likely the glTF
-  metallic channel; fix in Blender material, re-export.
+  blessing note) — FIXED 2026-07-11: not metallic (map B mean 0.022,
+  honest) and not emissive (black) — the ROUGHNESS channel: meshy
+  ships G mean ~0.54, glossy plastic under the sun. The fix pattern
+  for any shiny meshy import: DUPLICATE the packed ORM image, lift G
+  by `1−(1−G)×0.45` (→ mean 0.79, keeps material variation), rewire
+  the node, re-export — the original pixels stay in the .blend.
+  Lifted PNG compresses worse (ogre.glb 8.8→9.6 MB; the asset-diet
+  slice, plans/15 item 14, will crunch it). Awaiting the eye pass;
+  the 0.45 is the one retune constant.
+- **BONE NAMES: NO DOTS.** three.js GLTFLoader sanitizes node names
+  for PropertyBinding — `upper_arm.L` arrives as `upper_armL` (found
+  live 2026-07-11: the dotted names in patron-body.ts silently drove
+  nothing). Client code speaks the SANITIZED name; prefer dot-free
+  bone names in future rigs so the .blend and the runtime agree.
