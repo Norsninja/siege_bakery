@@ -88,44 +88,44 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
-THE ELEVENTH SESSION (2026-07-10): lore + forge recorded, the
-semantic audit landed, the pipeline PROVEN, the giant ruled — seven
-commits ending e166c74, 397 tests, both tsc legs. NEW CANON:
-plans/17 THE LORE (giants are refugees of the fantasy wars; THE
-REALM PAYS — giants are guests; patrons still picky; not a metaphor,
-not bittersweet); plans/18 THE ORDER FORGE (post-milestone shape:
-patrons-with-taste x constructable desserts x authored envelope; the
-MEASURED-ATOMS LAW — the generator only asks what the census can
-count and only of measured desserts; DISCUSS before build). THE
-SEMANTIC AUDIT (item 12 DONE): the screen speaks bakery — PATRON N
-never RUNG N (the line-of-giants fiction stands), the run is the
-bakery's day (opens / CLOSING TIME / bake again), patrons fed never
-rungs cleared, "the realm pays +N coins"; code identifiers keep
-rung/run; artillery vocabulary exempt. PLANS/16 s6 RULED: distinct
-SPECIES in the line (re-tint overruled; ogre first); grumble-audio
-yes, VO never; first-person hands yes (slice 4 rider); name OPEN
-(only slice 8 blocks); HUD neon NOT canon (future warm re-skin
-sanctioned); THE GIANT 20+ M (graybox camera lineup; placement
-OUTSIDE the town walls leaning toward the table, the queue of
-patrons receding behind him — loom lives in lean and bulk as much
-as height). SLICE 1 BUILT: the SPRINKLES crate went Blender (MCP,
-localhost:9876) -> GLB -> loadModel seam -> beside town 0's pantry;
-CONVENTIONS OF RECORD in art bible s8 (1 BU = 1 m; front = -Y
-Blender = +Z three; origin at standing point; join-with-slots;
-text->mesh; project/blender/ source + public/models/ shipping;
-size=1 cube scale IS dims). THE LOADER SEAM (assets.ts): null is
-normal — headless/missing/broken all fall to primitive fallbacks;
-one fetch per name; core/game never import it. Standing prior laws
-hold: fadeStep volume law, POST_KEYS one table, drop-in jukebox
-(linger/runover rows still await compositions), BG_VOLUME 0.35, M
-mute + blurred #mute-btn, no preview arc ever, trail-is-the-flight,
-winch drain, report-view DOM split, comic word laws. NEXT SESSION
-(visionary's words): review the eleventh's commits, DISCUSS the
-next slice BEFORE any design or code edits, then model THE OGRE
-(slice 2: 20+ m, concept-art canon, one skinned mesh, three verdict
-poses + look-lean + breathing idle; silhouette judged in-game
-first). Friend test is a casual weekend visit (gift, not deadline);
-work resumes Sunday. Pending ear/eye passes (8): music volume/fades,
+THE TWELFTH SESSION (2026-07-10/11): THE MESHY PIVOT — four commits
+ending 10098bb, 397 tests, both tsc legs, dist rebuilt. meshy.ai
+(playtest friend's tip) generates near-canon textured models; the
+conventions are ART BIBLE s10 (import audit: origin at feet, front
+-Y, SCALE BY ARITHMETIC target/source; decimate LIVE ~0.1; GLB is
+the copy of record for AI assets — heavy import .blends untracked,
+*.blend1 gitignored; license tier check OPEN). SLICE 2 TWO ACTS
+BUILT: the ogre (578k->58k, 21 m) stands at (21, 0, -30) — outside
+the walls, cake row, facing the table — BLESSED "a pro asset";
+rigged WITHOUT a T-pose (10 bones, NO legs, auto weights; verdicts
+are BODY theatre — the grin is texture-baked); skin ships LIVE in
+ogre.glb (8.4 MB); patron-body.ts breathes (chest +/-0.015 rad about
+rest). REST-OFFSET LAW: glTF bones carry rest rotations — drive as
+offset from captured rest, NEVER overwrite. Pose recipes of record
+in plans/16 slice 2 status. SLICE 4 FIRST ACT: dwarf from the
+turnaround sheet IN T-POSE (24k tris, 1.2 m authored), 13-bone rig
+posed T->CARRY, baked static (dwarf.glb); ghosts.ts dresses remote
+players — capsule fallback forever, clones share template resources
+(remove WITHOUT dispose), naive bob+rock walk; ghost visual scales
+to the SIM capsule (DWARF_VISUAL_SCALE from core constants — sim is
+the truth; eyeline residual PARKED). Rig sources: ogre-rig.blend +
+dwarf-rig.blend (live armatures, tracked). Stale-dist gotcha: the
+5175 server page serves the last npm run build. The eleventh's canon
+stands: plans/17 LORE, plans/18 FORGE (discuss-before-build), the
+semantic audit, s6 rulings (species line, grumble yes, hands yes,
+name OPEN, giant 20+ m), art bible s8 pipeline conventions, loader
+seam. Standing prior laws hold: fadeStep volume law, POST_KEYS one
+table, drop-in jukebox (linger/runover rows await compositions),
+BG_VOLUME 0.35, M mute + blurred #mute-btn, no preview arc ever,
+trail-is-the-flight, winch drain, report-view DOM split, comic word
+laws. NEXT SESSION (visionary's words): continue THE OGRE before
+the weekend friend test — the CHOREOGRAPHY ACT (pure code:
+look-lean on patron messages, verdict poses on order end, relax
+through the linger; patron-body.ts hosts it, recipes in plans/16);
+then the shiny fix (ogre reads too glossy) and the pane-open
+capture. THE MACHINE model needs a design discussion before any
+build (articulated MachineRig vs one mesh). Pending ear/eye passes
+(8): music volume/fades,
 winch coverage + drain, fudge chip, banner composition, lone-hero
 tag, comic-word size/timing, trail-halt feel, audit strings at
 speed. Standing ledger: items 6/8 post-campaign; 7/9 boundaries;
