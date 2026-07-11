@@ -225,3 +225,32 @@ Proportions off the sheet (confirming §4): ~3 heads tall, beard
 covers a full head-height, shoulders ~1.5 head-widths — at 1.2 m
 world height the head is ~0.4 m. T-pose front/back are the rig
 reference; profiles are the silhouette check.
+
+## 10. THE MESHY ROAD (AI base models — conventions, proven 2026-07-10)
+
+The ogre proved a second road into the pipeline: **meshy.ai generates
+the BASE MODEL, the seam ships it, Blender remains the fix-it bench.**
+Learned driving the first one end to end:
+
+- **Judge against canon like anything else.** The concept art is the
+  brief; the output is judged at the catapult post in-game (the ogre
+  passed on the first try; expect worse luck sometimes).
+- **Import audit, every time:** origin at feet (z_min ≈ 0), front =
+  −Y Blender, then SCALE BY ARITHMETIC — target height ÷ source
+  height (the ogre: 21/1.9 ≈ 11.05; typing "21" made a 40 m ogre).
+- **Decimate as a LIVE modifier** (ratio ~0.1, 578k→58k on the ogre)
+  — never applied in the .blend, so full density stays recoverable;
+  `export_apply` bakes it into the GLB. UVs and textures survive.
+- **Export through the standing §8 conventions** (GLB, use_selection,
+  export_apply). Textures ride packed; the ogre lands at 7.75 MB —
+  watch the plans/16 §4 ~25 MB dist alarm as the cast grows.
+- **THE GLB IS THE COPY OF RECORD for AI assets.** The import .blends
+  are 25–50 MB dense-mesh caches, regenerable from the account or by
+  re-importing the GLB — they stay UNTRACKED (gitignored by name;
+  *.blend1 backups ignored globally). Only hand-authored .blends
+  (crate, blockouts) stay git-tracked "small and curated."
+- **OPEN — license:** verify the Meshy tier grants commercial use
+  before the funding deck leans on these assets.
+- Known snag on the ogre: reads TOO SHINY in-game (visionary,
+  blessing note) — roughness/metallic pass pending, likely the glTF
+  metallic channel; fix in Blender material, re-export.

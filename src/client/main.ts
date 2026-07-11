@@ -113,6 +113,18 @@ async function main(): Promise<void> {
     scene.add(crate);
   });
 
+  // THE OGRE SILHOUETTE (plans/16 slice 2, first act): the ruled patron
+  // graybox — 20+ m, OUTSIDE the walls on the cake row, perpendicular to
+  // the pantry↔pantry axis, leaning toward the table (e166c74). Decor
+  // like the crate: no collider, null-safe. Front = glTF +Z; yaw −π/2
+  // turns him to face the cake at (0, −30) from his +x post.
+  void loadModel("ogre").then((ogre) => {
+    if (!ogre) return;
+    ogre.position.set(21, 0, -30);
+    ogre.rotation.y = -Math.PI / 2;
+    scene.add(ogre);
+  });
+
   const hud = document.getElementById("hud");
   const postHud = new PostHud();
   // THE FIRING MEMORY (plans/15 item 5, constraint a): each machine's

@@ -115,6 +115,25 @@ through a tunnel, recorded.
 
 ### Slice 2 — THE PATRON EMBODIED (the milestone's heart)
 
+**Status: FIRST ACT BUILT + BLESSED 2026-07-10 (twelfth session) — and
+a PIVOT rode in. The morning act walked the planned road: a chunky
+blockout (Blender MCP, separate quad parts, hunch in the torso) stood
+at the ruled spot and taught the placement (x=21 on the cake row,
+outside the walls, facing the table — the post view composes: cake
+left, machine foreground, ogre looming behind). Then THE MESHY PIVOT
+(the playtest friend's tip): meshy.ai generated the concept ogre as a
+textured model — grin, bib, cupcake emblem, fork + knife, chunky-toy
+style, startlingly on-canon — and the visionary blessed it in-game as
+"a pro asset." Shipping: decimate 578k→57.8k tris, scale 1.9→21.0 m,
+export through the seam; ogre.glb 7.75 MB (textures dominate).
+Conventions in art bible §10. REMAINING in slice 2: the committed
+capture (pending an open pane); the SHINY fix (visionary's own note —
+material/roughness pass, later); the rig — three verdict poses +
+look-lean + breathing idle — and the choreography wiring below, which
+the meshy pivot does NOT change: the brain's broadcasts are the same.
+Ruling-1 consequence: distinct species went from expensive to a
+weekend — the line (slice 3) is suddenly cheap to cast.**
+
 The giant from the concept art, at the table, LOOMING — scaled per
 the art bible chart, framed so he reads in every gameplay screenshot.
 Choreography keyed ENTIRELY off existing client knowledge:

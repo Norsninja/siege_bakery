@@ -8,3 +8,14 @@ tools/cloudflared.exe
 # then get slug names and a PLAYLISTS row in public/audio — the SHIPPED,
 # versioned copy. Only public/audio is the repo's copy of record.
 project/files/audio/
+# Blender's rolling backups and stray lock artifacts — never repo material.
+*.blend1
+*.blend@
+# AI-generated import .blends (Meshy et al., 2026-07-10): 25–50 MB dense-mesh
+# caches, regenerable from the account or the GLB itself. The exported
+# public/models/*.glb is the copy of record for AI assets; only hand-authored
+# .blends stay "small and curated" in project/blender/.
+project/blender/Meshy_Ogre.blend
+project/blender/Ogre_textured.blend
+project/blender/Wynne_Ogre.blend
+project/blender/ogre_turnaround.blend
