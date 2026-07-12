@@ -215,8 +215,12 @@ fan_up(ring(z_cone_mid, CONE_MID_R), (TOWER_X, TOWER_Y, z_apex), hx(PINK, 1.08))
 apothem = R_BASE * math.cos(math.pi / SIDES)
 DOOR_H = 3.4
 door_c = Vector((TOWER_X + apothem + 0.35, TOWER_Y, base_z + DOOR_H / 2.0))
+# (u=+y, v, w=+z) must be right-handed: v = -x, since y x (-x) = +z.
+# The first export shipped v = +x — a left-handed triple that inverted
+# every door face (found by the fleet-3 lantern builder, confirmed by
+# normal audit; EEVEE's double-sided preview hid it, three.js wouldn't).
 tapered_box(door_c - Vector((0.0, 1.0, 0.0)), door_c + Vector((0.0, 1.0, 0.0)),
-            Vector((0.4, 0.0, 0.0)), Vector((0.4, 0.0, 0.0)),
+            Vector((-0.4, 0.0, 0.0)), Vector((-0.4, 0.0, 0.0)),
             Vector((0.0, 0.0, DOOR_H / 2.0)), hx(DOOR_DARK))
 
 # ---------------------------------------------------------------------------

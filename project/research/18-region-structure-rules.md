@@ -280,3 +280,20 @@ DELIVER: project/blender/region-scripts/<name>.py per §8
   the map, zero console errors. Known soft spot: the gold plots read
   faintly from the post eye (thin slabs + meadow roll) — they earn
   their keep from any elevated angle.
+- 2026-07-11: THE THIRD FLEET (five more, fifteen-for-fifteen):
+  `mid_bakehouse_west` (72 tris, gable hall + fat soot-rimmed chimney),
+  `mid_giant_lantern_road` (88 tris, timber post, gold glass aimed at
+  the post eye — the ruled gold family reused), `mid_giant_table_road`
+  (152 tris, the rest stop completed — plate + pink frosted bun),
+  `mid_pines_west` (350 tris, 7 trees, 10-sided facets for the closest
+  band, stepping down toward the vista), `mid_well_south` (172 tris,
+  drum + A-frame + pink cap + bucket). region.glb 2.04 → 2.12 MB.
+- 2026-07-11: THE WINDING AUDIT (a fleet builder's cross-review found
+  it): the accepted `mid_watchtower_west` door was a LEFT-HANDED
+  tapered_box triple — every door face inverted. EEVEE previews
+  double-sided and HID it; three.js would have culled it. Fixed at the
+  source script (v flipped to −x), rerun, normals re-audited clean.
+  LAW FOR REVIEWERS: Blender renders are NOT a winding oracle — audit
+  normals programmatically (BVH ray-parity separates true inversions
+  from embedded-joint false positives; recalc-diff over-flags authored
+  undersides on open shells).
