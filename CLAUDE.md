@@ -88,6 +88,32 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE NINETEENTH SESSION (2026-07-12 night): SOUND + THE WEIGHT — path
+entries 2 AND 3 struck; eight commits ending 0cb6840, tree CLEAN
+(visionary amendments + turnarounds committed on his word), 459
+tests. SOUND (slice 6, design walked same session): sfx.ts (ONE
+AudioContext, buffers, source→gain→master; KEYS SPEAK GAME LANGUAGE
+— chompDevour/verdictRefused, pushback adopted; rows are LISTS =
+audition law), audio-bus.ts (VOLUME BUS plans/20 §5 — M mutes THE
+BUS, both engines poll), make-sfx.mjs (reproducible synth — script
+is the recipe), ClientFx PORT not singleton (word+sound = one
+announcement, pinned). Wired: ratchet/click, THUNK (+dry), whoosh,
+splat/plop/pop at word sites, chomp stings; verdict stings + grumble
+wired-SILENT (drop-in on his files). Step booms STILL deferred (item
+23). THE WEIGHT: DRACO ADOPTED (models 24→8.5 MB, names/skins
+byte-identical, decoder self-hosted public/draco/, diet ends with
+draco() pass, six rigs live-verified bone-true); KTX2 DEFERRED (why
+in item 14); 192 kbps STAYS (96k fizz); LOUDNESS RULING: BG_VOLUME =
+0.4 CEILING × bus rest 0.5 ≈ 20% effective, pinned. RELEASE GATE
+(scripts/release.mjs, plans/20 §8 organs 1-5): npm run release —
+fresh dist 23.61 MB UNDER the 25 alarm. Smoke fix in memory: CRANK
+IS NUMERIC ({crank:1}; crank:true validates to 0, tension never
+accrues). NEXT SESSION (his words): ENTRY 4 THE FEEDBACK PAIR (items
+15+16 — landing verdict + giant collider, the first game/-ward
+promotion pressure, a NAMED core exception) — review, then DISCUSS
+before building; read items 15/16 in full first. Handoff:
+2026-07-12-nineteenth-the-sound-and-the-weight.md. Prior s18 canon
+holds below.
 THE EIGHTEENTH SESSION (2026-07-12 eve): THE EAT BEAT BUILT + THE
 WRAP — six commits ending 930b1ce, 448 tests. THE EAT BEAT
 (slice 7): eat-beat.ts (EAT_START = VERDICT_HOLD+10 derived, CHOMP
