@@ -44,7 +44,8 @@ import { applyServerMsg, type NetFx } from "./net-handlers";
 import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
 import { loadModel } from "./assets";
-import { PatronBody } from "./patron-body";
+import { LineManager } from "./line";
+import { PatronTable } from "./patron-table";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
@@ -114,27 +115,16 @@ async function main(): Promise<void> {
     scene.add(crate);
   });
 
-  // THE OGRE (plans/16 slice 2): the patron at his ruled post — 20+ m,
-  // OUTSIDE the walls on the cake row, perpendicular to the pantry↔pantry
-  // axis, leaning toward the table (e166c74). No collider, null-safe.
-  // Front = glTF +Z; yaw −π/2 turns him to face the cake at (0, −30)
-  // from his +x post. The GLB carries a live skin; PatronBody breathes
-  // through it (and hosts the look-lean + verdict acts to come).
-  let patronBody: PatronBody | null = null;
-  // THE SCALE AUDITION (friend-test debrief, 2026-07-11): the GLB ships
-  // 21 m (§6 ruling 8's "20+"), but beside cake-3 (8 m across) he reads
-  // like a person facing a feast, not HIS dessert. 36/21 under the
-  // visionary's eye from the catapult post — pin or revert on his word.
-  // Bone recipes are scale-independent; the choreography rides along.
-  const OGRE_SCALE = 36 / 21;
-  void loadModel("ogre").then((ogre) => {
-    if (!ogre) return;
-    ogre.position.set(21, 0, -30);
-    ogre.rotation.y = -Math.PI / 2;
-    ogre.scale.setScalar(OGRE_SCALE);
-    scene.add(ogre);
-    patronBody = new PatronBody(ogre);
-  });
+  // THE TABLE + THE LINE (plans/19, the unified fiction): rung N's
+  // order belongs to a DERIVED patron (cast.ts — every client computes
+  // the same species from the rung, zero sync); behind him the endless
+  // queue of upcoming patrons stands on the giants' road. The ogre's
+  // ruled post (21, 0, −30), yaw, and 36 m scale audition live on in
+  // cast.ts; PatronBody choreography now hosts per-species pose
+  // tables. Both managers poll view state each frame (async loads and
+  // mid-banner joiners recover; events would miss both).
+  const patronTable = new PatronTable(scene);
+  const line = new LineManager(scene);
 
   const hud = document.getElementById("hud");
   const postHud = new PostHud();
@@ -542,7 +532,12 @@ async function main(): Promise<void> {
     ghosts.update();
     // The choreography polls view state (async load + mid-banner joiners
     // recover; NetFx events would miss both — patron-body.ts header).
-    patronBody?.update(view.lastPatron?.seq ?? null, view.verdict);
+    patronTable.update(
+      view.run.rung,
+      view.lastPatron?.seq ?? null,
+      view.verdict,
+    );
+    line.update(view.run.rung, view.verdict);
     shotsView.sync(camera);
     // The portcullis panel shows exactly while its fence is shut — the
     // fence must never be an invisible wall.
@@ -629,7 +624,9 @@ async function main(): Promise<void> {
       },
       getGhosts: () => ghosts.ids(),
       ghosts,
-      getPatronBody: () => patronBody,
+      getPatronBody: () => patronTable.body,
+      getTableSpecies: () => patronTable.species,
+      getLineSnapshot: () => line.snapshot(),
       getNetStatus: () => view.netStatus,
       getMyId: () => view.myId,
       setDebugInput: (i: BakerInput | null) => {

@@ -10,7 +10,13 @@
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
 import type { Judgment } from "../game/judgment";
-import { HEAD_TURN_MAX_RAD, PatronBody, POSES, verdictPose } from "./patron-body";
+import {
+  HEAD_TURN_MAX_RAD,
+  PatronBody,
+  POSES,
+  SPECIES_POSES,
+  verdictPose,
+} from "./patron-body";
 
 const deg = (d: number): number => (d * Math.PI) / 180;
 
@@ -176,9 +182,95 @@ describe("PatronBody choreography", () => {
   });
 
   it("every authored pose keeps the head turn under the audition ceiling", () => {
-    for (const pose of Object.values(POSES)) {
-      const y = pose["head"]?.y ?? 0;
-      expect(Math.abs(y)).toBeLessThanOrEqual(HEAD_TURN_MAX_RAD);
+    for (const table of [POSES, ...Object.values(SPECIES_POSES)]) {
+      for (const pose of Object.values(table)) {
+        const y = pose["head"]?.y ?? 0;
+        expect(Math.abs(y)).toBeLessThanOrEqual(HEAD_TURN_MAX_RAD);
+      }
     }
+  });
+});
+
+/** The dragon rig's shape (dragon-rig.blend): root→spine→chest, the
+ * neck arc off the chest, wings off the chest — no arms. Non-zero
+ * rests keep the rest-offset law honest (the ogre suite's trick). */
+const DRAGON_REST: Record<string, [number, number, number]> = {
+  root: [0, 0, 0],
+  spine: [0.01, -0.01, 0.02],
+  chest: [0.03, 0.01, -0.02],
+  neck1: [0.2, 0.01, -0.01],
+  neck2: [0.15, -0.02, 0.02],
+  head: [-0.05, 0.03, 0.01],
+  wingL: [0.1, 0.2, 0.5],
+  wingR: [0.1, -0.2, -0.5],
+};
+
+function fakeDragon(): THREE.Object3D {
+  const root = new THREE.Object3D();
+  const mk = (name: string, parent: THREE.Object3D): THREE.Bone => {
+    const b = new THREE.Bone();
+    b.name = name;
+    const [x, y, z] = DRAGON_REST[name] ?? [0, 0, 0];
+    b.rotation.set(x, y, z);
+    parent.add(b);
+    return b;
+  };
+  const r = mk("root", root);
+  const spine = mk("spine", r);
+  const chest = mk("chest", spine);
+  const neck1 = mk("neck1", chest);
+  const neck2 = mk("neck2", neck1);
+  mk("head", neck2);
+  mk("wingL", chest);
+  mk("wingR", chest);
+  return root;
+}
+
+describe("PatronBody species riders (plans/19)", () => {
+  it("wing bones settle in the idle — mirrored, about rest", () => {
+    const root = fakeDragon();
+    const body = new PatronBody(root, SPECIES_POSES["dragon"]);
+    const wingL = bone(root, "wingL");
+    const wingR = bone(root, "wingR");
+    let maxDev = 0;
+    for (let i = 0; i < 300; i++) {
+      body.update();
+      maxDev = Math.max(maxDev, Math.abs(wingL.rotation.z - 0.5));
+      // mirrored: deviations from rest sum to ~0 at every frame
+      expect(wingL.rotation.z - 0.5 + (wingR.rotation.z + 0.5)).toBeCloseTo(
+        0,
+        6,
+      );
+    }
+    expect(maxDev).toBeGreaterThan(0.01);
+    expect(maxDev).toBeLessThanOrEqual(0.021);
+  });
+
+  it("the wingless ogre is untouched by the wing rider", () => {
+    const root = fakeOgre();
+    const body = new PatronBody(root);
+    expect(() => pump(body, 120)).not.toThrow();
+    expect(body.act).toBe("idle");
+  });
+
+  it("her verdicts speak dragon: hungry droops the NECK arc", () => {
+    const root = fakeDragon();
+    const body = new PatronBody(root, SPECIES_POSES["dragon"]);
+    pump(body, 60, null, judgment(false, false));
+    expect(body.act).toBe("hungry");
+    expect(bone(root, "neck1").rotation.x).toBeCloseTo(0.2 + deg(18), 2);
+    expect(bone(root, "neck2").rotation.x).toBeCloseTo(0.15 + deg(14), 2);
+  });
+
+  it("delight flares the wings and relaxes home through the linger", () => {
+    const root = fakeDragon();
+    const body = new PatronBody(root, SPECIES_POSES["dragon"]);
+    const v = judgment(true, true);
+    pump(body, 60, null, v);
+    expect(bone(root, "wingL").rotation.z).toBeLessThan(0.5 - 0.3); // −25° flare
+    expect(bone(root, "wingR").rotation.z).toBeGreaterThan(-0.5 + 0.3);
+    pump(body, 500, null, v);
+    expect(body.act).toBe("idle");
+    expect(bone(root, "wingL").rotation.z).toBeCloseTo(0.5, 1);
   });
 });

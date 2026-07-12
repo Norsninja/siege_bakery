@@ -26,6 +26,11 @@ const deg = (d: number): number => (d * Math.PI) / 180;
 const BREATH_PER_FRAME = 0.026; // ~one breath every 4s at 60fps
 const CHEST_HEAVE_RAD = 0.015;
 const HEAD_NOD_RAD = 0.008;
+/** THE WING SETTLE (plans/19 rider): species with wing bones breathe
+ * them too — a slow fold-and-settle riding the same phase, trailing
+ * the chest like the head nod does. Wingless rigs (the ogre) skip it
+ * by absence; the settle is Z so the folded wings splay, not pitch. */
+const WING_SETTLE_RAD = 0.02;
 
 /** HEAD-TURN CEILING (Blender audition 2026-07-11, ogre-rig.blend):
  * the ogre has no neck — auto-weight deformation stays clean through
@@ -39,6 +44,7 @@ const LOOK_TURN_RAD = deg(20);
 
 export type PoseName = "lean" | "delighted" | "refused" | "hungry";
 type AxisOffsets = { x?: number; y?: number; z?: number };
+export type PoseTable = Record<PoseName, Record<string, AxisOffsets>>;
 
 /** The pose recipes of record (plans/16 slice 2 status block) —
  * degrees→radians, XYZ euler OFFSETS FROM REST per bone. Auditioned
@@ -48,7 +54,7 @@ type AxisOffsets = { x?: number; y?: number; z?: number };
  * node names for PropertyBinding, so the rig's `upper_arm.L` arrives
  * as `upper_armL` (found live 2026-07-11 — the dotted names silently
  * drove nothing). */
-export const POSES: Record<PoseName, Record<string, AxisOffsets>> = {
+export const POSES: PoseTable = {
   lean: {
     spine: { x: deg(14) },
     head: { x: deg(8), y: LOOK_TURN_RAD, z: deg(25) },
@@ -73,14 +79,55 @@ export const POSES: Record<PoseName, Record<string, AxisOffsets>> = {
   },
 };
 
-/** Every bone any pose touches — offsets ease back to zero (= rest)
- * when no pose holds, so idle needs the full list too. */
+/** PER-SPECIES POSE TABLES (plans/19): the ogre's POSES are the
+ * default; species whose bodies act differently override here — data,
+ * not code. THE DRAGON (auditioned in Blender 2026-07-12): her
+ * theatrical instruments are the neck arc and the wings — wing-flare
+ * is delight, neck-droop is hunger, a turned-away head with tightened
+ * wings is refusal. Bones a rig lacks are skipped by the driver, so
+ * tables degrade safely across bodies. Angles are readable v1; the
+ * eye pass tunes. */
+export const SPECIES_POSES: Record<string, PoseTable> = {
+  dragon: {
+    lean: {
+      neck1: { x: deg(12), z: deg(10) },
+      neck2: { x: deg(10), z: deg(8) },
+      head: { x: deg(6), y: deg(15) },
+    },
+    delighted: {
+      chest: { x: deg(-4) },
+      head: { x: deg(-10) },
+      wingL: { z: deg(-25) },
+      wingR: { z: deg(25) },
+    },
+    refused: {
+      neck1: { z: deg(-12) },
+      head: { x: deg(-6), y: deg(-25) },
+      wingL: { z: deg(6) },
+      wingR: { z: deg(-6) },
+    },
+    hungry: {
+      neck1: { x: deg(18) },
+      neck2: { x: deg(14) },
+      head: { x: deg(12) },
+    },
+  },
+};
+
+/** Every bone any pose (any species) touches — offsets ease back to
+ * zero (= rest) when no pose holds, so idle needs the full list too.
+ * Bones absent on a given rig are skipped per-frame (the fallback
+ * grain the species tables lean on). */
 const DRIVEN_BONES = [
   "spine",
   "chest",
   "head",
   "upper_armL",
   "upper_armR",
+  "neck1",
+  "neck2",
+  "wingL",
+  "wingR",
 ] as const;
 
 /** The banner's exact two-gate read (hud.ts precedent): accepted →
@@ -121,7 +168,13 @@ export class PatronBody {
   private seqAdopted = false;
   private lastJudgment: Judgment | null = null;
 
-  constructor(root: THREE.Object3D) {
+  /** `poses` selects the species' pose table (default: the ogre's).
+   * Pass SPECIES_POSES[species] ?? POSES — an unknown species acts in
+   * the ogre's grammar on whatever shared bones it carries. */
+  constructor(
+    root: THREE.Object3D,
+    private readonly poses: PoseTable = POSES,
+  ) {
     root.traverse((o) => {
       if ((o as THREE.Bone).isBone) {
         this.bones.set(o.name, o);
@@ -184,12 +237,13 @@ export class PatronBody {
 
     // Ease offsets toward the active pose (zero = rest) and apply,
     // breathing riding additively on chest/head X.
-    const pose = this.mode === "idle" ? null : POSES[this.mode];
+    const pose = this.mode === "idle" ? null : this.poses[this.mode];
     const rate =
       this.mode !== "idle" && this.mode !== "lean" ? SNAP_LERP : EASE_LERP;
     this.phase += BREATH_PER_FRAME;
     const breath = CHEST_HEAVE_RAD * Math.sin(this.phase);
     const nod = HEAD_NOD_RAD * Math.sin(this.phase - 0.9);
+    const settle = WING_SETTLE_RAD * Math.sin(this.phase - 0.45);
     for (const name of DRIVEN_BONES) {
       const bone = this.bones.get(name);
       const rest = this.rest.get(name);
@@ -200,10 +254,12 @@ export class PatronBody {
       cur.y += ((tgt?.y ?? 0) - cur.y) * rate;
       cur.z += ((tgt?.z ?? 0) - cur.z) * rate;
       const extraX = name === "chest" ? breath : name === "head" ? nod : 0;
+      const extraZ =
+        name === "wingL" ? settle : name === "wingR" ? -settle : 0;
       bone.rotation.set(
         rest.x + cur.x + extraX,
         rest.y + cur.y,
-        rest.z + cur.z,
+        rest.z + cur.z + extraZ,
       );
     }
   }
