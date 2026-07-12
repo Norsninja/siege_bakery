@@ -179,6 +179,20 @@ patron reaches the table as the next order deals.
   21.72→2.35 MB. CAST_SEED re-rolled 0xbab39e: ALL SEVEN species
   deal in the first seven rungs. Far-impostor debt now three species
   (cyclops, cloudgiant, firegiant).
+- 2026-07-12 (seventeenth session): FAR-IMPOSTOR DEBT PAID — all
+  three new species joined giants_far.glb (495 KB, 7/7 cast coverage
+  live-verified). Built IN THE VISIONARY'S LIVE BLENDER via MCP (his
+  giants-far.blend was open-dirty with no new content — working live
+  merged rather than clobbered; saved clean). The far language
+  decoded by measurement: vertex color "Col" is a PURE z-GRADIENT
+  (r~z corr 0.985), feet (0.26,0.36,0.48) → head (0.45,0.54,0.66) —
+  silhouettes dissolving into valley haze. RECIPE AMENDMENT for
+  meshy-import impostors: straight decimate FLOORS EARLY on their
+  non-manifold gear shells (cyclops stuck at 1724 of a 700 target and
+  the compounded passes spiked his silhouette) — VOXEL REMESH first
+  (0.4-0.45 m), THEN decimate the manifold shell; Mesh.validate()
+  before export or the exporter warns "not valid". New impostors:
+  cyclops 694, cloudgiant 897, firegiant 648 tris.
 - 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
   whole cast heaved as one metronome (every PatronBody booted phase 0
   at one fixed rate). PatronBody gains an `individuality` seed (the
