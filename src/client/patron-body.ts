@@ -141,6 +141,16 @@ export function verdictPose(
   return j.met ? "refused" : "hungry";
 }
 
+/** THE SHAKE-OFF (plans/15 item 16): a wild shot bonked off the body —
+ * he shudders it off, annoyed, never hurt (the tone guard). Rides
+ * ADDITIVELY like the breath, so it never interrupts a verdict pose or
+ * a lean: head shakes "no no no" (Y), the trunk shudders (Z), both
+ * decaying over the window. Dials for the eye pass: */
+const FLINCH_FRAMES = 55; // ~0.9s of shudder
+const FLINCH_HEAD_RAD = deg(10);
+const FLINCH_BODY_RAD = deg(2.5);
+const FLINCH_HZ_PER_FRAME = 0.55; // shake speed (rad of phase per frame)
+
 /** Frame-counted holds (no wall clock). The verdict hold then RELAXES
  * THROUGH THE LINGER — the banner stays, the body eases back to the
  * idle so the next deal finds him breathing at his post. */
@@ -167,6 +177,9 @@ export class PatronBody {
   private readonly breathRate: number;
   private mode: "idle" | PoseName = "idle";
   private holdFrames = 0;
+  /** Shake-off frames left (item 16) — additive, so it coexists with
+   * any pose; restarting mid-shudder just extends the annoyance. */
+  private flinchLeft = 0;
   /** Patron-line edge detection. The FIRST update adopts the standing
    * seq silently — a stale nag must not replay when the model lands
    * late; a verdict, by contrast, is standing STATE and does play. */
@@ -211,6 +224,19 @@ export class PatronBody {
   /** The current theatrical beat — for the smoke driver and tests. */
   get act(): "idle" | PoseName {
     return this.mode;
+  }
+
+  /** Mid-shudder? (smoke + test seam for the shake-off) */
+  get flinching(): boolean {
+    return this.flinchLeft > 0;
+  }
+
+  /** THE SHAKE-OFF (item 16): a shot bonked off this body. Additive
+   * shudder — never yanks a verdict pose, no-op on rig-less bodies
+   * (assetless law: every call stays safe). */
+  flinch(): void {
+    if (!this.rigged) return;
+    this.flinchLeft = FLINCH_FRAMES;
   }
 
   /** THE MOUTH ANCHOR (plans/16 slice 7 — the eat beat's arc target):
@@ -272,6 +298,17 @@ export class PatronBody {
     const breath = CHEST_HEAVE_RAD * Math.sin(this.phase);
     const nod = HEAD_NOD_RAD * Math.sin(this.phase - 0.9);
     const settle = WING_SETTLE_RAD * Math.sin(this.phase - 0.45);
+    // The shake-off (item 16): a decaying shudder — head Y is the
+    // "no no no", spine/chest Z the trunk shudder.
+    let shakeY = 0;
+    let shakeZ = 0;
+    if (this.flinchLeft > 0) {
+      this.flinchLeft--;
+      const fall = this.flinchLeft / FLINCH_FRAMES;
+      const wob = Math.sin(this.flinchLeft * FLINCH_HZ_PER_FRAME) * fall;
+      shakeY = FLINCH_HEAD_RAD * wob;
+      shakeZ = FLINCH_BODY_RAD * wob;
+    }
     for (const name of DRIVEN_BONES) {
       const bone = this.bones.get(name);
       const rest = this.rest.get(name);
@@ -282,11 +319,18 @@ export class PatronBody {
       cur.y += ((tgt?.y ?? 0) - cur.y) * rate;
       cur.z += ((tgt?.z ?? 0) - cur.z) * rate;
       const extraX = name === "chest" ? breath : name === "head" ? nod : 0;
+      const extraY = name === "head" ? shakeY : 0;
       const extraZ =
-        name === "wingL" ? settle : name === "wingR" ? -settle : 0;
+        name === "wingL"
+          ? settle
+          : name === "wingR"
+            ? -settle
+            : name === "spine" || name === "chest"
+              ? shakeZ
+              : 0;
       bone.rotation.set(
         rest.x + cur.x + extraX,
-        rest.y + cur.y,
+        rest.y + cur.y + extraY,
         rest.z + cur.z + extraZ,
       );
     }

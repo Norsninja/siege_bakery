@@ -175,6 +175,24 @@ const chomp = (seed, bites, heft) => {
   return lowpass(raw, heft > 0.5 ? 0.28 : 0.16);
 };
 
+/** patron-bonk — a topping off a giant's belly (item 16): a deep
+ * rubbery boing under a soft body thud. Comic, never painful (the
+ * tone guard: annoyed, not hurt — the sound must smile). */
+const patronBonk = () => {
+  const rnd = mulberry32(0xb04c);
+  const n = seconds(0.32);
+  const thud = lowpass(
+    Array.from({ length: n }, (_, i) => (rnd() * 2 - 1) * decay(i / RATE, 0.02)),
+    0.22,
+  );
+  return thud.map((s, i) => {
+    const t = i / RATE;
+    // The boing: a wobbling low tone — pitch dips then springs back.
+    const f = 110 + 55 * Math.sin(2 * Math.PI * 9 * t) * decay(t, 0.16);
+    return s * 0.7 + Math.sin(2 * Math.PI * f * t) * decay(t, 0.13) * 0.8;
+  });
+};
+
 // --- Forge ------------------------------------------------------------
 mkdirSync(OUT, { recursive: true });
 console.log("forging into public/audio/sfx/:");
@@ -186,4 +204,5 @@ writeWav("winch-ratchet.wav", finish(winchRatchet(), 0.5));
 writeWav("lob-whoosh.wav", finish(lobWhoosh(), 0.55));
 writeWav("chomp-devour.wav", finish(chomp(0xc40b, 2, 0.7), 0.9));
 writeWav("chomp-begrudge.wav", finish(chomp(0xbe6d, 1, 0.35), 0.6));
+writeWav("patron-bonk.wav", finish(patronBonk(), 0.8));
 console.log("done — regenerate any time; never hand-edit.");

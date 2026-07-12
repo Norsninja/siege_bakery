@@ -34,6 +34,8 @@ import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
 import { isPaint, TOPPINGS } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
+import { PatronColliderRig } from "../core/patron-collider";
+import { patronAtMark } from "../game/cast";
 import {
   createCatapult,
   tickMachine,
@@ -109,6 +111,12 @@ export class Room {
   private towns: TownRuntime[] = [freshTown()];
   /** The order lifecycle — clock, patron, linger, deal tags (game/). */
   private readonly flow = new OrderFlow();
+  /** THE PATRON AT THE MARK (plans/15 item 16): the giant's coarse
+   * capsules in THIS world, reconciled every tick against game/cast's
+   * pure predicate — never a client signal, never an edge. Every
+   * client runs the identical reconcile on its local world, so both
+   * sides of every arc agree about the shape at the mark. */
+  private readonly patronRig = new PatronColliderRig();
   /** THE RUN CONTAINER (plans/13 slice 1): lobby → countdown → running
    * rungs → runover → lobby. Outside "running" the match is a SANDBOX:
    * machines crank and fire (warmup comedy), landings litter, but the
@@ -306,6 +314,13 @@ export class Room {
   /** One fixed 60Hz tick: machine → physics → scoring → clock → broadcasts. */
   tick(): void {
     this.tickCount++;
+    // The patron's capsules reconcile FIRST — before anything spawns a
+    // shot or steps the world, so the shape at the mark is settled for
+    // this tick's physics. One string compare on the quiet path.
+    this.patronRig.reconcile(
+      this.world,
+      patronAtMark(this.run.phase, this.run.rung, this.lingerVerdict !== null),
+    );
     this.tickMachinePhase();
     this.tickScoringPhase();
     this.tickLifecyclePhase();

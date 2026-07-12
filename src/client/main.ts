@@ -23,6 +23,8 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
 import { TOWNS, buildArenaColliders } from "../core/arena";
+import { PatronColliderRig } from "../core/patron-collider";
+import { patronAtMark } from "../game/cast";
 import type { ServerMsg, HeldOp } from "../game/protocol";
 import { TOPPINGS } from "../game/toppings";
 import { connectLoopback, connectWs, pickWsUrl, type Transport } from "./net";
@@ -47,7 +49,7 @@ import { GhostManager } from "./ghosts";
 import { depthIntoTown, townToPick, TownGates } from "./gates";
 import { loadModel } from "./assets";
 import { LineManager } from "./line";
-import { PatronTable } from "./patron-table";
+import { PatronTable, scoldLine } from "./patron-table";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
 import { ShotsView } from "./shots-view";
 import { FrostingView } from "./frosting-view";
@@ -71,6 +73,12 @@ async function main(): Promise<void> {
   // colliders in the shared world — shots never see them (collision
   // groups), so the deterministic arcs are untouched.
   const gates = new TownGates(physics);
+  // THE PATRON AT THE MARK (plans/15 item 16): the giant's capsules in
+  // OUR world — the Room builds the identical set in its own, both
+  // reconciled against game/cast's pure predicate every tick. Without
+  // this mirror a bonk on the server would be a fly-through here: the
+  // trajectory itself would fork, not just the paint.
+  const patronRig = new PatronColliderRig();
 
   // --- The match, as this client knows it (state.ts) ---
   const view = createMatchView();
@@ -93,8 +101,11 @@ async function main(): Promise<void> {
   // splat BURIES stuck sprinkles under its footprint (conversion law,
   // plans/10 §8) — the mirror of the Room's ledger filter.
   shotsView.onPaintImpact = (topping, pos, speed) => {
-    frostingView.paintImpact(topping, pos, speed);
+    const painted = frostingView.paintImpact(topping, pos, speed);
     sprinklesView.buryBy(pos, speed, TOPPINGS[topping]?.splat);
+    // The painted count back to the shots-view (item 15): the paint
+    // verdict's oracle — the same truth the Room's `painted > 0` reads.
+    return painted;
   };
   // The conversion law's paint oracle (plans/10 §8): grains grip where
   // they hit wet paint — the local field twin answers, same as the Room's
@@ -135,6 +146,18 @@ async function main(): Promise<void> {
   // mid-banner joiners recover; events would miss both).
   const patronTable = new PatronTable(scene, sound);
   const line = new LineManager(scene);
+  // THE BONK's port (item 16): the shots-view detects the hit (the
+  // rig's handle set interprets Impact.otherHandle); the table body
+  // shakes it off, the patron scolds — the first patron voice — and
+  // frosting dabs the body (client juice, never census). Every town's
+  // hit: the giant reacts to the world, not to your HUD.
+  shotsView.isGiantCollider = (h) => patronRig.has(h);
+  shotsView.onGiantHit = (topping, pos, paint) => {
+    patronTable.flinch();
+    flash(scoldLine(patronTable.species), 5000);
+    if (paint)
+      patronTable.splatAt(pos, TOPPING_COLORS[topping] ?? 0xc23b4e);
+  };
 
   const hud = document.getElementById("hud");
   const postHud = new PostHud();
@@ -505,6 +528,13 @@ async function main(): Promise<void> {
       // Invisible (the lobby HUD hides the order) but dishonest state.
       if (view.run.phase === "running") view.order = predictClock(view.order);
 
+      // The patron's capsules reconcile before the world steps — the
+      // same pure predicate the Room polls, so both worlds agree about
+      // the shape at the mark every tick (item 16).
+      patronRig.reconcile(
+        physics,
+        patronAtMark(view.run.phase, view.run.rung, view.verdict !== null),
+      );
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
       shotsView.step(view.dessert, fxPort);
@@ -669,6 +699,7 @@ async function main(): Promise<void> {
       getPatronBody: () => patronTable.body,
       getTableSpecies: () => patronTable.species,
       getEatBeat: () => patronTable.eatBeat,
+      getPatronCollider: () => ({ species: patronRig.species }),
       getSfx: () => sfx.debug(),
       getBus: () => ({ ...bus }),
       setBus: (b: Partial<{ music: number; sfx: number; muted: boolean }>) =>

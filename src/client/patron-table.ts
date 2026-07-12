@@ -55,6 +55,38 @@ interface TableBody {
   walkPhase: number;
 }
 
+/** THE SCOLD (item 16's rider — the first PATRON VOICE in the game):
+ * a wild shot hit HIM; he tells you where the frosting goes. Written
+ * to SURVIVE the prize session (species-themed orders + voice): one
+ * line per species keyed by the same species strings game/cast deals,
+ * so the voice work extends this table rather than replacing it.
+ * Tone guard (plans/02): annoyed, never hurt — the wild shot deserves
+ * the laugh. Semantic audit (item 12): bakery words only. */
+const SCOLD_LINES: Record<string, string> = {
+  ogre: "OI! The frosting goes on the CAKE, not on ME!",
+  frostgiant: "Brr—MISFIRE. The cake is the target, little baker.",
+  treefolk: "My bark is not a bakery, little one. The cake, please.",
+  dragon: "Sssteady that aim — I am NOT on the menu.",
+  cyclops: "One eye, and even I can tell that missed the cake!",
+  cloudgiant: "Mind the gown, dears! The CAKE. Aim for the cake.",
+  firegiant: "HEY — you'll smudge my embers! Cake's THAT way.",
+};
+
+/** The patron's scold for a body hit; unknown species borrow the
+ * ogre's grammar (the fallback ladder's culture). */
+export function scoldLine(species: string | null): string {
+  return (
+    (species && SCOLD_LINES[species]) ??
+    "Oi! On the CAKE, little baker — the cake!"
+  );
+}
+
+/** The paint dab's life on the body (frames) — client juice, NEVER
+ * census (item 16: the cake's census is the only scoring surface). */
+const BODY_SPLAT_FRAMES = 600; // ~10s, fading over the last two
+const BODY_SPLAT_FADE_FRAMES = 120;
+const BODY_SPLAT_MAX = 12; // a well-peppered giant stays a giant, not a pile
+
 export class PatronTable {
   private seated: TableBody | null = null;
   private departing: TableBody | null = null;
@@ -70,6 +102,8 @@ export class PatronTable {
   /** Spawn-generation guard: a snap invalidates every in-flight fetch
    * callback (models resolve async; the world may have moved on). */
   private gen = 0;
+  /** Paint dabs riding the current body (item 16) — frame-budgeted. */
+  private readonly splats: Array<{ mesh: THREE.Mesh; life: number }> = [];
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -96,6 +130,50 @@ export class PatronTable {
     return this.eat
       ? { stage: this.eat.stage, word: this.eat.spokenText }
       : null;
+  }
+
+  /** THE SHAKE-OFF (item 16): a shot bonked off the patron — the body
+   * at the mark shudders it off. No-op with nobody standing there
+   * (the collider's lifecycle makes that near-impossible, but async
+   * model loads leave frames where the body lags the physics). */
+  flinch(): void {
+    (this.seated ?? this.arriving)?.body.flinch();
+  }
+
+  /** FROSTING ON THE GIANT (item 16): a paint glob burst on his body —
+   * a temporary dab riding the body group (it breathes and departs
+   * with him), faded and dropped on a frame budget. Client juice,
+   * NEVER census. World pos converts to group-local, so the dab sits
+   * where it hit whatever the species' scale. */
+  splatAt(pos: { x: number; y: number; z: number }, colorHex: number): void {
+    const b = this.seated ?? this.arriving;
+    if (!b) return;
+    const local = b.group.worldToLocal(
+      new THREE.Vector3(pos.x, pos.y, pos.z),
+    );
+    const scale = b.group.scale.x || 1;
+    const dab = new THREE.Mesh(
+      new THREE.SphereGeometry(1.3 / scale, 10, 8),
+      new THREE.MeshStandardMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.95,
+        depthWrite: false, // a wet film, never fights the body's depth
+      }),
+    );
+    dab.scale.set(1, 0.55, 0.7); // a dab, not a ball
+    dab.position.copy(local);
+    b.group.add(dab);
+    this.splats.push({ mesh: dab, life: BODY_SPLAT_FRAMES });
+    if (this.splats.length > BODY_SPLAT_MAX) this.dropSplat(0);
+  }
+
+  private dropSplat(i: number): void {
+    const s = this.splats[i]!;
+    s.mesh.removeFromParent();
+    s.mesh.geometry.dispose();
+    (s.mesh.material as THREE.Material).dispose();
+    this.splats.splice(i, 1);
   }
 
   /** Load a species body through the seam with the fallback ladder:
@@ -136,6 +214,9 @@ export class PatronTable {
   private snapTo(rung: number): void {
     for (const b of [this.seated, this.departing, this.arriving])
       if (b) b.group.removeFromParent(); // shared-clone law: no dispose
+    // The dabs are OURS to dispose (never shared): they leave with the
+    // bodies they rode.
+    while (this.splats.length > 0) this.dropSplat(0);
     this.seated = this.departing = this.arriving = null;
     this.shownRung = rung;
     this.lingerFrames = 0;
@@ -282,5 +363,18 @@ export class PatronTable {
     );
     this.departing?.body.update(null, null);
     this.arriving?.body.update(null, null);
+
+    // Paint dabs age out (item 16) — fade over the tail, then leave.
+    for (let i = this.splats.length - 1; i >= 0; i--) {
+      const s = this.splats[i]!;
+      s.life--;
+      if (s.life <= 0) {
+        this.dropSplat(i);
+        continue;
+      }
+      if (s.life < BODY_SPLAT_FADE_FRAMES)
+        (s.mesh.material as THREE.MeshStandardMaterial).opacity =
+          0.95 * (s.life / BODY_SPLAT_FADE_FRAMES);
+    }
   }
 }

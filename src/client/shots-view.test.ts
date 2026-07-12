@@ -43,8 +43,9 @@ function harness() {
   const frostingView = new FrostingView(scene, GEOM.samples);
   const sprinklesView = new SprinklesView(scene);
   shotsView.onPaintImpact = (topping, pos, speed) => {
-    frostingView.paintImpact(topping, pos, speed);
+    const painted = frostingView.paintImpact(topping, pos, speed);
     sprinklesView.buryBy(pos, speed, TOPPINGS[topping]?.splat);
+    return painted;
   };
   shotsView.onStuck = (_t, pos, normal) =>
     sprinklesView.add(pos, normal, frostingView.coatsNear(pos));
@@ -71,6 +72,7 @@ const coveringImpact = {
   topping: "frosting",
   tag: 0,
   bodyHandle: -1, // no ribbon to halt in the stub rigs
+  otherHandle: -1, // nothing named on the other side
 };
 const grip = { pos: { ...G }, normal: { ...N }, topping: "sprinkles", tag: 0 };
 const empty: StepEvents = { impacts: [], settled: [], bursts: [], stuck: [] };
@@ -99,15 +101,20 @@ describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
   });
 });
 
+type RingRec = { mesh: THREE.Mesh; bodyHandle: number };
+const rings = (v: ShotsView): Map<number, RingRec> =>
+  (v as unknown as { markers: Map<number, RingRec> }).markers;
+const ringColor = (v: ShotsView, town: number): number =>
+  (rings(v).get(town)!.mesh.material as THREE.MeshBasicMaterial).color.getHex();
+
 describe("landing rings: one per catapult (plans/15 item 1)", () => {
-  const rings = (v: ShotsView): Map<number, THREE.Mesh> =>
-    (v as unknown as { markers: Map<number, THREE.Mesh> }).markers;
   const impactAt = (town: number, x: number, deal = 0) => ({
     pos: { x, y: 2, z: CAKE_Z },
     speed: 20,
     topping: "frosting",
     tag: packShotTag(deal, town),
     bodyHandle: -1, // no ribbon to halt in the stub rigs
+    otherHandle: -1,
   });
 
   it("the tag round-trips (deal, town) — and the fixtures' tag 0 IS deal 0, town 0", () => {
@@ -125,14 +132,14 @@ describe("landing rings: one per catapult (plans/15 item 1)", () => {
       shotsView.step(GEOM, noop);
     }
     expect(rings(shotsView).size).toBe(1);
-    expect(rings(shotsView).get(0)!.position.x).toBe(4); // the last lob's x
+    expect(rings(shotsView).get(0)!.mesh.position.x).toBe(4); // the last lob's x
     // Town 1 fires: its own ring appears; town 0's correction ring HOLDS.
-    const town0Ring = rings(shotsView).get(0)!;
+    const town0Ring = rings(shotsView).get(0)!.mesh;
     setEvents({ ...empty, impacts: [impactAt(1, 9)] });
     shotsView.step(GEOM, noop);
     expect(rings(shotsView).size).toBe(2);
-    expect(rings(shotsView).get(0)).toBe(town0Ring); // untouched, same mesh
-    expect(rings(shotsView).get(1)!.position.x).toBe(9);
+    expect(rings(shotsView).get(0)!.mesh).toBe(town0Ring); // untouched, same mesh
+    expect(rings(shotsView).get(1)!.mesh.position.x).toBe(9);
   });
 
   it("a stale-deal shot still rings (it visibly landed) but its town key is honest", () => {
@@ -296,6 +303,7 @@ describe("THE COMIC WORD (plans/15 item 13): your own landings speak in the worl
     topping: "cherry",
     tag: packShotTag(0, town),
     bodyHandle: -1,
+    otherHandle: -1,
     ...(grain ? { grain: true } : {}),
   });
 
@@ -348,6 +356,174 @@ describe("THE COMIC WORD (plans/15 item 13): your own landings speak in the worl
     expect(words(shotsView).length).toBe(1);
     setEvents(empty);
     for (let i = 0; i <= WORD_LIFE_TICKS; i++) shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(0);
+  });
+});
+
+describe("THE LANDING VERDICT (plans/15 item 15): color is the verdict channel", () => {
+  const GREEN = 0x3fae5a;
+  const RED = 0xd8452e;
+  const NEUTRAL = 0xe8e0d2;
+  const paintAt = (pos: { x: number; y: number; z: number }) => ({
+    pos,
+    speed: 20,
+    topping: "frosting",
+    tag: 0,
+    bodyHandle: -1,
+    otherHandle: -1,
+  });
+  const solidAt = (bodyHandle: number, speed = 20) => ({
+    pos: { x: 2, y: 1, z: CAKE_Z },
+    speed,
+    topping: "cherry",
+    tag: 0,
+    bodyHandle,
+    otherHandle: -1,
+  });
+  const settleOf = (
+    bodyHandle: number,
+    pos: { x: number; y: number; z: number },
+    grain = false,
+  ) => ({
+    pos,
+    topping: "cherry",
+    tag: 0,
+    body: { handle: bodyHandle } as unknown as RAPIER.RigidBody,
+    ...(grain ? { grain: true } : {}),
+  });
+
+  it("frosting verdicts AT IMPACT (paint scores at impact): on the cake = green", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [paintAt({ x: 2, y: 2, z: CAKE_Z })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(GREEN);
+  });
+
+  it("frosting on the floor = red — and a STALE glob is red too (it scored nothing)", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [paintAt({ x: 60, y: 0.3, z: 0 })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(RED);
+    // Stale: painting is deal-gated, so the verdict honestly reads red
+    // even over the cake (the Room scored nothing either).
+    shotsView.bumpDeal();
+    setEvents({ ...empty, impacts: [paintAt({ x: 2, y: 2, z: CAKE_Z })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(RED);
+  });
+
+  it("a solid rings NEUTRAL at impact — the at-rest policy will save it", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [solidAt(41)] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(NEUTRAL);
+  });
+
+  it("the at-rest verdict: the ring moves to the rest spot and takes its color", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [solidAt(41)] });
+    shotsView.step(GEOM, noop);
+    // It rolled off: rest on the floor → red, ring repositioned.
+    setEvents({ ...empty, settled: [settleOf(41, { x: 30, y: 0.3, z: 0 })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(RED);
+    expect(rings(shotsView).get(0)!.mesh.position.x).toBe(30);
+  });
+
+  it("a rest ON the cake goes green (landed red-hot, rolled to glory)", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [solidAt(41)] });
+    shotsView.step(GEOM, noop);
+    setEvents({ ...empty, settled: [settleOf(41, { x: 2, y: 2, z: CAKE_Z })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(GREEN);
+  });
+
+  it("a NEWER lob owns the ring: an old shot's rest must not recolor it", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [solidAt(41)] });
+    shotsView.step(GEOM, noop);
+    setEvents({ ...empty, impacts: [solidAt(42)] }); // the next lob replaced it
+    shotsView.step(GEOM, noop);
+    setEvents({ ...empty, settled: [settleOf(41, { x: 30, y: 0.3, z: 0 })] });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(NEUTRAL); // still waiting on lob 42
+  });
+
+  it("grain settles stay quiet — no recolor, no ring (the quiet-grain law)", () => {
+    const { shotsView, setEvents } = harness();
+    setEvents({ ...empty, impacts: [solidAt(41)] });
+    shotsView.step(GEOM, noop);
+    setEvents({
+      ...empty,
+      settled: [settleOf(41, { x: 30, y: 0.3, z: 0 }, true)],
+    });
+    shotsView.step(GEOM, noop);
+    expect(ringColor(shotsView, 0)).toBe(NEUTRAL); // the grain touched nothing
+  });
+});
+
+describe("THE BONK (plans/15 item 16): hitting the giant is a distinct event", () => {
+  const words = (v: ShotsView): Array<{ text: string }> =>
+    (v as unknown as { words: Array<{ text: string }> }).words;
+  const giantHit = (town: number, paint = false) => ({
+    pos: { x: 21, y: 25, z: -30 },
+    speed: 15,
+    topping: paint ? "frosting" : "cherry",
+    tag: packShotTag(0, town),
+    bodyHandle: -1,
+    otherHandle: 99, // the rig's capsule, by agreement below
+  });
+
+  function giantHarness() {
+    const h = harness();
+    h.shotsView.isGiantCollider = (handle) => handle === 99;
+    const hits: Array<{ topping: string; paint: boolean }> = [];
+    h.shotsView.onGiantHit = (topping, _pos, paint) =>
+      hits.push({ topping, paint });
+    return { ...h, hits };
+  }
+
+  it("BONK! + patronBonk for YOUR hit — one announcement, no m/s flash", () => {
+    const { shotsView, setEvents, hits } = giantHarness();
+    const played: string[] = [];
+    const flashed: string[] = [];
+    const fx = {
+      flash: (m: string) => flashed.push(m),
+      sound: (key: string) => played.push(key),
+    };
+    setEvents({ ...empty, impacts: [giantHit(0)] });
+    shotsView.step(GEOM, fx);
+    expect(words(shotsView).map((w) => w.text)).toEqual(["BONK!"]);
+    expect(played).toEqual(["patronBonk"]);
+    expect(flashed).toEqual([]); // the scold (main's port) is the flash
+    expect(hits).toEqual([{ topping: "cherry", paint: false }]);
+  });
+
+  it("the giant reacts to EVERY town's hit; the word stays own-town (item 13)", () => {
+    const { shotsView, setEvents, hits } = giantHarness();
+    setEvents({ ...empty, impacts: [giantHit(1)] }); // the other crew's wild lob
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).length).toBe(0); // their shot, wordless for us
+    expect(hits.length).toBe(1); // but he still flinches for everyone
+  });
+
+  it("paint on the giant reports paint (the decal port) and rings red", () => {
+    const { shotsView, setEvents, hits } = giantHarness();
+    setEvents({ ...empty, impacts: [giantHit(0, true)] });
+    shotsView.step(GEOM, noop);
+    expect(hits).toEqual([{ topping: "frosting", paint: true }]);
+    expect(ringColor(shotsView, 0)).toBe(0xd8452e); // painted nothing: red
+  });
+
+  it("grains bonk silently (the quiet-grain law: 40 grains ≠ 40 scolds)", () => {
+    const { shotsView, setEvents, hits } = giantHarness();
+    setEvents({
+      ...empty,
+      impacts: [{ ...giantHit(0), grain: true }],
+    });
+    shotsView.step(GEOM, noop);
+    expect(hits.length).toBe(0);
     expect(words(shotsView).length).toBe(0);
   });
 });

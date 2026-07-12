@@ -118,16 +118,21 @@ export class FrostingView {
   }
 
   /** A paint topping landed in the local sim — same paint law as the Room
-   * (the topping's own splat spec: fudge runs down walls, plans/10). */
-  paintImpact(topping: string, pos: Vec3, speed: number): void {
+   * (the topping's own splat spec: fudge runs down walls, plans/10).
+   * Returns the painted-sample count — the deterministic twin of the
+   * Room's `painted > 0` onCake truth, and therefore the landing
+   * verdict's paint oracle (item 15): isOnCake would lie red on an
+   * honest wall splat, the ball center resting 0.3 m off the skin. */
+  paintImpact(topping: string, pos: Vec3, speed: number): number {
     const spec = TOPPINGS[topping]?.splat;
-    this.field.paint(pos, speed, spec);
+    const painted = this.field.paint(pos, speed, spec);
     const color = new THREE.Color(PAINT_COLORS[topping] ?? FROSTING_COLOR);
     for (const i of splatSamples(this.samples, pos, speed, spec))
       this.blobs.setColorAt(i, color);
     if (this.blobs.instanceColor) this.blobs.instanceColor.needsUpdate = true;
     if (pos.y < GROUND_SPLAT_BELOW_Y) this.addGroundSplat(pos, speed, topping);
     this.refresh();
+    return painted;
   }
 
   /** The welcome snapshot: the painted cake as it lies (late join/refresh). */

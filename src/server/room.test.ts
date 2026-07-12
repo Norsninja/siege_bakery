@@ -1739,4 +1739,34 @@ describe("Room: the match, headless over protocol", () => {
       expect(lobby?.ultra).toBeUndefined();
     });
   });
+
+  describe("THE PATRON AT THE MARK (plans/15 item 16): the collider rides the sim's own answer", () => {
+    const rig = (room: Room): { species: string | null } =>
+      (room as unknown as { patronRig: { species: string | null } }).patronRig;
+
+    it("lobby (interim rule) and the live order stand him up; the verdict clears him; the next lobby stands him again", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      // The lobby sandbox: warmup lobbing at a visible ogre must bounce
+      // (item 25's training lobby razes this branch with the lobby giant).
+      run(room, 2);
+      expect(rig(room).species).toBe("ogre");
+      // A live rung 1: the founding patron stands his order.
+      readyUp(room, a);
+      expect(rig(room).species).toBe("ogre");
+      // The clock dies — the verdict tick clears the mark: the walk
+      // theatre plays through the linger with the capsules DOWN (ruled
+      // residue: a shot passes through the departing giant).
+      run(room, ORDER_SECONDS * 60 + 65);
+      const ended = a.all("order").find((m) => m.judgment);
+      expect(ended).toBeDefined();
+      expect(rig(room).species).toBeNull();
+      // Runover holds the empty mark; the lobby stands rung 1's ogre
+      // back up (both worlds agree — the client mirrors this exactly).
+      run(room, ORDER_RESET_TICKS + RUNOVER_TICKS + 60);
+      const lobby = a.all("run").filter((m) => m.phase === "lobby").pop();
+      expect(lobby).toBeDefined();
+      expect(rig(room).species).toBe("ogre");
+    });
+  });
 });

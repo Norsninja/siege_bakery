@@ -82,6 +82,20 @@ export const TRAIL_WIDTH = PROJECTILE_RADIUS; // …tapering to a point behind
 const WORD_SPLAT_WIDTH_M = 2.4; // landing energy = word size…
 const WORD_PLOP_WIDTH_M = 1.5; // …a gentle placement whispers
 
+/** THE LANDING VERDICT (plans/15 item 15, rings recolor RULED
+ * 2026-07-12): color is the VERDICT channel everywhere — green = on
+ * the cake, red = off it (or off the patron's belly) — and landing
+ * energy keeps the channels it already owned, word choice and ring
+ * size. The two-gate honesty law applied to juice: FROSTING verdicts
+ * at impact (paint scores at impact — the local field's painted
+ * count is the Room's own truth, mirrored), SOLIDS verdict AT REST
+ * (a solid can land red and roll on; the neutral ring waits for the
+ * census's word). Before this ruling the ring spoke energy in color
+ * (red = splat, green = gentle); that axis now lives in size alone. */
+const VERDICT_GREEN = 0x3fae5a;
+const VERDICT_RED = 0xd8452e;
+const VERDICT_NEUTRAL = 0xe8e0d2; // a solid mid-verdict: the rest will tell
+
 // Per-frame scratch for the ribbon rebuild — no allocation in the loop.
 const _tangent = new THREE.Vector3();
 const _toCam = new THREE.Vector3();
@@ -239,8 +253,14 @@ export class ShotsView {
     [];
   /** One ring per firing town (plans/15 item 1): a teammate's shot must
    * never erase YOUR walk-the-fall correction, and lobby test shots must
-   * not pile up — the old FIFO-30 breadcrumb trail did both. */
-  private readonly markers = new Map<number, THREE.Mesh>();
+   * not pile up — the old FIFO-30 breadcrumb trail did both. The body
+   * handle rides along (item 15): the at-rest verdict recolors a ring
+   * only while it still belongs to THAT lob — a newer shot's ring must
+   * never wear an old shot's verdict. */
+  private readonly markers = new Map<
+    number,
+    { mesh: THREE.Mesh; bodyHandle: number }
+  >();
   /** Every lever-pulled lob's ribbon (plans/15 item 4) — grains and
    * welcome-restored resting toppings never get one. */
   private readonly trails: TrailRibbon[] = [];
@@ -252,9 +272,23 @@ export class ShotsView {
   yourTown = 0;
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). The topping
-   * rides along: fudge paints under its own splat law and renders dark. */
-  onPaintImpact: ((topping: string, pos: Vec3, speed: number) => void) | null =
-    null;
+   * rides along: fudge paints under its own splat law and renders dark.
+   * Returns the painted-sample count (item 15): the paint verdict's
+   * oracle — the exact truth the Room's `painted > 0` reads. */
+  onPaintImpact:
+    | ((topping: string, pos: Vec3, speed: number) => number)
+    | null = null;
+  /** THE GIANT'S INTERPRETER (item 16): main binds the patron rig's
+   * handle set — Impact.otherHandle in this set means the shot hit
+   * HIM. Null (tests, assetless) = no giant hits detected. */
+  isGiantCollider: ((handle: number) => boolean) | null = null;
+  /** A shot bonked off the patron (never grains — the quiet-grain
+   * law): main flinches the table body, flashes the scold, and dabs
+   * the paint decal. Fires for EVERY town's hit — the giant reacts
+   * to the world, not to your HUD. */
+  onGiantHit:
+    | ((topping: string, pos: Vec3, paint: boolean) => void)
+    | null = null;
   /** A grain GRIPPED in the local sim (the conversion law, plans/10 §8):
    * its body is already gone — sync() sweeps the mesh — and main hands
    * the record to the SprinklesView to perch on the frosting visual. */
@@ -414,15 +448,55 @@ export class ShotsView {
       // (grains have no ribbon; find() simply misses).
       this.trails.find((t) => t.isFor(im.bodyHandle))?.halt();
       // Grains land QUIETLY (plans/10): 40 landings must not be 40 toasts
-      // and 40 rings — the burst already told the story.
+      // and 40 rings — the burst already told the story. Quiet on the
+      // giant too: they still bounce off him physically, but 40 grains
+      // must not be 40 scolds.
       if (im.grain) continue;
+      const giant = this.isGiantCollider?.(im.otherHandle) ?? false;
       const { deal, town } = unpackShotTag(im.tag);
       const splat = im.speed >= SPLAT_SPEED;
+      const paint = isPaint(im.topping);
+      // Paint scores AT IMPACT, so its verdict is truthful here (the
+      // ruled two-gate split): the local field's painted count is the
+      // deterministic twin of the Room's `painted > 0`. A stale glob
+      // paints nothing and wears red — it scored nothing, honestly.
+      const painted =
+        paint && deal === this.deal
+          ? (this.onPaintImpact?.(im.topping, im.pos, im.speed) ?? 0)
+          : 0;
       // The firing gun's ring moves to its newest lob — a stale-deal shot
-      // still visibly lands (it always did), it just can't paint.
-      this.addLandingMarker(town, im.pos.x, im.pos.y, im.pos.z, splat);
-      if (isPaint(im.topping) && deal === this.deal)
-        this.onPaintImpact?.(im.topping, im.pos, im.speed);
+      // still visibly lands (it always did), it just can't paint. Color
+      // is the verdict channel (ruled): paint verdicts now; a solid's
+      // neutral ring waits for the rest (the settled loop below).
+      this.addLandingMarker(
+        town,
+        im.pos.x,
+        im.pos.y,
+        im.pos.z,
+        splat,
+        paint ? (painted > 0 ? VERDICT_GREEN : VERDICT_RED) : VERDICT_NEUTRAL,
+        im.bodyHandle,
+      );
+      if (giant) {
+        // THE BONK (item 16): hitting the giant for fun is a feature —
+        // a distinct announcement, one per solid hit, every town's shot
+        // (he reacts to the world). The scold + shake-off + decal ride
+        // the port main binds; the word keeps item 13's own-town law.
+        this.onGiantHit?.(im.topping, im.pos, paint);
+        if (town === this.yourTown) {
+          this.words.push(
+            new ComicWord(
+              "BONK!",
+              TOPPING_COLORS[im.topping] ?? 0xc23b4e,
+              im.pos,
+              WORD_SPLAT_WIDTH_M,
+              this.scene,
+            ),
+          );
+          fx.sound("patronBonk", { at: im.pos });
+        }
+        continue; // the scold is the flash; no m/s line for a body hit
+      }
       // The comic word (item 13): your own machine's landing speaks at the
       // spot — hot lands SHOUT, gentle ones whisper. Stale shots included:
       // they visibly land (the rings' precedent), so they honestly speak.
@@ -440,6 +514,29 @@ export class ShotsView {
       }
       fx.flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
+      );
+    }
+    // THE AT-REST VERDICT (item 15, ruled: solids get their color at
+    // rest — "the at-rest policy will save it"): the color cue fires
+    // where the census actually reads the topping. The ring moves to
+    // the rest spot and takes its verdict — but only while it still
+    // belongs to THIS lob; a newer shot already owns the town's ring.
+    // Grains stay quiet (no ring was ever placed); a knocked solid
+    // re-settles silently (no event) and keeps its landing's verdict —
+    // the ring is the LANDING record, the checklist stays the truth
+    // surface for what the cake wears now.
+    for (const st of ev.settled) {
+      if (st.grain) continue;
+      const { town } = unpackShotTag(st.tag);
+      const m = this.markers.get(town);
+      if (!m || m.bodyHandle !== st.body.handle) continue;
+      m.mesh.position.set(
+        st.pos.x,
+        Math.max(0.02, st.pos.y - PROJECTILE_RADIUS + 0.03),
+        st.pos.z,
+      );
+      (m.mesh.material as THREE.MeshBasicMaterial).color.setHex(
+        dessert.isOnCake(st.pos) ? VERDICT_GREEN : VERDICT_RED,
       );
     }
     // Grips are QUIET like grain landings (the burst told the story); the
@@ -500,31 +597,35 @@ export class ShotsView {
    * at paint and toppings that are gone. All of them come down with the
    * dessert (playtest 2026-07-07); the physical floor litter stays. */
   clearLandingMarkers(): void {
-    for (const m of this.markers.values()) removeAndDispose(m);
+    for (const m of this.markers.values()) removeAndDispose(m.mesh);
     this.markers.clear();
   }
 
   /** One ring per town (plans/15 item 1): this gun's next lob replaces
-   * its own ring and nobody else's. */
+   * its own ring and nobody else's. Ring SIZE speaks landing energy
+   * (splat wide, placement narrow); ring COLOR speaks the verdict
+   * (item 15's ruling — see the constants above). */
   private addLandingMarker(
     town: number,
     x: number,
     y: number,
     z: number,
     splat: boolean,
+    color: number,
+    bodyHandle: number,
   ): void {
     const old = this.markers.get(town);
-    if (old) removeAndDispose(old);
+    if (old) removeAndDispose(old.mesh);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.25, splat ? 0.55 : 0.4, 24),
       new THREE.MeshBasicMaterial({
-        color: splat ? 0xd8452e : 0x3fae5a,
+        color,
         side: THREE.DoubleSide,
       }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, Math.max(0.02, y - PROJECTILE_RADIUS + 0.03), z);
     this.scene.add(ring);
-    this.markers.set(town, ring);
+    this.markers.set(town, { mesh: ring, bodyHandle });
   }
 }

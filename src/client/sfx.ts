@@ -43,6 +43,7 @@ export type SfxKey =
   | "lobWhoosh" // your crew's lob leaves the bucket
   | "chompDevour" // eat beat, DELIGHTED (eat-beat.ts CHOMP edge)
   | "chompBegrudge" // eat beat, REFUSED
+  | "patronBonk" // a shot bounced off the giant (item 16's distinct event)
   | "verdictDelighted" // sting: fanfare (visionary-sourced)
   | "verdictRefused" // sting: the huff (visionary-sourced)
   | "verdictHungry" // sting: sad horn (visionary-sourced)
@@ -61,6 +62,7 @@ export const SFX_TABLE: Partial<Record<SfxKey, readonly string[]>> = {
   lobWhoosh: ["/audio/sfx/lob-whoosh.wav"],
   chompDevour: ["/audio/sfx/chomp-devour.wav"],
   chompBegrudge: ["/audio/sfx/chomp-begrudge.wav"],
+  patronBonk: ["/audio/sfx/patron-bonk.wav"],
   // verdictDelighted: [], — the fanfare (visionary-sourced, like music)
   // verdictRefused: [],   — the huff
   // verdictHungry: [],    — the sad horn

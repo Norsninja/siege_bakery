@@ -1,20 +1,24 @@
 /**
- * THE CAST (plans/19 — the unified fiction): order X maps to patron X.
+ * THE CAST, visual half (plans/19 — the unified fiction): order X
+ * maps to patron X. The line is the order queue made flesh: rung N's
+ * order belongs to the patron at the table; the giants behind him are
+ * rungs N+1, N+2, … made visible, stretching into the haze.
+ * Everything here is PURE and derived from broadcast state (the rung)
+ * — every client and every late joiner computes the identical cast
+ * with zero synchronization (the FLAVORS argument: the patrons are
+ * shared, so derive from shared state; never client dice).
  *
- * The line is the order queue made flesh: rung N's order belongs to
- * the patron at the table; the giants behind him are rungs N+1, N+2, …
- * made visible, stretching into the haze. Everything here is PURE and
- * derived from broadcast state (the rung) — every client and every
- * late joiner computes the identical cast with zero synchronization
- * (the FLAVORS argument: the patrons are shared, so derive from
- * shared state; never client dice).
- *
- * MAPPING HOME (visionary ruling 2026-07-12): client/ for now;
- * promoted to game/ when species-themed order content + patron voice
- * land (the mapping is conceptually game truth — "whose order is
- * this" — but the milestone law keeps game/ untouched).
+ * MAPPING HOME (promotion ruled 2026-07-12, entry 4): castIndexForRung
+ * and the species roster live in game/cast.ts — the giant collider
+ * made the sim need them (the Room and every client build the same
+ * capsules from the same rung). This file keeps what only a renderer
+ * cares about: visual scale, the table mark, line slots, stance,
+ * tiers. Re-exports keep the mapping importable from here.
  */
 import { mulberry32 } from "../core/rng";
+import { castIndexForRung, SPECIES } from "../game/cast";
+
+export { castIndexForRung };
 
 export interface CastMember {
   /** Model name through the loader seam (public/models/<species>.glb). */
@@ -24,64 +28,35 @@ export interface CastMember {
   readonly visualScale: number;
 }
 
-/** The cast of record (heights are session rulings: ogre 36 re-ruled
- * from 21, frostgiant 30, treefolk 40, dragon 30 seated). Cyclops and
- * friends join here — ONE line each — as their models land. */
-export const CAST: readonly CastMember[] = [
-  { species: "ogre", visualScale: 36 / 21 },
-  { species: "frostgiant", visualScale: 1 },
-  { species: "treefolk", visualScale: 1 },
-  { species: "dragon", visualScale: 1 },
-  { species: "cyclops", visualScale: 1 }, // 33 m (seventeenth session) — the artillery spotter
-  { species: "cloudgiant", visualScale: 1 }, // 38 m (seventeenth session) — the queen in the cloud-hemmed gown
-  { species: "firegiant", visualScale: 1 }, // 31 m (seventeenth session) — the lava-veined boulder, kept his ember glow
-];
+/** Visual scale per species — heights are session rulings: ogre 36
+ * re-ruled from 21 (the GLB ships 21 m), frostgiant 30, treefolk 40,
+ * dragon 30 seated, cyclops 33, cloudgiant 38, firegiant 31 — the
+ * newer GLBs ship at ruled height. Absent row = 1. */
+const VISUAL_SCALE: Record<string, number> = { ogre: 36 / 21 };
 
-/** Fixed seed for the cast shuffle — change it and every client's
- * line changes together (it is part of the presentation, not saved
- * state). Knuth-hash the rung and BURN the first draw: mulberry32's
- * first output is visibly correlated across nearby seeds (found live
- * 2026-07-12 — the "shuffle" alternated two species for eight rungs
- * straight). */
-const CAST_SEED = 0xbab39e; // re-rolled as the fire giant joined (CAST.length reshuffles every draw; each roster change re-scans for an opening that reads shuffled — this one deals ALL SEVEN species in the first seven rungs)
-const rungDraw = (rung: number): number => {
-  const rng = mulberry32(CAST_SEED ^ Math.imul(rung, 2654435761));
-  rng(); // burn-in — decorrelates neighboring rungs
-  return rng();
-};
+/** The cast of record — derived from game/'s canonical roster, so
+ * the visual list can never drift from the mapping's (one species
+ * order, one truth). A new species joins in game/cast.ts; a scale
+ * quirk joins VISUAL_SCALE above. */
+export const CAST: readonly CastMember[] = SPECIES.map((species) => ({
+  species,
+  visualScale: VISUAL_SCALE[species] ?? 1,
+}));
 
-/**
- * Which cast member owns rung N's order — THE SHUFFLE RULING
- * (2026-07-12): not a direct cycle, deterministic, and never the same
- * patron twice in a row. THE OPENING PIN (visionary ruling
- * 2026-07-12): rung 1 is ALWAYS the ogre — the founding patron opens,
- * whatever the seed says and however the cast grows (a lucky seed
- * would reshuffle the moment a new species joins; a pin survives).
- * From rung 2 each rung draws independently from the seeded RNG; a
- * draw that repeats the previous rung's pick bumps one index (mod n).
- * Walked from rung 2 so the "previous" chain is stateless to derive —
- * O(rung), and rung + line depth stays tiny.
- */
-export function castIndexForRung(rung: number): number {
-  let prev = 0; // rung 1 pinned: the ogre
-  let pick = 0;
-  for (let r = 2; r <= rung; r++) {
-    pick = Math.floor(rungDraw(r) * CAST.length);
-    if (pick === prev) pick = (pick + 1) % CAST.length;
-    prev = pick;
-  }
-  return pick;
-}
+/** The shuffle seed's client-side echo — stance hashing only (the
+ * mapping's own seed lives in game/cast.ts with the shuffle). */
+const CAST_SEED = 0xbab39e;
 
 /** The patron seated at the table for rung N. */
 export function tablePatron(rung: number): CastMember {
   return CAST[castIndexForRung(rung)]!;
 }
 
-/** Where the table patron stands (the ogre's ruled post — game
- * coords; every species faces the cake from the same mark). */
-export const TABLE_POS = { x: 21, z: -30 } as const;
-export const TABLE_YAW = -Math.PI / 2;
+/** THE MARK moved to core/patron-collider.ts with item 16 — the
+ * capsules and the renderer must place the giant from ONE number.
+ * Re-exported: the table's importers keep their door. */
+import { TABLE_POS, TABLE_YAW } from "../core/patron-collider";
+export { TABLE_POS, TABLE_YAW };
 
 /** Line geometry (game coords). The giants' road runs +x from the
  * table to the horizon (region slice 4.75 built it for this). Slot 0

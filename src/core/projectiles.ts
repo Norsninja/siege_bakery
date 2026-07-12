@@ -88,6 +88,14 @@ export interface Impact {
    * flight, never the roll — plans/15 item 4 ruling 2026-07-09). A plain
    * number, so the shape stays broadcastable; the Room ignores it. */
   bodyHandle: number;
+  /** The COLLIDER handle on the other side of the first contact (item
+   * 16): the owner that built named colliders (the patron's capsules)
+   * interprets it by set membership — "the shot hit the GIANT" becomes
+   * a distinct fact without core knowing who the giant is. Same move
+   * as bodyHandle: a plain world-local number, the Room ignores it.
+   * (Chosen over an analytic near-the-capsules oracle, which misreads
+   * ankle-height floor ricochets — both terminals concurring.) */
+  otherHandle: number;
   /** A burst payload grain landing — QUIET on the client (no flash, no
    * marker: 40 grains must not be 40 toasts), nothing for the Room (grains
    * score at rest like any solid). */
@@ -115,6 +123,11 @@ export interface Settled {
    * later shot, and scoring truth follows the bodies as they lie NOW
    * (live-truth ledger, checkpoint audit 2026-07-03). */
   body: RAPIER.RigidBody;
+  /** A burst payload grain settling — the client's at-rest verdict
+   * (item 15) skips it: grains are QUIET by law (the burst told the
+   * story), and 40 settles must not be 40 ring recolors. The Room
+   * scores grain settles like any solid and ignores the flag. */
+  grain?: boolean;
 }
 
 /** THE CONVERSION LAW (plans/10 §8): a grain that GRIPS the dessert —
@@ -495,6 +508,9 @@ export class ProjectileManager {
           topping: shot.topping,
           tag: shot.tag,
           bodyHandle: shot.body.handle,
+          // What it hit (item 16): the pair's other collider handle —
+          // interpreted by whoever built named colliders, ignored here.
+          otherHandle: handle === h1 ? h2 : h1,
           ...(shot.grain ? { grain: true } : {}),
         });
         // Paint: the impact IS the landing — no absorption, no settle wait.
@@ -571,6 +587,7 @@ export class ProjectileManager {
         topping: shot.topping,
         tag: shot.tag,
         body: shot.body,
+        ...(shot.grain ? { grain: true } : {}),
       });
       this.tracked.delete(handle);
       // The freeze (freeze law): the scored solid becomes part of whatever
