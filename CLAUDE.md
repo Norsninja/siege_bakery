@@ -88,6 +88,37 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE TWENTIETH SESSION (2026-07-12 late night): THE FEEDBACK PAIR +
+THE CLOCK RELIEF — entries 4 AND 3.5 struck; three commits ending
+6ccf2f7, pushed, 488 tests. ENTRY 4 (items 15+16, two-terminal
+review then his go): THE PROMOTION (game/cast.ts — mapping moved
+WHOLE, claimer's-call closed; patronAtMark = the ONE predicate);
+core/patron-collider.ts (the named exception: capsule DATA + rig
+RECONCILED PER TICK IN BOTH WORLDS — a collider on one side forks
+the trajectory; poll never edges); Impact.otherHandle +
+Settled.grain + GROUP_PATRON in core; ogre capsules authored as
+col_* markers in ogre-rig.blend, exported at RULED height by
+collider-scripts/export-patron-colliders.py (--scale = visualScale;
+six species = FLEET LANE); BONK!/patronBonk/shake-off flinch/
+SCOLD_LINES (the FIRST PATRON VOICE — prize session extends)/paint
+dabs. RINGS RECOLOR RULED (his yes): color = VERDICT channel (paint
+at impact via painted-count oracle — isOnCake lies on wall splats;
+solids neutral→color AT REST, ring repositions), energy keeps
+word+size. INTERIM lobby collider (rung 1 ogre bounces warmup; item
+25 cross-note names the deletion). ENTRY 3.5 (item 26): CREW_CLOCK
+[0,1.25,1,1,1] at the deal (rows VERBATIM, anchor law intact, duo
+ZERO drift), rung 1 row 150→180; research/20 = the derivation
+(calibrated on his measured miss-by-~5s); THE ONE DIAL =
+CREW_CLOCK[1]. Live-verified: lobby ogre stands, bonk chain, all
+four verdict paths, solo rung 1 deals 3:45. IN TREE UNCOMMITTED:
+his live Blender work (giants-far.blend + cottage/bakery
+region-scripts) — ask, never commit blind. NEXT SESSION (his
+words): ENTRY 5 — THE TRAINING LOBBY + THE OPENING PARADE (item 25)
+— review, then DISCUSS before building; entry 5 RAZES the interim
+lobby branch; practice cake + resting ogre + six collider markers
+are fleet-dispatchable. Handoff:
+2026-07-12-twentieth-the-feedback-pair-and-the-clock.md. Prior s19
+canon holds below.
 THE NINETEENTH SESSION (2026-07-12 night): SOUND + THE WEIGHT — path
 entries 2 AND 3 struck; eight commits ending 0cb6840, tree CLEAN
 (visionary amendments + turnarounds committed on his word), 459
