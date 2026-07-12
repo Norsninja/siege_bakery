@@ -36,7 +36,9 @@ for (const mat of root.listMaterials()) {
   const tex = mat.getEmissiveTexture();
   if (!tex) continue;
   const stats = await sharp(Buffer.from(tex.getImage())).stats();
-  const maxMean = Math.max(...stats.channels.map((c) => c.mean));
+  // RGB only — a meshy PNG emissive carries an OPAQUE ALPHA channel whose
+  // mean 255 would defeat the blackness check (found on the frost giant)
+  const maxMean = Math.max(...stats.channels.slice(0, 3).map((c) => c.mean));
   if (maxMean < 2) {
     mat.setEmissiveTexture(null);
     mat.setEmissiveFactor([0, 0, 0]);
