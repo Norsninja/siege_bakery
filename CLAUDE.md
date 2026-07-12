@@ -88,48 +88,56 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
-THE THIRTEENTH SESSION (2026-07-11): THE OGRE ACTS + THE MACHINE
-DRESSES — six commits ending df29a7d, 410 tests, both tsc legs, dist
-rebuilt (29.3 MB — plans/15 item 14 THE ASSET DIET is a due slice).
-SLICE 2 THIRD ACT LIVE + PLAYTESTED: patron-body.ts hosts the
-choreography state machine — look-lean on a fresh patron seq (~2.5s),
-verdict snap-and-hold on order end (banner's two-gate read), relax
-through the linger, breathing additive; the seam POLLS view state
-(main.ts passes lastPatron.seq + verdict — async load and mid-banner
-joiners recover; a nag NEVER yanks a verdict). Head-turn audited:
-clean to 50°, his knife is the ceiling (~55°); HEAD_TURN_MAX_RAD 35°,
-lean turn 20° tunable. LAW: GLTFLoader SANITIZES node names (dots
-stripped — upper_armL); no dots in rig bones. Shiny FIXED (roughness
-G lifted 1-(1-G)*0.45, pattern in art bible s10; ogre.glb 9.6 MB).
-SLICE 4.5 THE MACHINE, whole arc in one session: meshy FAILED the
-turnaround (THE MESHY BOUNDARY, s10 — organic/static only); the HAND
-ROAD (art bible s11 NEW) built catapult.blend on the sim's exact
-pivot scaffold, three visionary rounds (GIMBAL BASKET — dish
-counter-rotates -(tilt+arm), level in the world, cradles the topping;
-LAUNCH PARITY — seat sweeps 1.32-1.89 m around the sim's 1.2 m spawn,
-ballistics.ts untouchable; swing clearance SWEPT numerically, 7.5 cm
-min). catapult.glb 520 KB; MachineRig gained DRIVE NODES (greybox =
-default, the fallback IS the machine) + dress() (clone per rig, abort
-on any missing named node); bucket raycast proxy + topping reparent
-into the dish (Raycaster ignores visibility — deliberate). MACHINES
-AUTHOR NOSE = +Y BLENDER (1:1 into machine space; the character -Y
-convention + pi yaw MIRRORS the wheel across the posts); articulated
-nodes export at ZERO rotation. Winch post moved mid-flank (1.5, 0.15)
-on the visionary's eye pass. Verify POSITIONS, never renders (renders
-lied 3x: cameras, half-size cubes — scale IS the dimension on a
-size=1 primitive — and the group-space parenting slip). MIME .glb/
-.mp3 explicit (long-running servers need ONE restart for headers);
-dwarf lazy-loads on first ghost. Standing prior canon holds: meshy
-road s10, rest-offset law, shared-clone law, sim-is-truth scaling,
-plans/17 LORE, plans/18 FORGE, semantic audit, s6 rulings, fadeStep,
-POST_KEYS/POST_SPOTS one-table, drop-in jukebox (linger/runover rows
-await compositions), no preview arc, trail-is-the-flight, comic word
-laws. NEXT SESSION (visionary's words): replace remaining greybox
-with models (crates, stall, pennant — the cake stays slice 5), then
-THE FRIEND TEST TUNNEL from his PC (no laptop): build + room server
-5175 + a websocket-carrying tunnel (cloudflared quick tunnel first
-try), friend joins by URL, served page auto-joins. Pending: capture
-(pane open once), meshy license, asset diet, ear/eye passes (8).
+THE FOURTEENTH SESSION (2026-07-11): THE FRIEND TEST PASSES + THE
+REGION RISES — four commits ending 81fb845, all pushed, 415 tests,
+both tsc legs, dist 21 MB. THE SUCCESS LINE PASSED: visionary hosted
+via cloudflared quick tunnel (research/17 runbook — recipe, MIME-
+restart law, throughput ~4-5 MB/s), a real friend played by URL:
+"it's fun" + "can't wait to see it styled". THE HIDDEN-PANE TRAP
+documented (no rAF when pane hidden — HUD freezes at "joining the
+bakery…" on a HEALTHY join; oracles: server log, getMyId, raw ws
+probe, rAF counter; PROD has no __game). WALLS DRESSED: meshy wall
+25 MB → wall.glb 0.34 (decimate 0.03, black emissive dropped — the
+EMISSIVE TRAP: removing the texture node leaves Emission Color white,
+zero color AND strength or the model GLOWS; JPEG forced — AUTO
+re-encodes resized images as PNG); wallSegments() pure tiler, 86
+segments on collider lines, grey slabs hide-not-dispose. THE SHIPPING
+DIET (art bible s10): `npm run diet -- <name>` (scripts/model-diet
+.mjs) — black emissive dropped, base/normal 1024, ORM 512, JPEG q90,
+HARD-FAILS on node/bone name change; ogre 9.6→2.46 MB, dwarf 4.4→
+1.15, rigs live-smoked after. OGRE RE-RULED 36 m (OGRE_SCALE in
+main.ts, GLB ships 21; cake was 40% of his height — a feast, not HIS
+dessert; provisional against the region read). THE REGION (plans/16
+slice 4.75 NEW, hybrid authorship — sessions rough out, visionary
+flairs): region.blend hand-authored TRACKED (ref_ scaffold + check_
+cam at post eye, never exported); region.glb 1.8 MB + sky.glb 127 KB,
+all vertex color, no textures — meadow skirt (arena flat), GIANTS'
+ROAD to +x horizon (slice 3's queue stands on it), three hamlets,
+two peak rings (gaps: road exit, cake axis), HERO MOUNTAIN + DWARF
+CASTLE carved in its flank owning the cake axis, sky dome + 7 clouds.
+THE ATMOSPHERE RULE (pinned): name prefix is the contract — near_/
+mid_ lit + fogged; far_/sky_ unlit + fog-exempt (haze BAKED in vertex
+color). Camera far 200→500, fog 60-120→80-280 (far fort reads clearer
+— eye pass item); region constants move together. Blender: sky needs
+visible_shadow=False or EEVEE renders black; blender(bx,by,bz) →
+game(bx,bz,−by). Friend-test debrief rulings: splat = juice first
+(SFX/FX), balance only if still hungry — power-ups stay the growth
+lever; SFX = hybrid table (synth for mechanical metronomes, samples
+for character sounds); E-key onboarding for non-gamers = prompt AT
+the object (unledgered); audio now fattest block (11.3 MB). Standing
+prior canon holds (s13 and earlier): choreography polls, GLTFLoader
+sanitizes dots, meshy boundary s10 / hand road s11, machines nose=+Y,
+drive nodes + dress() abort-to-greybox, gimbal basket, verify
+POSITIONS never renders, shared-clone law, plans/17 LORE, plans/18
+FORGE, semantic audit, s6 rulings, jukebox laws, no preview arc,
+comic word laws. NEXT SESSION (visionary's words): continue the
+region — create RULES FOR STRUCTURES, then populate it (possibly
+dispatching agents with the rules in hand, or programmatic objects;
+"fun collaborating with many AI to build a fantasy realm"); he is
+generating GIANT PATRONS externally and bringing them back (meshy
+road + diet, slice 3 casting — distinct species). Pending: region
+flair pass (hero contrast, skirt seam, clouds), committed capture
+(pane worked!), meshy license, audio diet, ear/eye passes (8).
 Standing ledger: items 6/8 post-campaign; 7/9 boundaries; 11
 post-milestone; audit tranche C post-friend-test; wind + Bite re-pin
 ownerless. Port map: research/01-port-gap-analysis.md.
