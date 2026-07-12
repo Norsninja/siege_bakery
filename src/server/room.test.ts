@@ -8,6 +8,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
+  CREW_CLOCK,
   CREW_LABOR,
   FINISH_WINDOW_TICKS,
   FLOURISH_BONUS_COINS,
@@ -1308,7 +1309,12 @@ describe("Room: the match, headless over protocol", () => {
       | undefined;
     expect(fresh?.order.status).toBe("running");
     expect(fresh?.rung).toBe(4); // rung 3 won → the cupcake deals
-    expect(fresh?.order.ticksLeft).toBe(rungRow(4).clockSeconds * 60);
+    // One baker played this script: the clock prices hands too (THE
+    // CLOCK RELIEF, item 26 — the row stays verbatim, the solo ticket
+    // stretches by CREW_CLOCK[1]).
+    expect(fresh?.order.ticksLeft).toBe(
+      Math.round(rungRow(4).clockSeconds * CREW_CLOCK[1]! * 60),
+    );
     expect(fresh?.order.parShots).toBe(rungRow(4).parShots.solo);
     // The CLIMB is a live deal, and one baker played this script: the
     // anchor seam pinned rung 3 at full labor, but the ladder prices the
@@ -1754,18 +1760,38 @@ describe("Room: the match, headless over protocol", () => {
       // A live rung 1: the founding patron stands his order.
       readyUp(room, a);
       expect(rig(room).species).toBe("ogre");
-      // The clock dies — the verdict tick clears the mark: the walk
-      // theatre plays through the linger with the capsules DOWN (ruled
-      // residue: a shot passes through the departing giant).
-      run(room, ORDER_SECONDS * 60 + 65);
-      const ended = a.all("order").find((m) => m.judgment);
-      expect(ended).toBeDefined();
+      // The clock dies — poll for the verdict, never a fixed tick count
+      // (the relief stretched the solo clock; patience burns shrink it).
+      let guard = 0;
+      while (
+        !a.all("order").some((m) => m.judgment) &&
+        guard++ < (ORDER_SECONDS + 120) * 60
+      )
+        room.tick();
+      expect(a.all("order").some((m) => m.judgment)).toBe(true);
+      // The verdict clears the mark (the reconcile rides the next tick's
+      // top): the walk theatre plays through the linger with the capsules
+      // DOWN (ruled residue: a shot passes through the departing giant).
+      run(room, 2);
       expect(rig(room).species).toBeNull();
-      // Runover holds the empty mark; the lobby stands rung 1's ogre
-      // back up (both worlds agree — the client mirrors this exactly).
-      run(room, ORDER_RESET_TICKS + RUNOVER_TICKS + 60);
-      const lobby = a.all("run").filter((m) => m.phase === "lobby").pop();
-      expect(lobby).toBeDefined();
+      run(room, 60); // deep in the linger: still down
+      expect(rig(room).species).toBeNull();
+      // Runover holds the empty mark; the lobby stands rung 1's ogre back
+      // up (both worlds agree — the client mirrors this exactly). Poll for
+      // a FRESH lobby word (the boot lobby's own broadcasts are already in
+      // the inbox); the crew's standing poses may auto-restart the run
+      // after it — rung 1's ogre stands through all of that too.
+      const lobbiesBefore = a.all("run").filter((m) => m.phase === "lobby").length;
+      guard = 0;
+      while (
+        a.all("run").filter((m) => m.phase === "lobby").length <= lobbiesBefore &&
+        guard++ < ORDER_RESET_TICKS + RUNOVER_TICKS + 600
+      )
+        room.tick();
+      expect(
+        a.all("run").filter((m) => m.phase === "lobby").length,
+      ).toBeGreaterThan(lobbiesBefore);
+      run(room, 2);
       expect(rig(room).species).toBe("ogre");
     });
   });

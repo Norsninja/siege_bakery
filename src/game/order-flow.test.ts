@@ -14,6 +14,7 @@ import {
   validateDesires,
 } from "./order-flow";
 import {
+  CREW_CLOCK,
   CREW_LABOR,
   FINISH_WINDOW_TICKS,
   FROST_FRAC,
@@ -135,6 +136,43 @@ describe("OrderFlow", () => {
     expect(flow.order.ticksLeft).toBe(ORDER_SECONDS * 60); // the anchor's 300s
     expect(flow.order.parShots).toBe(rungRow(3).parShots.solo); // 24
     expect(flow.order.requirements).toEqual(standardRequirements());
+  });
+
+  it("THE CLOCK RELIEF (item 26): the solo deal stretches the clock — the rows stay verbatim", () => {
+    // Menu (a): hands-aware clock AT THE DEAL. The anchor law survives
+    // untouched — rung 3's row still says 300; the solo TICKET reads
+    // 300 × CREW_CLOCK[1]. Both replicas read the broadcast ticksLeft.
+    const flow = new OrderFlow();
+    flow.activeCrew = 1;
+    flow.dealFresh(rungRow(3));
+    expect(flow.order.ticksLeft).toBe(
+      Math.round(rungRow(3).clockSeconds * CREW_CLOCK[1]! * 60),
+    );
+    expect(rungRow(3).clockSeconds).toBe(ORDER_SECONDS); // the row, verbatim
+    // Crew 2+: ZERO drift — the friend test's duo clocks are untouched
+    // (the caution on record: touch multi-crew timing only if asked).
+    flow.activeCrew = 2;
+    flow.dealFresh(rungRow(3));
+    expect(flow.order.ticksLeft).toBe(ORDER_SECONDS * 60);
+    expect(CREW_CLOCK[2]).toBe(1.0);
+    // Clamps mirror CREW_LABOR's: an empty room prices solo; a five-baker
+    // room prices full.
+    flow.activeCrew = 0;
+    flow.dealFresh(rungRow(1));
+    expect(flow.order.ticksLeft).toBe(
+      Math.round(rungRow(1).clockSeconds * CREW_CLOCK[1]! * 60),
+    );
+    flow.activeCrew = 9;
+    flow.dealFresh(rungRow(1));
+    expect(flow.order.ticksLeft).toBe(rungRow(1).clockSeconds * 60);
+  });
+
+  it("THE CLOCK RELIEF (item 26 menu b): rung 1 carries real tutorial slack", () => {
+    // "A fumbling first-timer feeds the ogre while learning the winch" —
+    // 180 s territory, ruled. Rung 1 is NOT the anchor; the row edit is
+    // legal, and pressure is rung 2+'s job (rung 2 still says 210).
+    expect(rungRow(1).clockSeconds).toBe(180);
+    expect(rungRow(2).clockSeconds).toBe(210);
   });
 
   it("par picks the duo column when the second town is active", () => {

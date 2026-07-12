@@ -176,6 +176,26 @@ export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
  * hypothesis like every number in this file. */
 export const CREW_LABOR: readonly number[] = [0, 0.35, 1.0, 1.0, 1.0];
 
+/** THE CLOCK RELIEF (plans/15 item 26, 2026-07-12 twentieth session):
+ * the clock was the last CREW-BLIND number — asks and par scaled solo,
+ * the seconds did not, so solo ferried ~2× the workload per second on
+ * the same clock. Menu (a) as ruled: a hands-aware clock factor AT THE
+ * DEAL — the RUNGS rows stay VERBATIM (rung 3's anchor law survives
+ * untouched), both replicas read the broadcast ticksLeft, one constant.
+ * Indexed by connected crew at deal time, exactly CREW_LABOR's shape.
+ * [1] = 1.25 DERIVED (research/20 study, calibrated on the visionary's
+ * measured rung-1 miss-by-~5s: his practiced line needs ~113 s against
+ * a 108 s effective clock): with rung 1's row at 180, solo rung 1
+ * yields ~162 s effective — the designer passes with real room, a
+ * learner has a fighting chance, and rung 2+ solo remains the ladder
+ * that outruns one dwarf (hard mode stays the fiction: the factor
+ * relieves, it does not conquer). [2+] = 1.0: the friend test's duo
+ * clocks inherit ZERO drift (the caution on record — touch multi-crew
+ * timing only if playtests ask). THE ONE DIAL: if his next solo run
+ * still runs hot or cold, this number moves — nothing else. A
+ * feel-pass hypothesis like every number in this file. */
+export const CREW_CLOCK: readonly number[] = [0, 1.25, 1.0, 1.0, 1.0];
+
 /** The frost PASS ask, as a fraction of potential (plans/08 — "50% is
  * just passing"; the 2D game asked 50 too, of a cake it could fully
  * reach). ANCHOR REFERENCE (slice 4): the live game deals each rung's

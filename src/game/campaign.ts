@@ -134,7 +134,11 @@ export interface Rung {
 export const RUNGS: readonly Rung[] = [
   // 1 — the humble cake: teaches machine + frost. No sprinkles, no
   // flourish: one ask, one lesson (gentle by design, plans/13 §4).
-  { spec: "cake-1", clockSeconds: 150, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
+  // 150 → 180 (THE CLOCK RELIEF, plans/15 item 26 menu (b), 2026-07-12):
+  // rung 1's standard is "a fumbling first-timer feeds the ogre while
+  // learning the winch" — real slack, not a shave; pressure is rung
+  // 2+'s job. NOT the anchor (rung 3 is); the row edit is legal.
+  { spec: "cake-1", clockSeconds: 180, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
   // 2 — teaches the ledge and the burst; still no flourish.
   { spec: "cake-2", clockSeconds: 210, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
   // 3 — THE ANCHOR: today's live numbers verbatim (300s, FROST_FRAC

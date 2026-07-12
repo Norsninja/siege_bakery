@@ -903,13 +903,30 @@ there on purpose — one place, one line), replaced by whatever this
 item's empty-table truth is; the practice cake's own collider takes
 the lobby's physics from there.
 
-## 26. THE CLOCK RELIEF — the solo clock is tuned past human — FIX SOON
+## 26. THE CLOCK RELIEF — the solo clock is tuned past human — BUILT
 
-**Status: recorded 2026-07-12 (eighteenth session, visionary's
-playtest: going as fast as he can, he cannot meet rung 1's
-threshold). URGENT — the tutorial rung fails its own job. Fix rides
-the next build session or stands alone; it touches game/ (balance,
-not presentation — legal under the milestone law) and re-pins tests.**
+**Status: BUILT 2026-07-12 (twentieth session, same sitting as entry
+4). Menu (a) + (b) as recommended, numbers derived by the (c) study
+(research/20 — calibrated on the one real measurement, his
+miss-by-~5s): CREW_CLOCK [0, 1.25, 1.0, 1.0, 1.0] in tuning.ts,
+applied at the deal in OrderFlow.freshOrder — the RUNGS rows stay
+VERBATIM (the anchor law untouched), both replicas read the broadcast
+ticksLeft, nothing new syncs. Rung 1's row 150 → 180 (not the anchor;
+"a fumbling first-timer feeds the ogre while learning the winch").
+Solo rung 1 now deals 225 s (~162 s effective) — the designer's
+~113 s line passes with real room; rung 2+ solo remains the ladder
+that outruns one dwarf (the fiction holds — the factor relieves, it
+does not conquer). Duo clocks: ZERO drift (the caution honored;
+rung 1 duo gains only the row's +30 s tutorial slack). THE ONE DIAL:
+his next solo run moves CREW_CLOCK[1] (or rung 1's row) — nothing
+else. Live-verified: solo boot deals rung 1 at 3:45, HUD wearing the
+one-pair-of-hands tag. Pins: order-flow.test (stretch, zero-drift,
+clamps, rung 1 = 180), room.test (the cupcake deal prices the lone
+hero's clock over protocol).**
+
+**Original record (eighteenth session): visionary's playtest — going
+as fast as he can, he cannot meet rung 1's threshold. URGENT — the
+tutorial rung fails its own job.**
 
 THE STRUCTURAL FINDING: the order clock is CREW-BLIND. parShots
 scales solo/duo and pay stamps order.hands, but clockSeconds is the

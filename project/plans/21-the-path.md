@@ -66,14 +66,17 @@ first organs (size report + diet verification + untracked-asset
 scan) get built IN this session — the weight work produces them
 naturally, and the stale-dist trap already fired once.
 
-**3.5 — URGENT INSERTION 2026-07-12: THE CLOCK RELIEF — plans/15
-item 26**: the solo clock is tuned past human (the visionary at
-full sprint cannot clear rung 1). Hands-aware clock factor at the
-deal (rows verbatim, anchor intact) + rung 1 tutorial generosity;
-the perfect-play time study derives the numbers. Small enough to
-ride entry 4's session as its opening act or stand alone — but it
-lands BEFORE any further playtesting rounds, because every playtest
-until then measures a broken floor.
+**3.5 — ~~URGENT INSERTION 2026-07-12: THE CLOCK RELIEF — plans/15
+item 26~~ DONE 2026-07-12 (twentieth session, riding entry 4's
+sitting: CREW_CLOCK [1]=1.25 at the deal + rung 1 row 150→180, duo
+zero-drift; research/20 is the derivation, item 26 the record; the
+next solo playtest tunes THE ONE DIAL)**: the solo clock is tuned
+past human (the visionary at full sprint cannot clear rung 1).
+Hands-aware clock factor at the deal (rows verbatim, anchor intact)
++ rung 1 tutorial generosity; the perfect-play time study derives
+the numbers. Small enough to ride entry 4's session as its opening
+act or stand alone — but it lands BEFORE any further playtesting
+rounds, because every playtest until then measures a broken floor.
 
 **4. ~~THE FEEDBACK PAIR — plans/15 items 15 + 16 together~~ DONE
 2026-07-12 (twentieth session: the rings recolor got the visionary's
