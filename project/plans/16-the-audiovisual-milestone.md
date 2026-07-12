@@ -323,6 +323,27 @@ slice 8 for its diegetic home.
 
 ### Slice 6 — SFX (the sound table)
 
+**BUILT 2026-07-12 (nineteenth session; design walked with the
+visionary same session — his refinements ruled, one pushback adopted:
+keys model game language INCLUDING the sting rows, so chompDevour/
+verdictRefused, never chompLoud/raspberry). What shipped: sfx.ts
+(one AudioContext, decoded buffers, per-play source → gain → master;
+music stays OUT of the graph), audio-bus.ts (THE VOLUME BUS, plans/20
+§5 — M and the corner button mute THE BUS, both engines poll it),
+scripts/make-sfx.mjs (mechanical rows are REPRODUCIBLE synth — the
+script is the recipe, ~100 KB of wavs into public/audio/sfx/), the
+ClientFx port (flash + sound threaded together — no singleton), and
+distance-scalar spatial (no PannerNode, ruled). Rows live: winch
+ratchet (per click, verified 6/6), lever THUNK (dry release clunks
+too), lob whoosh, SPLAT/plop/POP (hooked AT the item-13 word sites —
+the pairing law is a pin now), chompDevour/chompBegrudge (the eat
+beat's sting seam closed). Rows wired-but-silent awaiting visionary
+files (drop-in law): verdictDelighted/Refused/Hungry (fires on the
+report show edge) and grumbleRumble (rides the patron flash line).
+Step booms EXPLICITLY DEFERRED to item 23 (wire-it-twice law). The
+ear pass is his: row loudness balance, splat audition variants (a
+row takes a list), synth quality.**
+
 sfx.ts mirroring music.ts's drop-in table: event key → sound list.
 First rows: winch ratchet click (per click — it's the tension
 metronome), lever THUNK, lob whoosh, SPLAT (the money sound — worth
