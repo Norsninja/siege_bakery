@@ -35,7 +35,7 @@ const DEPART_SPEED = 1.1; // m/frame — giant strides, ~66 m/s reads stately at
  * served giant ambles PAST the waiting line into the haze. */
 const DEPART_LANE_Z = -52;
 const DESPAWN_X = 380; // deep in the fog band (fog full at 280)
-const ARRIVE_SPEED = 0.32; // m/frame — ~45 m in ~2.4 s
+const ARRIVE_SPEED = 0.32; // m/frame — ~29 m (slot 0 → table) in ~1.5 s
 /** Giant-weight walk bob (the ghosts' grammar, scaled up). */
 const WALK_PHASE_PER_FRAME = 0.1;
 const WALK_BOB_M = 0.35;

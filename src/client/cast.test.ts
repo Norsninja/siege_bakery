@@ -15,6 +15,11 @@ import {
 } from "./cast";
 
 describe("castIndexForRung", () => {
+  it("THE OPENING PIN: rung 1 is always the ogre, whatever the seed", () => {
+    expect(castIndexForRung(1)).toBe(0);
+    expect(CAST[0]!.species).toBe("ogre");
+  });
+
   it("is deterministic — same rung, same patron, every derivation", () => {
     for (let r = 1; r <= 40; r++) {
       expect(castIndexForRung(r)).toBe(castIndexForRung(r));

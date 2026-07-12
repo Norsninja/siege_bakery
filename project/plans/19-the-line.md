@@ -132,6 +132,12 @@ patron reaches the table as the next order deals.
 
 - 2026-07-12: proposed (endless-line ruling), then BLESSED same day
   with the unified fiction + shuffle amendment.
+- 2026-07-12 (seventeenth session): the visionary's two eye notes
+  tuned. THE OPENING PIN — rung 1 is ALWAYS the ogre (hard pin in
+  castIndexForRung, shuffle walks from rung 2; a lucky seed would
+  have reshuffled the moment the cast grows — Cyclops looms).
+  LINE_SLOT0_X 66→50 (the table gap read "a little far"); arrival
+  walk shortens ~2.4 s → ~1.5 s.
 - 2026-07-12: BUILT same session. cast.ts (12 pins — incl. the
   MULBERRY FIRST-DRAW LAW: mulberry32's first output correlates
   across nearby seeds; Knuth-hash the seed AND burn a draw, or the

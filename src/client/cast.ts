@@ -40,7 +40,7 @@ export const CAST: readonly CastMember[] = [
  * first output is visibly correlated across nearby seeds (found live
  * 2026-07-12 — the "shuffle" alternated two species for eight rungs
  * straight). */
-const CAST_SEED = 0xbaacea;
+const CAST_SEED = 0xbab2b7; // re-rolled with the rung-1 pin (0xbaacea's rung-2+ draws alternated ogre/dragon five rungs deep behind the pinned ogre — scanned for an opening that reads shuffled)
 const rungDraw = (rung: number): number => {
   const rng = mulberry32(CAST_SEED ^ Math.imul(rung, 2654435761));
   rng(); // burn-in — decorrelates neighboring rungs
@@ -50,15 +50,19 @@ const rungDraw = (rung: number): number => {
 /**
  * Which cast member owns rung N's order — THE SHUFFLE RULING
  * (2026-07-12): not a direct cycle, deterministic, and never the same
- * patron twice in a row. Each rung draws independently from the
- * seeded RNG; a draw that repeats the previous rung's pick bumps one
- * index (mod n). Walked from rung 1 so the "previous" chain is
- * stateless to derive — O(rung), and rung + line depth stays tiny.
+ * patron twice in a row. THE OPENING PIN (visionary ruling
+ * 2026-07-12): rung 1 is ALWAYS the ogre — the founding patron opens,
+ * whatever the seed says and however the cast grows (a lucky seed
+ * would reshuffle the moment a new species joins; a pin survives).
+ * From rung 2 each rung draws independently from the seeded RNG; a
+ * draw that repeats the previous rung's pick bumps one index (mod n).
+ * Walked from rung 2 so the "previous" chain is stateless to derive —
+ * O(rung), and rung + line depth stays tiny.
  */
 export function castIndexForRung(rung: number): number {
-  let prev = -1;
+  let prev = 0; // rung 1 pinned: the ogre
   let pick = 0;
-  for (let r = 1; r <= Math.max(1, rung); r++) {
+  for (let r = 2; r <= rung; r++) {
     pick = Math.floor(rungDraw(r) * CAST.length);
     if (pick === prev) pick = (pick + 1) % CAST.length;
     prev = pick;
@@ -80,7 +84,7 @@ export const TABLE_YAW = -Math.PI / 2;
  * table to the horizon (region slice 4.75 built it for this). Slot 0
  * is "next up"; spacing is giant-scaled; the far slots thread the
  * peak-ring gap at x≈311. */
-export const LINE_SLOT0_X = 66;
+export const LINE_SLOT0_X = 50; // tuned 66→50 (2026-07-12 eye note: the table gap read "a little far")
 export const LINE_SPACING = 42;
 export const LINE_Z = -30;
 /** Tier boundaries by slot: 0–2 breathe (actors), 3–5 stand
