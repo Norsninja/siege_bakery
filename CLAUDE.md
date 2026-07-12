@@ -88,6 +88,33 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE SIXTEENTH SESSION (2026-07-12): THREE GIANTS WALK, THE LINE
+STANDS — four commits ending 944b8d6, all pushed, 434 tests.
+FrostGiant 30 m / TreeFolk 40 m / Dragon 30 m seated walked the
+meshy road (no decimation needed — meshy shipped 32-38k tris; diet
+fix: emissive blackness check reads RGB only, opaque alpha defeated
+it) and got rigs (bipeds = ogre recipe; dragon = neck1/neck2 arc +
+wingL/R, no tail; ALL BONE NAMES DOT-FREE). SLICE 3 BUILT on THE
+UNIFIED FICTION (plans/19, blessed): the line IS the order queue —
+rung→species via seeded shuffle (never two alike; MULBERRY
+FIRST-DRAW LAW: Knuth-hash + burn one draw), table patron derived,
+line NEVER shortens, advance rides the departure beat, walk-off
+down lane 2, head takes the table; tiers actors/standees/instanced
+far_giant_* impostors (giants_far.glb 297 KB). THE SKINNED-CLONE
+LAW (found live — "the line is in the town"): Object3D.clone() does
+NOT rebind skeletons, every skinned clone rendered at ORIGIN while
+group transforms lied; SkeletonUtils.clone() everywhere, pinned in
+line.test.ts; VERIFY RENDERED POSITIONS (bone getWorldPosition,
+offscreen renders — hidden-pane recipe in memory). Visionary saw
+the fixed line: "great work." PENDING HIS TWO NOTES (discuss then
+tune): rung 1 should be the OGRE (the shuffle cast the dragon
+first); the table→slot-0 gap (LINE_SLOT0_X=66) shortens a bit.
+Dist ~34 MB vs 25 alarm — audio diet on the critical path. Mapping
+home: client/ now, promotes to game/ with species-themed orders +
+voice (the real prize, own design session). NEXT SESSION (his
+words): review, discuss state and next steps BEFORE executing.
+Handoff: 2026-07-12-sixteenth-giants-walk-the-line-stands.md.
+Prior s15 canon holds below.
 THE FIFTEENTH SESSION (2026-07-11 pm): THREE FLEETS POPULATE THE
 REGION — three commits ending 127ed14, all pushed, 415 tests,
 region.glb 2.12 MB. THE FLEET LOOP proven and scaled (research/18
