@@ -88,6 +88,29 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE SEVENTEENTH SESSION (2026-07-12 pm): THE CAST COMPLETES, THE
+EAT BEAT IS RULED — seven commits ending 036446e (history rewritten
+once, approved: a 96.87 MB orphan-texture blob erased), 436 tests.
+Line tunes: THE OPENING PIN (rung 1 = ogre always; seeds re-scan on
+every roster change — CAST_SEED 0xbab39e deals ALL SEVEN species in
+rungs 1–7); LINE_SLOT0_X 50; BREATH DESYNC (PatronBody individuality
+seed = queue index; the advance identity extends to lungs). THREE
+patrons walked the road in one session — cyclops 33 m (spotter),
+cloudgiant 38 m (the queen), firegiant 31 m (lava veins; THE
+EMISSIVE VERDICT: diet judges blackness by channel MAX <16 not mean,
+kept emissives ship 1024 JPEG — first live emissiveMap). Far crowd
+7/7 (giants_far.glb 495 KB; recipe: VOXEL REMESH then decimate —
+straight decimate floors on meshy gear shells; validate before
+export; ORPHAN PURGE before saving curated blends). THE EAT BEAT
+RULED (plans/16 slice 7): photo-then-eat; stand-in cake proxy arcs
+to mouth (real dessert never moves); DELIGHTED devours / REFUSED
+eats begrudgingly / HUNGRY walks away mournful, cake uneaten;
+DEPART_AT_FRAMES stretches ~450–480; lift mechanism = later dress
+pass. NEXT SESSION: BUILD THE EAT BEAT (rulings complete, no design
+needed). Looming: eye pass (7-species line), audio diet + Draco/
+KTX2 ruling (fresh dist ≈ 38 MB vs 25 alarm; dist/ stale at 21),
+species-themed orders (the prize). Handoff:
+2026-07-12-seventeenth-the-cast-completes.md. Prior s16 canon below.
 THE SIXTEENTH SESSION (2026-07-12): THREE GIANTS WALK, THE LINE
 STANDS — four commits ending 944b8d6, all pushed, 434 tests.
 FrostGiant 30 m / TreeFolk 40 m / Dragon 30 m seated walked the
