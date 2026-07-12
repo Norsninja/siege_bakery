@@ -13,6 +13,7 @@ import {
   SPATIAL_RADIUS_M,
 } from "./sfx";
 import { clampLevel, createAudioBus } from "./audio-bus";
+import { BG_VOLUME } from "./music";
 
 describe("distanceGain — the ruled scalar falloff (no PannerNode)", () => {
   it("point blank is full volume; the radius edge sits on the floor", () => {
@@ -56,8 +57,13 @@ describe("the table models game language (the visionary's rule)", () => {
 });
 
 describe("THE VOLUME BUS (plans/20 §5 — born with slice 6, never retrofitted)", () => {
-  it("boots wide open and unmuted", () => {
-    expect(createAudioBus()).toEqual({ music: 1, sfx: 1, muted: false });
+  it("boots unmuted, sfx wide open, music resting at HALF its ceiling (ruled 2026-07-12: ~20% effective, never past 40)", () => {
+    expect(createAudioBus()).toEqual({ music: 0.5, sfx: 1, muted: false });
+  });
+
+  it("THE LOUDNESS RULING (2026-07-12): the music ceiling never passes 40%, and ceiling × resting dial lands at ~20% effective", () => {
+    expect(BG_VOLUME).toBeLessThanOrEqual(0.4);
+    expect(BG_VOLUME * createAudioBus().music).toBeCloseTo(0.2, 5);
   });
 
   it("clampLevel funnels every dial write into [0, 1] (HTMLMediaElement.volume THROWS outside it — the ground-plane lesson)", () => {

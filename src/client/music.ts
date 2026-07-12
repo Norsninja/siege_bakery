@@ -41,9 +41,13 @@ export const PLAYLISTS: Partial<Record<Mood, readonly string[]>> = {
   // runover: [], — the fatality (same)
 };
 
-/** Background means background: one dial, sized to sit under the SFX
- * pass when it arrives. */
-export const BG_VOLUME = 0.35;
+/** Background means background: THE CEILING the bus dial scales
+ * (effective = BG_VOLUME × bus.music). RULED 2026-07-12 (nineteenth
+ * session, the weight session's ear pass): the music was TOO LOUD at
+ * a flat 0.35 — it must never exceed ~40%, resting around 20%. The
+ * ceiling is 0.4; the bus default (audio-bus.ts) rests the dial at
+ * half; a future settings knob sweeps 0–40% by construction. */
+export const BG_VOLUME = 0.4;
 export const FADE_OUT_MS = 1500;
 export const FADE_IN_MS = 800;
 

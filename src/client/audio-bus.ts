@@ -21,7 +21,10 @@ export interface AudioBus {
 }
 
 export const createAudioBus = (): AudioBus => ({
-  music: 1,
+  // RULED 2026-07-12: music rests at HALF its 0.4 ceiling (~20%
+  // effective) — it was drowning the game at 35%. The future settings
+  // knob sweeps this dial; the ceiling lives in music.ts BG_VOLUME.
+  music: 0.5,
   sfx: 1,
   muted: false,
 });
