@@ -349,7 +349,9 @@ holds (the banner yields the photo its column) — the tween ends
 inside the law, it does not renegotiate it.
 
 PLUS THE EAT BEAT (visionary rulings 2026-07-12, seventeenth
-session; design discussed, not yet built): the fiction's missing
+session; BUILT 2026-07-12, eighteenth session — eat-beat.ts +
+comic-word.ts extraction, DEPART_AT_FRAMES 460, all three verdicts
+live-smoked; SFX sting seam awaits slice 6): the fiction's missing
 consumption. Beat order is photo-then-eat (you document the
 masterpiece BEFORE it is devoured): verdict pose → polaroid → EAT →
 walk-off. Implementation shape agreed: a low-poly STAND-IN cake
