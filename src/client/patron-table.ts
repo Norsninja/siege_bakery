@@ -18,6 +18,7 @@
  * adoption on first real update is already silent by design.
  */
 import * as THREE from "three";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { Judgment } from "../game/judgment";
 import { loadModel } from "./assets";
 import { lineSlots, tablePatron, TABLE_POS, TABLE_YAW } from "./cast";
@@ -84,7 +85,12 @@ export class PatronTable {
       scale = 36 / 21;
     }
     if (!template) return null;
-    const group = template.clone() as THREE.Group;
+    // THE SKINNED-CLONE LAW (found live 2026-07-12, "the line is in the
+    // town"): Object3D.clone() does NOT rebind skeletons — a cloned
+    // SkinnedMesh keeps the TEMPLATE's bones and renders at the origin
+    // no matter where its group stands. Skinned templates clone through
+    // SkeletonUtils; resources stay shared (never dispose a clone).
+    const group = cloneSkinned(template) as THREE.Group;
     group.scale.setScalar(scale);
     group.rotation.y = TABLE_YAW;
     this.scene.add(group);

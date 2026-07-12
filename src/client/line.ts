@@ -13,6 +13,7 @@
  * a mesh far from the origin culls itself while "visible").
  */
 import * as THREE from "three";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { Judgment } from "../game/judgment";
 import { loadModel } from "./assets";
 import { CAST, lineSlots, type LineSlot } from "./cast";
@@ -89,9 +90,10 @@ export class LineManager {
   }
 
   /** Rebuild bodies for the given rung's slots (boot, snap, advance
-   * completion, template arrival). Idempotent; clones are shared —
-   * removal never disposes. */
-  private rebuild(rung: number): void {
+   * start, template arrival). Idempotent; clones are shared — removal
+   * never disposes. `snap` places kept giants immediately; an advance
+   * passes false and lets the walk animation carry them. */
+  private rebuild(rung: number, snap = true): void {
     if (rung < 1) return;
     const slots = lineSlots(rung);
     const want = new Map(slots.map((s) => [s.queueIndex, s]));
@@ -119,9 +121,18 @@ export class LineManager {
       const template = this.templates.get(slot.species);
       if (existing?.group && existing.slot.species === slot.species) {
         // Keep the body; retarget the slot (tier may have upgraded
-        // standee→actor: host the breath).
+        // standee→actor: host the breath). A rebuild OUTSIDE an
+        // advance is a SNAP — place the group immediately, or a kept
+        // giant stands at his stale mark forever (found live
+        // 2026-07-12: a frostgiant loitering at slot 0's mark two
+        // rungs after his turn).
         existing.from = { x: existing.slot.x, z: existing.slot.z };
         existing.slot = slot;
+        if (snap) {
+          existing.group.position.set(slot.x, 0, slot.z);
+          existing.group.rotation.set(0, slot.yaw, 0);
+          existing.from = { x: slot.x, z: slot.z };
+        }
         if (slot.tier === "actor" && !existing.body)
           existing.body = new PatronBody(
             existing.group,
@@ -142,7 +153,10 @@ export class LineManager {
         });
         continue;
       }
-      const group = template.clone() as THREE.Group;
+      // THE SKINNED-CLONE LAW (patron-table.ts): SkeletonUtils, never
+      // .clone(), for live-skinned templates — a plain clone renders at
+      // the ORIGIN (the town!) regardless of its group transform.
+      const group = cloneSkinned(template) as THREE.Group;
       group.scale.setScalar(slot.visualScale);
       group.position.set(slot.x, 0, slot.z);
       group.rotation.y = slot.yaw;
@@ -205,7 +219,7 @@ export class LineManager {
       this.lingerFrames = 0;
       if (this.renderedRung === wantRung) {
         this.renderedRung = wantRung + 1;
-        this.rebuild(this.renderedRung);
+        this.rebuild(this.renderedRung, false); // the walk carries them
         this.animFrames = ADVANCE_FRAMES;
       }
     }
