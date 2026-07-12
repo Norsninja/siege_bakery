@@ -192,7 +192,13 @@ patron reaches the table as the next order deals.
   the compounded passes spiked his silhouette) — VOXEL REMESH first
   (0.4-0.45 m), THEN decimate the manifold shell; Mesh.validate()
   before export or the exporter warns "not valid". New impostors:
-  cyclops 694, cloudgiant 897, firegiant 648 tris.
+  cyclops 694, cloudgiant 897, firegiant 648 tris. AND THE ORPHAN
+  PURGE LAW: appending from heavy import .blends drags packed
+  textures in as material-tree orphans that SURVIVE THE SAVE —
+  giants-far.blend silently hit 96.87 MB (five texture sets); always
+  bpy.data.orphans_purge(do_recursive=True) before saving a curated
+  blend (back to 0.31 MB; the fat blob was ERASED FROM HISTORY same
+  session — rewrite + force-push, visionary-approved git hygiene).
 - 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
   whole cast heaved as one metronome (every PatronBody booted phase 0
   at one fixed rate). PatronBody gains an `individuality` seed (the
