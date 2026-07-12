@@ -145,7 +145,9 @@ export function verdictPose(
  * THROUGH THE LINGER — the banner stays, the body eases back to the
  * idle so the next deal finds him breathing at his post. */
 const LEAN_HOLD_FRAMES = 150; // ~2.5s at 60fps
-const VERDICT_HOLD_FRAMES = 240; // ~4s
+/** EXPORTED for the eat beat (eat-beat.ts): the eat starts AFTER this
+ * hold — photo-then-eat by construction, not by lucky numbers. */
+export const VERDICT_HOLD_FRAMES = 240; // ~4s
 /** Snap-and-hold for verdicts: fast enough to read as a snap, no
  * teleport. Leans and every relax ease gently. */
 const SNAP_LERP = 0.15;
@@ -209,6 +211,19 @@ export class PatronBody {
   /** The current theatrical beat — for the smoke driver and tests. */
   get act(): "idle" | PoseName {
     return this.mode;
+  }
+
+  /** THE MOUTH ANCHOR (plans/16 slice 7 — the eat beat's arc target):
+   * the head bone's WORLD position. The skinned-clone law applies —
+   * group transforms lie for skinned meshes, so the bone is the only
+   * honest oracle. Rig-less bodies return null (assetless law: the
+   * beat that needs a mouth is skipped, the cake stays). Writes into
+   * `out` — callers pass a scratch vector, no per-frame allocation. */
+  mouthWorld(out: THREE.Vector3): THREE.Vector3 | null {
+    const head = this.bones.get("head");
+    if (!head) return null;
+    head.updateWorldMatrix(true, false);
+    return head.getWorldPosition(out);
   }
 
   /**

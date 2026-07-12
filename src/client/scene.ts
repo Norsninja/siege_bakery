@@ -54,6 +54,12 @@ export const TOPPING_COLORS: Record<string, number> = {
  * definition. */
 export const TOWN_COLORS = [0xd8452e, 0x3a6ed8] as const;
 
+/** Sponge paling toward the summit (setDessert's ramp). EXPORTED for
+ * the eat beat's stand-in proxy (plans/16 slice 7): the proxy must
+ * visibly BE the cake, so it reads this same table; when the FLAVORS
+ * ruling lands both swap together. */
+export const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a] as const;
+
 const box = (
   w: number,
   h: number,
@@ -529,7 +535,6 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // module-level CAKE_TIERS), sponge paling toward the summit so the climb
   // is READABLE from the catapult. Rebuilt by setDessert at every rebind;
   // main seeds it from the placeholder view before the first frame.
-  const TIER_COLORS = [0xd8a45c, 0xe2b876, 0xefd39a];
   let cakeMeshes: THREE.Mesh[] = [];
   const setDessert = (tiers: readonly CakeTier[]): void => {
     for (const m of cakeMeshes) removeAndDispose(m);

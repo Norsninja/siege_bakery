@@ -536,6 +536,7 @@ async function main(): Promise<void> {
       view.run.rung,
       view.lastPatron?.seq ?? null,
       view.verdict,
+      view.dessert.spec.tiers,
     );
     line.update(view.run.rung, view.verdict);
     shotsView.sync(camera);
@@ -626,6 +627,7 @@ async function main(): Promise<void> {
       ghosts,
       getPatronBody: () => patronTable.body,
       getTableSpecies: () => patronTable.species,
+      getEatBeat: () => patronTable.eatBeat,
       getLineSnapshot: () => line.snapshot(),
       getNetStatus: () => view.netStatus,
       getMyId: () => view.myId,

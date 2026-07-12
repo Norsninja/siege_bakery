@@ -25,8 +25,8 @@ import {
   unpackShotTag,
   ShotsView,
   TRAIL_WINDOW_TICKS,
-  WORD_LIFE_TICKS,
 } from "./shots-view";
+import { WORD_LIFE_TICKS } from "./comic-word";
 import type { ShotMsg } from "./net-handlers";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";

@@ -19,17 +19,22 @@
  */
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import type { CakeTier } from "../core/dessert";
 import type { Judgment } from "../game/judgment";
 import { loadModel } from "./assets";
 import { lineSlots, tablePatron, TABLE_POS, TABLE_YAW } from "./cast";
+import { EatTheatre, eatAction } from "./eat-beat";
 import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
 
 /** The linger beat sheet, in frames (~60fps). PatronBody holds its
- * verdict pose 240 frames; the walk-off starts after it relaxes.
- * EXPORTED because the line advances on the SAME beat (line.ts): the
- * head of the line steps out toward the table exactly as the queue
- * closes the gap behind him. */
-export const DEPART_AT_FRAMES = 300;
+ * verdict pose 240 frames (the polaroid beat — photo BEFORE eating);
+ * the EAT BEAT rides the relax (eat-beat.ts: arc at 250, CHOMP at
+ * 330, burst settled by ~400); the walk-off starts after it all
+ * resolves (stretched 300→460 with the eat beat, plans/16 slice 7 —
+ * ruled ~450–480). EXPORTED because the line advances on the SAME
+ * beat (line.ts): the head of the line steps out toward the table
+ * exactly as the queue closes the gap behind him. */
+export const DEPART_AT_FRAMES = 460;
 const DEPART_SPEED = 1.1; // m/frame — giant strides, ~66 m/s reads stately at 36 m tall
 /** The departure lane: the road corridor's far side (game z), so the
  * served giant ambles PAST the waiting line into the haze. */
@@ -56,6 +61,10 @@ export class PatronTable {
   private shownRung = -1;
   private lastVerdict: Judgment | null = null;
   private lingerFrames = 0;
+  /** The eat beat in flight (plans/16 slice 7) — born on an eating
+   * verdict's edge, stepped on the linger count, killed by any snap. */
+  private eat: EatTheatre | null = null;
+  private readonly mouthScratch = new THREE.Vector3();
   /** Spawn-generation guard: a snap invalidates every in-flight fetch
    * callback (models resolve async; the world may have moved on). */
   private gen = 0;
@@ -71,6 +80,14 @@ export class PatronTable {
    * the table right now. */
   get species(): string | null {
     return (this.seated ?? this.arriving)?.species ?? null;
+  }
+
+  /** The eat beat's smoke seam: stage + spoken word, or null when no
+   * theatre is in flight (hungry verdicts and quiet frames alike). */
+  get eatBeat(): { stage: string; word: string | null } | null {
+    return this.eat
+      ? { stage: this.eat.stage, word: this.eat.spokenText }
+      : null;
   }
 
   /** Load a species body through the seam with the fallback ladder:
@@ -114,6 +131,8 @@ export class PatronTable {
     this.seated = this.departing = this.arriving = null;
     this.shownRung = rung;
     this.lingerFrames = 0;
+    this.eat?.dispose(); // mid-beat snap: the theatre vanishes with him
+    this.eat = null;
     const gen = ++this.gen;
     void this.spawn(rung).then((b) => {
       // The world may have moved on while the model fetched.
@@ -145,11 +164,15 @@ export class PatronTable {
     return d <= speed; // arrived (this step covered the remainder)
   }
 
-  /** Per render frame, fed from view (the polling seam). */
+  /** Per render frame, fed from view (the polling seam). `tiers` is
+   * the CURRENT deal's dessert rows (view.dessert.spec.tiers) — the
+   * eat beat captures them on the verdict edge, so the proxy eaten is
+   * the cake that was JUDGED even if a redeal rebinds mid-beat. */
   update(
     rung: number,
     patronSeq: number | null,
     verdict: Judgment | null,
+    tiers: readonly CakeTier[] = [],
   ): void {
     const wantRung = Math.max(1, rung);
 
@@ -158,6 +181,10 @@ export class PatronTable {
       this.lastVerdict = verdict;
       if (verdict && this.shownRung === wantRung && this.seated) {
         this.lingerFrames = 1; // the beat begins (verdict pose plays first)
+        this.eat?.dispose(); // a straggler from the last beat (never in practice)
+        const action = eatAction(verdict);
+        // HUNGRY walks away mournful, the cake uneaten (the ruled split).
+        this.eat = action ? new EatTheatre(this.scene, tiers, action) : null;
       } else if (!verdict && this.arriving) {
         // Fresh deal: the arrival takes his seat whatever step he was
         // on. shownRung stays where the departure set it — the rung
@@ -204,6 +231,16 @@ export class PatronTable {
         });
         this.lingerFrames = 0;
       }
+    }
+
+    // The eat beat rides the linger count; the mouth is the patron's
+    // LIVE anchor (bone truth — the skinned-clone corollary), tracked
+    // per frame so the arc lands on a breathing head.
+    if (this.eat) {
+      const b = this.seated ?? this.departing;
+      const mouth = b ? b.body.mouthWorld(this.mouthScratch) : null;
+      this.eat.step(this.lingerFrames, mouth);
+      if (this.eat.stage === "done") this.eat = null;
     }
 
     // Walks.

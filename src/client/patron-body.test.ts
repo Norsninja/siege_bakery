@@ -206,6 +206,22 @@ describe("PatronBody choreography", () => {
     expect(body.act).toBe("idle");
   });
 
+  it("mouthWorld reads the head bone's WORLD position (the skinned-clone corollary)", () => {
+    const root = fakeOgre();
+    const body = new PatronBody(root);
+    // The clone stands where its group stands — the anchor must follow.
+    root.position.set(21, 0, -30);
+    const mouth = body.mouthWorld(new THREE.Vector3());
+    expect(mouth).not.toBeNull();
+    // The fixture's bones carry rotations but no translations, so the
+    // head's world position IS the root's — the anchor moved with him.
+    expect(mouth!.x).toBeCloseTo(21, 6);
+    expect(mouth!.z).toBeCloseTo(-30, 6);
+    // Rig-less: null, never a throw (assetless law).
+    const bare = new PatronBody(new THREE.Object3D());
+    expect(bare.mouthWorld(new THREE.Vector3())).toBeNull();
+  });
+
   it("every authored pose keeps the head turn under the audition ceiling", () => {
     for (const table of [POSES, ...Object.values(SPECIES_POSES)]) {
       for (const pose of Object.values(table)) {
