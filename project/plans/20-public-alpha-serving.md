@@ -49,10 +49,16 @@ What's missing: an explicit PRIORITY MANIFEST and a progress UI over
 the loader seam (assets.ts loadModel is the single choke point).
 Priority split, per the visionary's note:
 
-- **Critical (block the play button):** engine, cake, catapult,
-  player/dwarf, the CURRENT patron.
-- **Deferred (stream behind play):** the region, the waiting line,
-  music, decorative props, the far crowd.
+- **Critical (block the play button):** engine, the practice cake,
+  catapult, player/dwarf. AMENDED 2026-07-12 (the training-lobby
+  ruling, plans/15 item 25): the REAL cake and the current patron
+  LEFT this list — the lobby has no cake and no near giants, so
+  first-interactive needs neither. They stream during the lobby and
+  arrive as fiction (the dessert with the first order, the giants as
+  the opening parade).
+- **Deferred (stream behind play):** the real dessert, the cast
+  templates, the region, music, decorative props. The far crowd
+  (~495 KB) rides near-critical — it IS the lobby's horizon.
 
 ## 3. The room system
 

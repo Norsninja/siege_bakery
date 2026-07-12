@@ -798,3 +798,58 @@ the eat beat's. Belongs to a world-life / fiction design session —
 natural neighbor of item 19 (weather) or the species session;
 whichever seats it first should also decide whether the eat beat's
 later "cake LIFT dress pass" (plans/16 slice 7) is the same machinery.
+
+## 25. THE TRAINING LOBBY + THE OPENING PARADE — RULED, UNCLAIMED
+
+**Status: shape RULED 2026-07-12 (eighteenth session, third
+discussion, born of repeated playtests): no cake in the lobby — a
+PRACTICE CAKE target; horizon-only crowd plus the BENCH OGRE; the
+WALK-UP PARADE at run start.**
+
+The rulings:
+- **NO CAKE BEFORE THE ORDER.** The dessert arrives WITH the first
+  order — the fresh deal gets its opening fiction. (The eat beat gave
+  the redeal its fiction; this completes the dessert's lifecycle as
+  story: arrives at open, devoured per order, redealt.)
+- **THE PRACTICE CAKE** (ruled over a plain ring butt): a carved
+  wooden dummy cake at the cake mark, painted rings on its tiers —
+  clearly not the real dessert, but it teaches the actual test (tier
+  zones, the ledge, the crown shot) and lobby aim transfers exactly.
+  Static prop with a sim collider on BOTH replicas, swapped at the
+  run boundary — the third member of the phase-scoped-collider
+  institution (dessert per deal, giant capsule per deal, target per
+  run). The lobby stays the training ground OFFICIALLY: machines
+  live, item 15's verdict speaks here too (green = hit the practice
+  cake — a stakes-free classroom for the feedback system).
+- **THE HORIZON CROWD:** the lobby ships far impostors only (~495
+  KB); no near giants except—
+- **THE BENCH OGRE:** the founding patron waits at the GIANT REST
+  STOP the region already carries (s15 fleet: bench, table-with-bun,
+  lantern). The opening pin makes it canon, not decoration — rung 1
+  is ALWAYS the ogre, so the giant on the bench IS the first
+  customer. OPEN engineering question (audition decides): the rigs
+  have no leg bones, so a true SIT needs a pose-baked resting
+  variant (a fleet-able one-off export); the cheap honest first form
+  is a LEAN against the bench/lantern on existing bones.
+- **THE OPENING PARADE:** at ALL-IN the sim starts rung 1 on
+  schedule — core/ and game/ untouched, the parade is pure client
+  theatre. The bench ogre rises and walks to the table while the
+  crew scrambles for ammo (5–10 s of anticipation inside a 2+ minute
+  order — players are running to the pantry anyway); the line
+  strides in from the horizon staggered behind him. LOADING AS
+  FICTION: giant templates stream during the lobby, and the line's
+  existing rebuild-on-template-arrival means "the model is still
+  downloading" and "he hasn't arrived yet" are THE SAME SENTENCE —
+  holes in the parade fill as assets land.
+- **THE LOADING FOLLOW-ON:** this ruling rewrites plans/20 §2's
+  critical list — the cake and the current patron LEAVE it (critical
+  becomes: engine, practice cake, catapult, baker). First-interactive
+  drops by ~18 MB of giants plus the dessert.
+
+Costs named (build-time checks, not blockers): what the Room holds
+pre-run today (whether a dessert is dealt in lobby — frosting census
+and a few __game smoke recipes assume the lobby cake); item 1's
+lobby-rings behavior and the memory smoke recipes retarget to the
+practice cake. The target→cake swap at run start ships PLAIN; its
+dress (item 24's helper giants carrying the target off and the cake
+in) is a later pass and the fiction's natural closing loop.

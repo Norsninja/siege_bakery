@@ -74,19 +74,31 @@ land on the same impact seams. The collider's species table is the
 path's first game/-ward promotion pressure — minimal core table now,
 the prize session finishes the move.
 
-**5. PATRON MOTION, tiers (a) and (b) — plans/15 item 22**: fidgets
+**5. THE TRAINING LOBBY + THE OPENING PARADE — plans/15 item 25**:
+no lobby cake — the practice-cake target (run-boundary collider),
+the horizon crowd + the bench ogre at the rest stop, the walk-up
+parade at ALL-IN (loading-as-fiction: templates stream during the
+lobby, holes in the parade fill as assets land). Placed here because
+the target wants item 15's verdict to exist (entry 4) and the
+loading follow-on (plans/20 §2's critical list shrinks) pairs with
+entry 3's fresh look at what ships when. The practice-cake MODEL and
+the ogre resting-pose variant are fleet-dispatchable AHEAD of this
+session (fleet lane).
+
+**6. PATRON MOTION, tiers (a) and (b) — plans/15 item 22**: fidgets
 + species pose tables (tier a can also ride ANY earlier session as a
 rider), then the gait audition (arm-swing + counter-twist, Blender
 render, the visionary's eye). The audition VERDICT routes the path:
 good enough → step events ship from tier (b) and item 23 unblocks;
 short → the gait design discussion (design lane) before tier (c).
 
-**6. THE EARTH SHAKES — plans/15 item 23**: step-boom rows into the
+**7. THE EARTH SHAKES — plans/15 item 23**: step-boom rows into the
 slice-6 table (the mixing law), camera shake with falloff + the
 settings toggle, the local bop. Gated on item 22's step events by
-law.
+law. The opening parade (entry 5) is this item's showcase — the
+line thundering in from the horizon.
 
-**7. Onward**: the lighting pass (item 17) when the fleet lane's
+**8. Onward**: the lighting pass (item 17) when the fleet lane's
 props want light to sit in; then the alpha milestone (plans/20)
 opens with §3 the room manager. Re-sequence when we get here — the
 design lane's rulings will have changed the board.
@@ -99,6 +111,12 @@ design lane's rulings will have changed the board.
   culture, drive nodes, abort-to-greybox.
 - **The cloudgiant far impostor re-read** (s17 eye note: chunky) —
   voxel-remesh recipe, one agent.
+- **The practice cake** (item 25) — carved wooden dummy cake,
+  painted tier rings, authored to CAKE_3's exact tier dimensions
+  (aim must transfer); low-poly, vertex color or one small texture.
+- **The ogre resting pose** (item 25's bench ogre) — a pose-baked
+  seated/leaning variant for the rest-stop bench; audition the cheap
+  lean first (no leg bones — a true sit is mesh work).
 - The lighting pass (item 17) is NOT fleet work — it's a build
   session (scene.ts + perf gate) — but fleet props should be
   authored knowing shadows are coming.
