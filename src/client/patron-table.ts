@@ -25,6 +25,12 @@ import { loadModel } from "./assets";
 import { lineSlots, tablePatron, TABLE_POS, TABLE_YAW } from "./cast";
 import { EatTheatre, eatAction } from "./eat-beat";
 import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
+import {
+  ARRIVE_SPEED,
+  DEPART_SPEED,
+  WALK_PHASE_PER_FRAME,
+  walkSway,
+} from "./walk";
 
 /** The linger beat sheet, in frames (~60fps). PatronBody holds its
  * verdict pose 240 frames (the polaroid beat — photo BEFORE eating);
@@ -35,16 +41,11 @@ import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
  * beat (line.ts): the head of the line steps out toward the table
  * exactly as the queue closes the gap behind him. */
 export const DEPART_AT_FRAMES = 460;
-const DEPART_SPEED = 1.1; // m/frame — giant strides, ~66 m/s reads stately at 36 m tall
 /** The departure lane: the road corridor's far side (game z), so the
  * served giant ambles PAST the waiting line into the haze. */
 const DEPART_LANE_Z = -52;
 const DESPAWN_X = 380; // deep in the fog band (fog full at 280)
-const ARRIVE_SPEED = 0.32; // m/frame — ~29 m (slot 0 → table) in ~1.5 s
-/** Giant-weight walk bob (the ghosts' grammar, scaled up). */
-const WALK_PHASE_PER_FRAME = 0.1;
-const WALK_BOB_M = 0.35;
-const WALK_ROCK_RAD = 0.025;
+// Stride dials live in walk.ts (plans/15 item 20) — ONE home.
 
 interface TableBody {
   group: THREE.Group;
@@ -157,9 +158,9 @@ export class PatronTable {
       p.z += (dz / d) * step;
       b.group.rotation.y = Math.atan2(dx, dz);
       b.walkPhase += WALK_PHASE_PER_FRAME;
-      const sway = Math.sin(b.walkPhase);
-      p.y = Math.abs(sway) * WALK_BOB_M;
-      b.group.rotation.z = sway * WALK_ROCK_RAD;
+      const sway = walkSway(b.walkPhase);
+      p.y = sway.bob;
+      b.group.rotation.z = sway.rock;
     }
     return d <= speed; // arrived (this step covered the remainder)
   }

@@ -19,11 +19,9 @@ import { loadModel } from "./assets";
 import { CAST, lineSlots, type LineSlot } from "./cast";
 import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
 import { DEPART_AT_FRAMES } from "./patron-table";
+import { ADVANCE_FRAMES, WALK_PHASE_PER_FRAME, walkSway } from "./walk";
 
-const ADVANCE_FRAMES = 150; // ~2.5 s shuffle-forward
-const WALK_PHASE_PER_FRAME = 0.1;
-const WALK_BOB_M = 0.35;
-const WALK_ROCK_RAD = 0.025;
+// Stride dials live in walk.ts (plans/15 item 20) — ONE home.
 /** Instanced-crowd capacity per species (the far tier is 4 slots;
  * headroom costs nothing). */
 const CROWD_CAP = 8;
@@ -259,9 +257,9 @@ export class LineManager {
         g.group.position.z = z;
         if (moving) {
           g.walkPhase += WALK_PHASE_PER_FRAME;
-          const sway = Math.sin(g.walkPhase);
-          g.group.position.y = Math.abs(sway) * WALK_BOB_M;
-          g.group.rotation.z = sway * WALK_ROCK_RAD;
+          const sway = walkSway(g.walkPhase);
+          g.group.position.y = sway.bob;
+          g.group.rotation.z = sway.rock;
           if (this.animFrames === 0) {
             g.group.position.y = 0;
             g.group.rotation.z = 0;
