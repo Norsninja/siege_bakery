@@ -348,6 +348,23 @@ frame's FINAL position must land where item 3's column law already
 holds (the banner yields the photo its column) — the tween ends
 inside the law, it does not renegotiate it.
 
+PLUS THE EAT BEAT (visionary rulings 2026-07-12, seventeenth
+session; design discussed, not yet built): the fiction's missing
+consumption. Beat order is photo-then-eat (you document the
+masterpiece BEFORE it is devoured): verdict pose → polaroid → EAT →
+walk-off. Implementation shape agreed: a low-poly STAND-IN cake
+(DessertSpec tiers in flavor colors) pops from the real cake's mark
+and arcs to the patron's mouth — the real dessert (frosting paint +
+settled physics) never moves; its redeal reset finally has a fiction.
+Comic-word CHOMP + crumb burst; drive nodes + dress() culture — a
+proper siege-engineering cake LIFT can costume the same beat later.
+THE THREE-VERDICT SPLIT (ruled): DELIGHTED = the full devour
+(platter up, head back, gulp, crumb-burst, sparkle — the trailer
+shot). REFUSED = eats it BEGRUDGINGLY (same arc, no sparkle, a
+grudging chomp). HUNGRY = walks away MOURNFULLY — the cake goes
+uneaten. Likely stretches DEPART_AT_FRAMES (~300 → ~450-480); the
+table and line share the constant by design.
+
 ### Slice 8 — THE FRONT DOOR
 
 Title screen over the lobby (the lobby IS the menu — pointer-lock

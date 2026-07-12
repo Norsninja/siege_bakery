@@ -166,6 +166,19 @@ patron reaches the table as the next order deals.
   cloudgiant.glb 20.67→2.46 MB (lightest giant). CAST_SEED re-rolled
   0xbab36f: all SIX species inside the first seven rungs. FireGiant
   expected next — same road, same one CAST line.
+- 2026-07-12 (seventeenth session): THE FIRE GIANT JOINS — the
+  lava-veined boulder (horns, cinnamon-swirl apron, kind eyes), same
+  headless road: 33.9k tris, 31 m ruling (squat and fortress-wide —
+  the silhouette distinguishes, not the ladder), gorilla-arm joints
+  (knuckles z≈8.3). THE EMISSIVE VERDICT FIX riding along
+  (scripts/model-diet.mjs): his lava veins measured mean 0.117 —
+  "black" to the mean test, REAL to a channel-max test (max 87 vs
+  filler's ≤10). Diet now judges by channel max (<16 = filler) and
+  compresses kept emissives at 1024 JPEG; the embers ship for ~10 KB
+  and arrive as a live emissiveMap in three.js. firegiant.glb
+  21.72→2.35 MB. CAST_SEED re-rolled 0xbab39e: ALL SEVEN species
+  deal in the first seven rungs. Far-impostor debt now three species
+  (cyclops, cloudgiant, firegiant).
 - 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
   whole cast heaved as one metronome (every PatronBody booted phase 0
   at one fixed rate). PatronBody gains an `individuality` seed (the

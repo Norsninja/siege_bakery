@@ -37,14 +37,17 @@ for (const mat of root.listMaterials()) {
   if (!tex) continue;
   const stats = await sharp(Buffer.from(tex.getImage())).stats();
   // RGB only — a meshy PNG emissive carries an OPAQUE ALPHA channel whose
-  // mean 255 would defeat the blackness check (found on the frost giant)
-  const maxMean = Math.max(...stats.channels.slice(0, 3).map((c) => c.mean));
-  if (maxMean < 2) {
+  // mean 255 would defeat the blackness check (found on the frost giant).
+  // Judge by channel MAX, not mean: sparse real glow (the fire giant's
+  // lava veins — max 87 over 0.02% of pixels) measures mean ~0.1, same
+  // as filler; true black filler never exceeds compression noise (~10).
+  const maxPx = Math.max(...stats.channels.slice(0, 3).map((c) => c.max));
+  if (maxPx < 16) {
     mat.setEmissiveTexture(null);
     mat.setEmissiveFactor([0, 0, 0]);
-    console.log(`emissive is black (max mean ${maxMean.toFixed(3)}) — dropped`);
+    console.log(`emissive is black (channel max ${maxPx}) — dropped`);
   } else {
-    console.log(`emissive kept — max channel mean ${maxMean.toFixed(3)} is not black`);
+    console.log(`emissive kept — channel max ${maxPx} is real glow`);
   }
 }
 await doc.transform(
@@ -54,7 +57,7 @@ await doc.transform(
     targetFormat: "jpeg",
     quality: 90,
     resize: [1024, 1024],
-    slots: /baseColor|normal/i,
+    slots: /baseColor|normal|emissive/i,
   }),
   textureCompress({
     encoder: sharp,
