@@ -30,9 +30,11 @@
            or the pointer-lock click dies on the HUD text (independent
            audit, 2026-07-09). */
         pointer-events: none;
-        /* THE REPORT'S COLUMN (plans/15 item 3, measured 2026-07-09): the
-           snapshot frame owns the top-right min(27vw, 48vh); on narrow
-           viewports the HUD's long lines ran under it. Wrap instead.
+        /* THE REPORT'S COLUMN (plans/15 items 3 + 21): the snapshot frame
+           owns top-LEFT min(27vw, 48vh) now (the frame move, 2026-07-12 —
+           it was hiding the eat beat at top-right). The photo lives only
+           in the linger, when .linger below shifts this whole card out of
+           its column; the max-width keeps long lines wrapping sanely.
            border-box: the card's padding must live INSIDE the column. */
         box-sizing: border-box;
         max-width: calc(100vw - min(27vw, 48vh) - 48px);
@@ -46,6 +48,14 @@
           rgba(18, 8, 44, 0.62),
           rgba(18, 8, 44, 0.34)
         );
+      }
+      /* THE CORNER TIMESHARE (plans/15 item 21): during the linger the
+         photo hangs top-left and the (collapsed — hud.ts) card steps
+         aside to the photo's right. Same +48px arithmetic as the
+         banner's carve: frame padding, border, and the tilt's bounding
+         growth. report-view.ts toggles the class on the banner edges. */
+      #hud.linger {
+        left: calc(min(27vw, 48vh) + 48px);
       }
       /* ── THE POST PANELS (plans/15 item 5 — the UI pass, 2026-07-09).
          post-hud.ts paints; hud.postPanel words. WINCH: dead center, BIG —
@@ -283,10 +293,11 @@
            measured 2026-07-09 at 1280×800: the centered verdict ran under
            the snapshot frame, which paints later — the report covered its
            own words). The banner and the photo share every linger; the
-           text centers in what the frame leaves. */
+           text centers in what the frame leaves. MIRRORED LEFT with the
+           frame move (item 21, 2026-07-12). */
         /* +48px: the frame is fatter than its width — 16px own padding,
            2px border, and the 1.6° tilt's bounding growth. */
-        padding: 0 calc(min(27vw, 48vh) + 48px) 0 24px;
+        padding: 0 24px 0 calc(min(27vw, 48vh) + 48px);
       }
       /* The dessert report (plans/09 §1, snapshot form 2026-07-07): a
          framed photo in the corner during the linger — the player keeps
@@ -294,9 +305,14 @@
       #snapshot {
         position: fixed;
         top: 12px;
-        right: 12px;
+        /* TOP-LEFT since the frame move (plans/15 item 21, 2026-07-12):
+           at top-right the photo hung EXACTLY over the eat beat's
+           theatre — the giant, the arc, the CHOMP all play screen-right.
+           The corner checklist collapses during the linger (hud.ts), so
+           the corner is a timeshare. */
+        left: 12px;
         /* A <figure>'s default UA margin shoved the frame ~40px off its
-           own `right: 12px` anchor (measured, plans/15 item 3). */
+           own anchor (measured, plans/15 item 3). */
         margin: 0;
         display: none;
         /* ~10% of a 16:9 screen's area (visionary, 2026-07-07): the trophy
@@ -308,8 +324,28 @@
         border: 1px solid #b8a888;
         border-radius: 3px;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-        transform: rotate(1.6deg);
+        /* Tilt mirrored with the corner: a polaroid leans INTO its
+           corner, not off the screen edge. */
+        transform: rotate(-1.6deg);
         pointer-events: none;
+        /* THE POLAROID BEAT (plans/16 slice 7, built with item 21): the
+           .moment class below holds it big-and-center; removing the
+           class rides this transition up to the corner — the tween ENDS
+           inside the column law, it never renegotiates it. */
+        transition:
+          left 0.5s ease,
+          top 0.5s ease,
+          width 0.5s ease,
+          transform 0.5s ease;
+      }
+      /* The moment — everyone looks. display none→block skips the
+         transition, so the photo APPEARS at full size (the slam), then
+         files itself when report-view drops the class. */
+      #snapshot.moment {
+        left: 50%;
+        top: 44%;
+        width: min(52vw, 62vh);
+        transform: translate(-50%, -50%) rotate(-0.8deg);
       }
       #snapshot img {
         display: block;
@@ -338,9 +374,8 @@
       /* The mute button (the UI pass, 2026-07-09): M's clickable twin —
          the iPad rider has no M key. THE ONE overlay with pointer-events
          AUTO (a button is FOR clicking; everything else stays none so the
-         pointer-lock grab falls through). Sits under the snapshot in
-         paint order — the photo's linger wins the corner; clicks still
-         reach the button through the photo's pointer-events: none. */
+         pointer-lock grab falls through). It owns top-right alone since
+         the frame move (plans/15 item 21) carried the photo to top-left. */
       #mute-btn {
         position: fixed;
         top: 12px;
@@ -370,8 +405,8 @@
     <!-- The manned post's instruments (plans/15 item 5): before #banner,
          so the proclamation always paints over the panel. -->
     <div id="post-hud"></div>
-    <!-- M's clickable twin (before #snapshot: the photo paints over it
-         during lingers; clicks pass through the photo regardless). -->
+    <!-- M's clickable twin. It shared top-right with the photo until the
+         frame move (plans/15 item 21) — it owns the corner alone now. -->
     <button id="mute-btn" title="music on/off (M)">🔊</button>
     <div id="banner"></div>
     <figure id="snapshot">

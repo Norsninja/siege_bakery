@@ -19,14 +19,29 @@ import { bannerLatch } from "./interactions";
 import type { DessertSnapshot } from "./snapshot";
 import type { MatchView } from "./state";
 
+/** THE POLAROID BEAT (plans/16 slice 7, visionary 2026-07-09): the
+ * snapshot appears BIG AND CENTER first — the moment, everyone looks —
+ * holds this many ticks, then tweens to its corner (the record, filed
+ * away; CSS carries the ride). The BANNER WAITS for the filing: two
+ * center-stage proclamations at once would fight. EXPORTED so the
+ * eat-beat pins can hold the ordering law: photo files BEFORE the eat
+ * starts (photo-then-eat runs through this beat too). */
+export const MOMENT_TICKS = 110; // ~1.8s + the 0.5s tween ≈ 2.3s of the linger
+
 export class ReportView {
   private readonly banner = document.getElementById("banner");
   private readonly snapEl = document.getElementById("snapshot");
+  /** The corner timeshare (plans/15 item 21): while the photo hangs
+   * top-left, the hud card wears .linger and steps out of its column
+   * (the collapse itself is hud.ts's — this class only moves the card). */
+  private readonly hudEl = document.getElementById("hud");
   private readonly snapImg: HTMLImageElement | null;
   private readonly snapCaption: Element | null;
   private shown = false;
   /** Linger countdown, in ticks — armed when the banner shows. */
   private lingerTicks = 0;
+  /** The polaroid moment's countdown; the banner hangs when it hits 0. */
+  private momentTicks = 0;
 
   constructor(
     /** The tripod (client/snapshot.ts) — main still owns it: the dessert
@@ -47,8 +62,11 @@ export class ReportView {
     if (!this.banner) return null;
     if (view.run.phase === "runover") {
       // THE RUN REPORT (plans/13): replaces the order banner; the
-      // loss's photo stays hung — the filthy floor is the trophy.
+      // loss's photo stays hung — the filthy floor is the trophy
+      // (filed in its corner: the report owns the center).
       this.shown = true;
+      this.momentTicks = 0;
+      this.snapEl?.classList.remove("moment");
       this.banner.style.display = "flex";
       this.banner.textContent = runOverText(
         view.run.rung,
@@ -65,7 +83,12 @@ export class ReportView {
       if (this.shown) {
         this.shown = false;
         this.banner.style.display = "none";
-        if (this.snapEl) this.snapEl.style.display = "none";
+        if (this.snapEl) {
+          this.snapEl.style.display = "none";
+          this.snapEl.classList.remove("moment");
+        }
+        this.momentTicks = 0;
+        this.hudEl?.classList.remove("linger");
       }
       return null;
     }
@@ -78,24 +101,43 @@ export class ReportView {
       // truth). A mid-linger JOINER over-reads by however deep the
       // server already is; main's carry-home still fires on time.
       this.lingerTicks = ORDER_RESET_TICKS;
-      this.banner.style.display = "flex";
       // THE SHUTTER (dessert report): one photo of the dessert as the
-      // Giant judged it, hung in the corner for the linger. Taken on
-      // the show edge — linger shots happen AFTER the photo, exactly
-      // as they happen after the frozen verdict.
+      // Giant judged it. Taken on the show edge — linger shots happen
+      // AFTER the photo, exactly as they happen after the frozen
+      // verdict. THE POLAROID BEAT: it appears big-and-center (the
+      // .moment class — display flips skip the CSS transition, so it
+      // SLAMS in at size), holds, then files to the corner; the banner
+      // hangs only once the photo has filed (below).
       if (this.snapEl && this.snapImg) {
         this.snapImg.src = this.snapshot.take(this.scene);
+        this.snapEl.classList.add("moment");
         this.snapEl.style.display = "block";
+        this.momentTicks = MOMENT_TICKS;
+      } else {
+        // No frame in the DOM (headless boot): no moment to wait on.
+        this.banner.style.display = "flex";
       }
+      this.hudEl?.classList.add("linger"); // the card steps aside (item 21)
     } else if (b === "hide") {
       // The room dealt a fresh order — clear the slate; the caller
       // hears the edge (the carry-home law rides it).
       this.shown = false;
       this.banner.style.display = "none";
-      if (this.snapEl) this.snapEl.style.display = "none"; // the photo comes down
+      if (this.snapEl) {
+        this.snapEl.style.display = "none"; // the photo comes down
+        this.snapEl.classList.remove("moment");
+      }
+      this.momentTicks = 0;
+      this.hudEl?.classList.remove("linger");
       dealt = "dealt";
     }
     if (this.shown) {
+      // The moment's clock: when it runs out the photo files itself
+      // (the class drop rides the CSS transition) and the banner hangs.
+      if (this.momentTicks > 0 && --this.momentTicks === 0) {
+        this.snapEl?.classList.remove("moment");
+        this.banner.style.display = "flex";
+      }
       // Re-worded every tick: the countdown + the away warning live.
       this.lingerTicks = Math.max(0, this.lingerTicks - 1);
       this.banner.textContent = bannerText(

@@ -454,7 +454,22 @@ export function hudLines(v: HudView): string[] {
                 ? `👑 ${v.run.ultra ? "ULTRA MASTER BAKER OF THE REALMS" : "MASTER BAKER"} — ${runOverLine(v.run.rung, true)}   [${who}]`
                 : `CLOSING TIME — ${runOverLine(v.run.rung)}   [${who}]`,
             ]
-          : [
+          : v.order.status !== "running"
+            ? [
+                // THE CORNER YIELDS THE LINGER (plans/15 item 21): the
+                // ended order's checklist collapses — the center banner
+                // already names the culprit, and the photo now hangs in
+                // this corner (a timeshare, verified: the corner copy
+                // was redundant exactly here). One slim line keeps the
+                // patron and the purse — the stall prices from it during
+                // the very window it stands open.
+                `${
+                  v.order.status === "won"
+                    ? `PATRON ${v.run.rung} SERVED`
+                    : `PATRON ${v.run.rung} GOES HUNGRY`
+                } · 🪙 purse: ${v.run.purse ?? 0}   [${who}]`,
+              ]
+            : [
               // THE FINISH IT WINDOW (plans/13 §1, slice 4b): the outcome
               // is decided — the header swaps the dead order clock for the
               // window's own countdown; the golden row below names the ask.

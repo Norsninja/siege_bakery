@@ -22,6 +22,7 @@ import {
 } from "./eat-beat";
 import { VERDICT_HOLD_FRAMES } from "./patron-body";
 import { DEPART_AT_FRAMES } from "./patron-table";
+import { MOMENT_TICKS } from "./report-view";
 
 const judgment = (met: boolean, accepted: boolean): Judgment => ({
   met,
@@ -64,6 +65,12 @@ describe("the eat action (the ruled three-verdict split)", () => {
 describe("the beat timeline (plans/16 slice 7)", () => {
   it("photo-then-eat BY CONSTRUCTION: the eat starts after the verdict-pose hold", () => {
     expect(EAT_START_FRAME).toBeGreaterThan(VERDICT_HOLD_FRAMES);
+  });
+
+  it("the polaroid files BEFORE the eat starts (the beat runs photo → banner → eat)", () => {
+    // Ticks and render frames both run ~60 Hz; +30 covers the 0.5 s
+    // CSS tween that carries the photo to its corner.
+    expect(MOMENT_TICKS + 30).toBeLessThan(EAT_START_FRAME);
   });
 
   it("the walk-off lands inside the ruling (~450-480) and after the word dies", () => {

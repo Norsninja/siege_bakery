@@ -329,6 +329,28 @@ describe("hudLines", () => {
     expect(lobby.join("\n")).not.toContain("purse");
   });
 
+  it("THE CORNER YIELDS THE LINGER (item 21): an ended order collapses to one slim line — the banner owns the culprit", () => {
+    const won = hudLines(
+      view({
+        order: { ...createOrder([check(true).req], 71 * 60), status: "won" },
+        run: { phase: "running", rung: 3, purse: 12 },
+      }),
+    );
+    expect(won[0]).toBe("PATRON 3 SERVED · 🪙 purse: 12   [solo bakery]");
+    // No checklist rows, no golden row — the photo owns the corner now.
+    expect(won.join("\n")).not.toContain("✓");
+    expect(won.join("\n")).not.toContain("✗");
+    const lost = hudLines(
+      view({
+        order: { ...createOrder([], 71 * 60), status: "lost" },
+        run: { phase: "running", rung: 2 },
+      }),
+    );
+    expect(lost[0]).toBe("PATRON 2 GOES HUNGRY · 🪙 purse: 0   [solo bakery]");
+    // A RUNNING order keeps its full corner block untouched.
+    expect(hudLines(view())[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
+  });
+
   it("the lobby invites to the circle with the ready census; no order shows (plans/13)", () => {
     const lines = hudLines(
       view({ run: { phase: "lobby", rung: 0, readyIn: 1, readyOf: 3 } }),
