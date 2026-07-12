@@ -272,6 +272,30 @@ errors. REMAINING: the visionary's eye pass in-game; texture/paint pass
 (flat colors today); arm THROW animation is a later juice pass (the
 release stays instant, honest to the sim).**
 
+### Slice 4.75 — THE REGION (added + FIRST PASS BUILT 2026-07-11)
+
+**Status: BUILT in the fourteenth session (friend-test debrief ruling:
+"the environment should look close to the concept — a region with a
+few towns, a dwarf castle, mountain ranges"). Hybrid road: built out
+by the build session, flair pass belongs to the visionary
+(project/blender/region.blend is hand-authored and tracked). What
+stands: rolling meadow skirt (arena kept dead flat, haze baked toward
+the rim), THE GIANTS' ROAD from the ogre's table to the +x horizon
+(slice 3's queue will stand on it), three hamlets in the concept's
+pink/cream/brick, two mountain rings with gaps for the road and the
+cake axis, THE HERO MOUNTAIN owning the cake axis with THE DWARF
+CASTLE carved into its near flank (pink caps echo the banners), and a
+sky dome + seven cumulus clusters. region.glb 1.8 MB + sky.glb 127 KB,
+all vertex-colored hand road — no textures. THE ATMOSPHERE RULE
+(pinned, scene.test.ts): near_/mid_ meshes stay lit and fogged like
+the forts; far_/sky_ swap to unlit fog-exempt vertex color — their
+haze is PAINTED, the concept's own air. Scene changes that ride it:
+camera far 200→500, fog 60–120→80–280 (the far fort reads clearer —
+EYE PASS ITEM). Fallback law holds: both GLBs null → the old
+green-slab-and-fog look, forever. OPEN (the visionary's flair pass):
+rock/snow contrast on the hero, skirt-to-slab green seam, cloud
+placement, chimney smoke (later juice), drifting clouds (later juice).**
+
 ### Slice 5 — THE DESSERT DELICIOUS
 
 Material pass on the scoreable object: frosting with gloss and the

@@ -17,7 +17,13 @@ import {
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
 import { WALLS } from "../core/arena";
-import { MachineRig, WALL_SEG_LEN, wallSegments } from "./scene";
+import {
+  MachineRig,
+  WALL_SEG_LEN,
+  backdropTreatment,
+  dressBackdrop,
+  wallSegments,
+} from "./scene";
 
 const rad = (deg: number): number => (deg * Math.PI) / 180;
 const tm = (tiltNotch: number, screwTicks = 0): TownMachine => ({
@@ -195,5 +201,45 @@ describe("wallSegments — stone sections tile the collider slabs", () => {
       expect(s.scaleX).toBeGreaterThan(0.85);
       expect(s.scaleX).toBeLessThan(1.35); // the 2.5 m gate flank is the ceiling
     }
+  });
+});
+
+/** THE BACKDROP TREATMENT (the region slice): far_/sky_ meshes go unlit
+ * and fog-exempt (haze is baked in vertex color); near_/mid_ stay lit and
+ * fogged like the forts. An unknown prefix degrades to lit — a renamed
+ * mesh must never vanish into the fog silently. */
+describe("backdropTreatment — the region's atmosphere rule", () => {
+  it("classifies the shipped vocabulary", () => {
+    expect(backdropTreatment("far_mountain_hero")).toBe("unlit");
+    expect(backdropTreatment("far_castle")).toBe("unlit");
+    expect(backdropTreatment("sky_dome")).toBe("unlit");
+    expect(backdropTreatment("sky_cloud_3")).toBe("unlit");
+    expect(backdropTreatment("near_skirt")).toBe("lit");
+    expect(backdropTreatment("mid_town_west")).toBe("lit");
+    expect(backdropTreatment("mystery_prop")).toBe("lit"); // default: visible
+  });
+
+  it("dressBackdrop swaps unlit meshes to fogless vertex-color basic, leaves lit alone", () => {
+    const root = new THREE.Group();
+    const mk = (name: string): THREE.Mesh => {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial(),
+      );
+      m.name = name;
+      root.add(m);
+      return m;
+    };
+    const far = mk("far_range_outer");
+    const sky = mk("sky_dome");
+    const near = mk("near_road");
+    dressBackdrop(root);
+    for (const m of [far, sky]) {
+      const mat = m.material as THREE.MeshBasicMaterial;
+      expect(mat.type).toBe("MeshBasicMaterial");
+      expect(mat.vertexColors).toBe(true);
+      expect(mat.fog).toBe(false);
+    }
+    expect((near.material as THREE.Material).type).toBe("MeshStandardMaterial");
   });
 });

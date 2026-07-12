@@ -131,6 +131,30 @@ export function wallSegments(
   return out;
 }
 
+/** THE BACKDROP TREATMENT (the region slice, 2026-07-11 — pure, pinned):
+ * region.glb/sky.glb mesh names carry their atmosphere in a prefix.
+ * near_/mid_ stay LIT and participate in scene fog like the forts do;
+ * far_/sky_ go UNLIT and fog-EXEMPT — their haze is baked into vertex
+ * colors (the concept art paints its own air; scene fog would erase
+ * anything past its far distance). Unknown names default lit — a new
+ * mesh degrades to "normal object", never to invisible. */
+export type BackdropTreatment = "lit" | "unlit";
+export function backdropTreatment(name: string): BackdropTreatment {
+  return name.startsWith("far_") || name.startsWith("sky_") ? "unlit" : "lit";
+}
+
+/** Apply the treatment to a loaded backdrop template in place: unlit
+ * meshes swap to a fogless vertex-color basic material (their glTF
+ * materials are placeholders — the .blend authors color in COLOR_0). */
+export function dressBackdrop(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    if (backdropTreatment(o.name) === "unlit") {
+      o.material = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false });
+    }
+  });
+}
+
 /** Remove a TRANSIENT object from its parent and free its GPU resources
  * (checkpoint audit 2026-07-03: nothing in the client disposed anything —
  * consumed globs, evicted ground splats, landing rings, and departed
@@ -434,13 +458,21 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87b5e5);
-  scene.fog = new THREE.Fog(0x87b5e5, 60, 120);
+  // THE REGION's atmosphere (2026-07-11): fog reached 60→120 when the
+  // world ENDED at 120 — with a real backdrop the air recedes to 80→280
+  // so the mid-ground hamlets sit in the gradient instead of behind it.
+  // (Side effect for the eye pass: the far fort reads clearer than the
+  // old fog showed it.) far_/sky_ meshes opt OUT of fog entirely — their
+  // haze is BAKED into vertex colors, the concept art's own painted air.
+  scene.fog = new THREE.Fog(0x87b5e5, 80, 280);
 
   const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    200,
+    // 500, was 200: the mountain rings stand at 250–350 and the sky dome
+    // at ~430 — all beyond the old plane (the region slice, 2026-07-11).
+    500,
   );
   camera.rotation.order = "YXZ"; // yaw, then pitch — the FPS rig
 
@@ -455,6 +487,19 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // town-0-only until the client's two-town step (plans/11 §10 step 8).
   box(GROUND_HALF_X * 2, 0.2, GROUND_HALF_Z * 2, 0x7a9e6b,
     0, -0.1, GROUND_CENTER_Z, scene); // ground — spans both forts
+  // THE REGION (plans/16, 2026-07-11): the world beyond the walls —
+  // meadow skirt, the giants' road, hamlets, ranges, the dwarf castle in
+  // the hero mountain, and a sky dome with clouds. Pure backdrop: no
+  // colliders, no gameplay, zero systems. Both load through the seam;
+  // null keeps today's green-slab-and-fog look forever (fallback law).
+  for (const name of ["region", "sky"]) {
+    void loadModel(name).then((t) => {
+      if (!t) return;
+      dressBackdrop(t);
+      scene.add(t);
+    });
+  }
+
   // THE WALLS DRESS (meshy road, wall.glb 0.34 MB): stone sections tile
   // every collider slab per wallSegments(). The grey slabs retire by
   // VISIBILITY, never disposal — the standing fallback (null from the
