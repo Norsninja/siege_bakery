@@ -113,6 +113,31 @@ describe("PatronBody choreography", () => {
     expect(spine.rotation.x).toBeCloseTo(0.02, 6);
   });
 
+  it("individuality desyncs the breath: no two seeds heave as one (eye note 2026-07-12)", () => {
+    // Two giants, two queue indices: their chest traces must diverge
+    // (personal phase AND rate), while the same seed stays identical
+    // on every client (determinism law).
+    const trace = (individuality: number): number[] => {
+      const root = fakeOgre();
+      const body = new PatronBody(root, POSES, individuality);
+      const chest = bone(root, "chest");
+      const out: number[] = [];
+      for (let i = 0; i < 120; i++) {
+        body.update();
+        out.push(chest.rotation.x);
+      }
+      return out;
+    };
+    const a = trace(5);
+    const a2 = trace(5);
+    expect(a).toEqual(a2); // same seed, same breath — every client alike
+    // Every neighboring pair in a 10-deep line diverges — no two
+    // giants on screen share a metronome.
+    for (let q = 1; q < 10; q++) {
+      expect(trace(q)).not.toEqual(trace(q + 1));
+    }
+  });
+
   it("the FIRST update adopts a standing seq silently (late model load)", () => {
     const body = new PatronBody(fakeOgre());
     pump(body, 20, 7);

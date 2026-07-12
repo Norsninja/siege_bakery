@@ -137,6 +137,7 @@ export class LineManager {
           existing.body = new PatronBody(
             existing.group,
             SPECIES_POSES[slot.species] ?? POSES,
+            slot.queueIndex,
           );
         continue;
       }
@@ -166,7 +167,11 @@ export class LineManager {
         group,
         body:
           slot.tier === "actor"
-            ? new PatronBody(group, SPECIES_POSES[slot.species] ?? POSES)
+            ? new PatronBody(
+                group,
+                SPECIES_POSES[slot.species] ?? POSES,
+                slot.queueIndex,
+              )
             : null,
         from: { x: slot.x, z: slot.z },
         walkPhase: 0,

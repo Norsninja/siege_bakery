@@ -16,6 +16,7 @@
  */
 import * as THREE from "three";
 import type { Judgment } from "../game/judgment";
+import { mulberry32 } from "../core/rng";
 
 const deg = (d: number): number => (d * Math.PI) / 180;
 
@@ -158,7 +159,10 @@ export class PatronBody {
   private readonly rest = new Map<string, { x: number; y: number; z: number }>();
   /** Current pose offsets, eased toward the active pose (or zero). */
   private readonly offsets = new Map<string, { x: number; y: number; z: number }>();
-  private phase = 0;
+  private phase: number;
+  /** Personal breath rate multiplier (~±15% about 1) — see the
+   * individuality seed on the constructor. */
+  private readonly breathRate: number;
   private mode: "idle" | PoseName = "idle";
   private holdFrames = 0;
   /** Patron-line edge detection. The FIRST update adopts the standing
@@ -170,11 +174,20 @@ export class PatronBody {
 
   /** `poses` selects the species' pose table (default: the ogre's).
    * Pass SPECIES_POSES[species] ?? POSES — an unknown species acts in
-   * the ogre's grammar on whatever shared bones it carries. */
+   * the ogre's grammar on whatever shared bones it carries.
+   * `individuality` seeds a personal breath — phase offset + ~±15%
+   * rate — so a crowd never heaves as one metronome (eye note
+   * 2026-07-12). Callers pass the QUEUE INDEX: THE ADVANCE IDENTITY
+   * then keeps a giant's own breath as he walks up the line and takes
+   * the table. Deterministic — every client breathes him alike. */
   constructor(
     root: THREE.Object3D,
     private readonly poses: PoseTable = POSES,
+    individuality = 0,
   ) {
+    const rng = mulberry32(Math.imul(individuality + 1, 2654435761));
+    this.phase = rng() * Math.PI * 2;
+    this.breathRate = 0.85 + rng() * 0.3;
     root.traverse((o) => {
       if ((o as THREE.Bone).isBone) {
         this.bones.set(o.name, o);
@@ -240,7 +253,7 @@ export class PatronBody {
     const pose = this.mode === "idle" ? null : this.poses[this.mode];
     const rate =
       this.mode !== "idle" && this.mode !== "lean" ? SNAP_LERP : EASE_LERP;
-    this.phase += BREATH_PER_FRAME;
+    this.phase += BREATH_PER_FRAME * this.breathRate;
     const breath = CHEST_HEAVE_RAD * Math.sin(this.phase);
     const nod = HEAD_NOD_RAD * Math.sin(this.phase - 0.9);
     const settle = WING_SETTLE_RAD * Math.sin(this.phase - 0.45);

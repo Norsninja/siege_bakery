@@ -138,6 +138,13 @@ patron reaches the table as the next order deals.
   have reshuffled the moment the cast grows — Cyclops looms).
   LINE_SLOT0_X 66→50 (the table gap read "a little far"); arrival
   walk shortens ~2.4 s → ~1.5 s.
+- 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
+  whole cast heaved as one metronome (every PatronBody booted phase 0
+  at one fixed rate). PatronBody gains an `individuality` seed (the
+  QUEUE INDEX — the advance identity keeps a giant's own breath as he
+  walks up and takes the table): seeded phase offset + ~±15% rate,
+  deterministic across clients. Pinned. Observed sibling, unruled:
+  walk-bob phases also sync (all advancing giants bob in step).
 - 2026-07-12: BUILT same session. cast.ts (12 pins — incl. the
   MULBERRY FIRST-DRAW LAW: mulberry32's first output correlates
   across nearby seeds; Knuth-hash the seed AND burn a draw, or the

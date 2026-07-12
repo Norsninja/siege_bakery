@@ -99,6 +99,7 @@ export class PatronTable {
       body: new PatronBody(
         group,
         SPECIES_POSES[tablePatron(rung).species] ?? POSES,
+        rung, // the table holds queueIndex = rung: his breath followed him up the line
       ),
       species: member.species,
       walkPhase: 0,
