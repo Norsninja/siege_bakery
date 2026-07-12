@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit && tsc -p tsconfig.headless.json && vitest run",
-    "diet": "node scripts/model-diet.mjs"
+    "diet": "node scripts/model-diet.mjs",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
