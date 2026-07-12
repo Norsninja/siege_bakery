@@ -88,6 +88,29 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE EIGHTEENTH SESSION (2026-07-12 eve): THE EAT BEAT BUILT + THE
+WRAP — six commits ending 930b1ce, 448 tests. THE EAT BEAT
+(slice 7): eat-beat.ts (EAT_START = VERDICT_HOLD+10 derived, CHOMP
+at +80, DEPART_AT_FRAMES 460 shared with line), comic-word.ts
+extracted (one onomatopoeia grammar), PatronBody.mouthWorld() (bone
+truth), three verdicts live-smoked (CHOMP!/chomp./uneaten); sting
+seam awaits slice 6. THE WRAP (plans/15 items 20+21): walk.ts = ONE
+home for stride dials (Froude cadence — step ~1.75 s, depart
+~10 m/s, arrive ~4.8 s, advance 330f); photo → TOP-LEFT, corner
+checklist COLLAPSES at verdict edge (one slim line + purse),
+#hud.linger steps the card aside (+48px carve law mirrored);
+POLAROID BEAT built (slams center, banner WAITS ~1.8 s, 0.5 s tween
+files it — pin: files before the eat). HIDDEN-PANE ADDITION: CSS
+transitions freeze without a compositor — prove end-states with
+transition:none. plans/21 THE PATH opened (three lanes; entry 1
+struck); plans/20 drafted (alpha serving, NOT next). Visionary
+amended plans/15 (item 25) + plans/21 post-commit — UNCOMMITTED,
+his call. NEXT SESSION (his words): review work + plans, then
+DISCUSS SOUND (slice 6, path entry 2) before building — volume bus
+born there (plans/20 §5), step booms explicitly deferred (item 22's
+events, never the fake bob). Handoff:
+2026-07-12-eighteenth-the-eat-beat-and-the-wrap.md. Prior s17 canon
+holds below.
 THE SEVENTEENTH SESSION (2026-07-12 pm): THE CAST COMPLETES, THE
 EAT BEAT IS RULED — seven commits ending 036446e (history rewritten
 once, approved: a 96.87 MB orphan-texture blob erased), 436 tests.
