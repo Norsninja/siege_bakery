@@ -265,3 +265,18 @@ DELIVER: project/blender/region-scripts/<name>.py per §8
   carry it). Exported: region.glb 1.8 → 1.95 MB. In-game smoke:
   all six arrive MeshStandardMaterial fog:true vertexColors:true,
   positions match the coordinate map, zero console errors.
+- 2026-07-11: THE SECOND FLEET (five more Sonnet agents, ten-for-ten
+  across both fleets, still zero rework): `mid_mill_south` (216 tris,
+  8-sided 15.5 m sibling, blades 18° off-axis, pink pennant instead
+  of tip trim), `mid_fields_south` (308 tris, 4 wheat plots + 5
+  haystacks — SESSION-RULED accent: wheat gold #C98A2B + straw
+  #D8B878, the first §5 palette extension), `mid_milestone_east`
+  (190 tris, stout cairn sibling, pink collar HIGH on the neck —
+  the lesson from the west sibling's weak plinth accent applied),
+  `mid_watchtower_west` (148 tris, corbel gallery + pink cone tying
+  the far castle's language into the mid band), `mid_orchard_road`
+  (312 tris, 6 staggered roadside trees, 2 in blossom). region.glb
+  1.95 → 2.04 MB. In-game smoke: all five lit+fogged, positions on
+  the map, zero console errors. Known soft spot: the gold plots read
+  faintly from the post eye (thin slabs + meadow roll) — they earn
+  their keep from any elevated angle.
