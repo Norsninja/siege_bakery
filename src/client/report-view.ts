@@ -16,6 +16,8 @@ import type * as THREE from "three";
 import { ORDER_RESET_TICKS } from "../game/tuning";
 import { bannerText, runOverText, snapshotCaption } from "./hud";
 import { bannerLatch } from "./interactions";
+import { verdictPose } from "./patron-body";
+import type { SfxFn } from "./sfx";
 import type { DessertSnapshot } from "./snapshot";
 import type { MatchView } from "./state";
 
@@ -49,6 +51,10 @@ export class ReportView {
      * shutter on the banner-show edge. */
     private readonly snapshot: DessertSnapshot,
     private readonly scene: THREE.Scene,
+    /** Slice 6: the verdict sting fires on the show edge — the same
+     * beat as the reaction pose and the shutter (plans/16 slice 7's
+     * sequence). Rows are visionary-sourced; silence until they land. */
+    private readonly sound?: SfxFn,
   ) {
     this.snapImg = this.snapEl?.querySelector("img") ?? null;
     this.snapCaption = this.snapEl?.querySelector("figcaption") ?? null;
@@ -118,6 +124,18 @@ export class ReportView {
         this.banner.style.display = "flex";
       }
       this.hudEl?.classList.add("linger"); // the card steps aside (item 21)
+      // The verdict sting (slice 6): keyed by the same two-gate read as
+      // the patron's pose — the fanfare, the huff, the sad horn.
+      if (view.verdict) {
+        const pose = verdictPose(view.verdict);
+        this.sound?.(
+          pose === "delighted"
+            ? "verdictDelighted"
+            : pose === "refused"
+              ? "verdictRefused"
+              : "verdictHungry",
+        );
+      }
     } else if (b === "hide") {
       // The room dealt a fresh order — clear the slate; the caller
       // hears the edge (the carry-home law rides it).

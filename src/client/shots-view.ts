@@ -28,6 +28,7 @@ import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import { isPaint, TOPPINGS } from "../game/toppings";
 import type { RestingTopping } from "../game/protocol";
 import { ComicWord } from "./comic-word";
+import type { ClientFx } from "./sfx";
 import type { ShotMsg } from "./net-handlers";
 import { removeAndDispose, sphere, TOPPING_COLORS } from "./scene";
 
@@ -362,8 +363,11 @@ export class ShotsView {
 
   /** One fixed tick: advance the shared world; markers + splat readout.
    * `dessert` is the CURRENT deal's geometry (an argument, never a field
-   * — the slice-2 ruling; this view outlives the deal). */
-  step(dessert: DessertGeometry, flash: (msg: string, ms?: number) => void): void {
+   * — the slice-2 ruling; this view outlives the deal). `fx` is the
+   * client FX port (slice 6): the word and the sound land as ONE
+   * announcement (item 13's pairing law), so both ride the same
+   * own-town predicate below. */
+  step(dessert: DessertGeometry, fx: ClientFx): void {
     const ev = this.shots.step(this.world, dessert);
     // Trails age and sample FIRST (the world just stepped, so an impact
     // tick's head sample is the contact point); the impacts loop below
@@ -380,10 +384,10 @@ export class ShotsView {
         const mesh = this.grainMesh(grain, gi);
         this.meshes.push({ body: b.grains[gi]!, mesh });
       }
-      flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
+      fx.flash(`POP! the ${b.topping} burst — ${b.grains.length} grains`);
       // The comic word (item 13): YOUR crew's pop announces itself in the
       // world; the grains land wordless below it (the quiet-grain law).
-      if (unpackShotTag(b.tag).town === this.yourTown)
+      if (unpackShotTag(b.tag).town === this.yourTown) {
         this.words.push(
           new ComicWord(
             "POP!",
@@ -393,6 +397,8 @@ export class ShotsView {
             this.scene,
           ),
         );
+        fx.sound("pop", { at: b.pos });
+      }
     }
     // IMPACTS BEFORE STUCK — the mirror of the Room's tickScoringPhase
     // ordering (room.ts: the impacts loop's BURIAL filter runs while
@@ -420,7 +426,7 @@ export class ShotsView {
       // The comic word (item 13): your own machine's landing speaks at the
       // spot — hot lands SHOUT, gentle ones whisper. Stale shots included:
       // they visibly land (the rings' precedent), so they honestly speak.
-      if (town === this.yourTown)
+      if (town === this.yourTown) {
         this.words.push(
           new ComicWord(
             splat ? "SPLAT!" : "plop.",
@@ -430,7 +436,9 @@ export class ShotsView {
             this.scene,
           ),
         );
-      flash(
+        fx.sound(splat ? "splat" : "plop", { at: im.pos });
+      }
+      fx.flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,
       );
     }

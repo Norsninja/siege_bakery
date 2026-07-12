@@ -20,11 +20,14 @@
  * Browser law: audio only starts after a user gesture — play() rejects
  * until the pointer-lock click; MusicBox retries on the first gesture.
  * M toggles mute (global key — noted beside POST_KEYS so the key
- * namespace stays audited).
+ * namespace stays audited). Since slice 6 the mute and the level live
+ * on THE BUS (audio-bus.ts, plans/20 §5) — this box polls it per frame
+ * and owns no volume state of its own beyond the fade.
  */
 
 import type { OrderState } from "../game/order";
 import type { RunPhase } from "../game/run-flow";
+import { clampLevel, type AudioBus } from "./audio-bus";
 
 export type Mood = "order" | "lobby" | "linger" | "runover";
 
@@ -98,13 +101,13 @@ export class MusicBox {
   private readonly el: HTMLAudioElement;
   private mood: Mood | null = null;
   private track: number | null = null;
-  private muted = false;
-  /** Volume target: BG_VOLUME while a mood plays, 0 while fading out. */
-  private target = 0;
+  /** Audible while a mood plays; false fades out (silence rows, mood
+   * swaps). The actual target level is derived per step from the bus. */
+  private audible = false;
   private pendingMood: Mood | null = null;
   private blocked = false; // autoplay refused — waiting for a gesture
 
-  constructor() {
+  constructor(private readonly bus: AudioBus) {
     this.el = new Audio();
     this.el.preload = "auto";
     this.el.volume = 0;
@@ -124,15 +127,10 @@ export class MusicBox {
     window.addEventListener("keydown", unlock);
   }
 
-  /** M toggles it; returns the new state for the flash. */
-  toggleMute(): boolean {
-    this.muted = !this.muted;
-    this.el.muted = this.muted;
-    return this.muted;
-  }
-
-  get isMuted(): boolean {
-    return this.muted;
+  /** The bus's music dial applied to the house level — every target
+   * derives from here, so a settings knob turned mid-song just works. */
+  private level(): number {
+    return BG_VOLUME * clampLevel(this.bus.music);
   }
 
   /** The match's mood, every frame — same mood is a no-op; a new mood
@@ -145,15 +143,17 @@ export class MusicBox {
     } else {
       // Fade the old song out; step() starts the new mood at zero.
       this.pendingMood = mood;
-      this.target = 0;
+      this.audible = false;
     }
   }
 
   /** Run the fades — call once per rendered frame. All volume math goes
-   * through fadeStep (pure, pinned): the raw setter throws out of range. */
+   * through fadeStep (pure, pinned): the raw setter throws out of range.
+   * The bus is polled here too: mute and the music dial apply live. */
   step(dtMs: number): void {
+    if (this.el.muted !== this.bus.muted) this.el.muted = this.bus.muted;
     const v = this.el.volume;
-    const next = fadeStep(v, this.target, dtMs);
+    const next = fadeStep(v, this.audible ? this.level() : 0, dtMs);
     if (next !== v) this.el.volume = next;
     if (next === 0 && this.pendingMood !== null) {
       const mood = this.pendingMood;
@@ -171,13 +171,13 @@ export class MusicBox {
       this.el.pause();
       this.el.removeAttribute("src");
       this.track = null;
-      this.target = 0;
+      this.audible = false;
       return;
     }
     this.track = nextTrack(list.length, this.track, Math.random);
     this.el.src = list[this.track]!;
-    this.el.volume = fresh ? 0 : BG_VOLUME;
-    this.target = BG_VOLUME;
+    this.el.volume = fresh ? 0 : this.level();
+    this.audible = true;
     void this.el.play().catch(() => (this.blocked = true));
   }
 }

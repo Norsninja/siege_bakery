@@ -18,10 +18,11 @@
  * siege-engineering cake LIFT can costume this same beat later; the
  * arc timeline is the drive, the proxy is the dress.
  *
- * SFX seam (slice 6, unbuilt): the chomp sting fires on the CHOMP
- * edge — when sfx.ts lands, its table hooks the same frame this
- * module speaks the word. Placeholder silence until then (visionary-
- * approved 2026-07-12).
+ * SFX (slice 6, built 2026-07-12): the chomp sting fires on the CHOMP
+ * edge — the same frame this module speaks the word (item 13's pairing
+ * law: the word and the sound are one announcement). The sound arrives
+ * as a narrow callback (the ClientFx port, ruled over a singleton);
+ * absent callback = the old placeholder silence, assetless-law style.
  */
 import * as THREE from "three";
 import { CAKE_Z } from "../core/arena";
@@ -30,6 +31,7 @@ import type { Judgment } from "../game/judgment";
 import { VERDICT_HOLD_FRAMES, verdictPose } from "./patron-body";
 import { ComicWord } from "./comic-word";
 import { TIER_COLORS } from "./scene";
+import type { SfxFn } from "./sfx";
 
 /** The beat sheet, in linger frames (~60fps; frame 1 = the verdict
  * edge). The verdict pose holds VERDICT_HOLD_FRAMES with the polaroid
@@ -142,6 +144,7 @@ export class EatTheatre {
     private readonly scene: THREE.Scene,
     private readonly tiers: readonly CakeTier[],
     readonly action: EatAction,
+    private readonly sound?: SfxFn,
   ) {}
 
   /** For the pins and the smoke driver. */
@@ -220,12 +223,15 @@ export class EatTheatre {
   }
 
   /** The CHOMP edge: proxy gone (swallowed), the word speaks, the
-   * burst scatters. SFX seam (slice 6): the sting belongs HERE. */
+   * sting sounds — one announcement (the pairing law), one frame. */
   private chomp(): void {
     if (this.proxy) {
       disposeInto(this.scene, this.proxy);
       this.proxy = null;
     }
+    this.sound?.(this.action === "devour" ? "chompDevour" : "chompBegrudge", {
+      at: { x: this.mouth.x, y: this.mouth.y, z: this.mouth.z },
+    });
     const spec = this.action === "devour" ? CHOMP_DEVOUR : CHOMP_BEGRUDGE;
     this.word = new ComicWord(
       spec.text,

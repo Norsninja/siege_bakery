@@ -87,6 +87,36 @@ describe("the stand-in proxy", () => {
   });
 });
 
+describe("the chomp sting (slice 6 — the pairing law at the mouth)", () => {
+  it("fires ONCE on the CHOMP edge, keyed by the ruled split, anchored at the mouth", () => {
+    const scene = new THREE.Scene();
+    const played: Array<{ key: string; at?: { x: number; y: number; z: number } }> = [];
+    const theatre = new EatTheatre(scene, CAKE_3.tiers, "devour", (key, opts) =>
+      played.push({ key, ...(opts?.at ? { at: opts.at } : {}) }),
+    );
+    run(theatre, 1, CHOMP_FRAME - 1);
+    expect(played).toEqual([]); // silent through photo and arc
+    run(theatre, CHOMP_FRAME, DEPART_AT_FRAMES);
+    expect(played.length).toBe(1); // one announcement, never re-fired
+    expect(played[0]!.key).toBe("chompDevour");
+    expect(played[0]!.at!.y).toBeCloseTo(MOUTH.y, 1);
+  });
+
+  it("the begrudge mutters its own key; a soundless theatre (no callback) is the assetless placeholder", () => {
+    const scene = new THREE.Scene();
+    const played: string[] = [];
+    const theatre = new EatTheatre(scene, CAKE_3.tiers, "begrudge", (key) => {
+      played.push(key);
+    });
+    run(theatre, 1, CHOMP_FRAME);
+    expect(played).toEqual(["chompBegrudge"]);
+    // No callback: the beat still plays to done — sound is dress, never drive.
+    const silent = new EatTheatre(new THREE.Scene(), CAKE_3.tiers, "devour");
+    run(silent, 1, DEPART_AT_FRAMES);
+    expect(silent.stage).toBe("done");
+  });
+});
+
 describe("EatTheatre lifecycle (scene truth, not counters)", () => {
   it("the devour: waits through the photo, arcs to the mouth, CHOMP!s with sparkle, resolves before the walk-off", () => {
     const scene = new THREE.Scene();

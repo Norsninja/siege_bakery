@@ -74,7 +74,9 @@ const coveringImpact = {
 };
 const grip = { pos: { ...G }, normal: { ...N }, topping: "sprinkles", tag: 0 };
 const empty: StepEvents = { impacts: [], settled: [], bursts: [], stuck: [] };
-const noop = (): void => {};
+// The FX port (slice 6): tests announce into the void — no test may
+// depend on what's audible (the jukebox law, extended to the table).
+const noop = { flash: (): void => {}, sound: (): void => {} };
 
 describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
   it("a grip and a covering glob on the SAME tick: the grip SURVIVES (mirrors the Room)", () => {
@@ -232,7 +234,7 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
     // a cherry has no burst, and its landing is the rig's only impact).
     let impacted = false;
     for (let i = 0; i < 600 && !impacted; i++)
-      view.step(GEOM, () => (impacted = true));
+      view.step(GEOM, { ...noop, flash: () => (impacted = true) });
     expect(impacted).toBe(true);
     const atImpact = trails(view)[0]!.samples.length;
     // The feed stopped AT contact: each further tick only ages the arc out
@@ -250,19 +252,25 @@ describe("projectile trails: the comet ribbon (plans/15 item 4)", () => {
 
   it("THE COMIC WORD rides the pop: YOUR carrier's burst says POP!, its grains land wordless", () => {
     const { view } = rig();
+    const played: string[] = [];
+    const fx = { ...noop, sound: (key: string) => played.push(key) };
     view.spawn(lob("sprinkles")); // town 0 — and yourTown defaults to 0
     let popped = false;
     for (let i = 0; i < 600 && !popped; i++) {
-      view.step(GEOM, noop);
+      view.step(GEOM, fx);
       popped = bodies(view).length > 1;
     }
     expect(popped).toBe(true);
     expect(words(view).map((w) => w.text)).toEqual(["POP!"]);
+    // The pairing law: the pop's sound landed WITH its word — one
+    // announcement (and the grains below stay soundless too).
+    expect(played).toEqual(["pop"]);
     // The grains rain down over the next beats — quiet, per the law: no
     // word ever joins (or replaces) the pop's own.
-    for (let i = 0; i < 40; i++) view.step(GEOM, noop);
+    for (let i = 0; i < 40; i++) view.step(GEOM, fx);
     for (const w of words(view)) expect(w.text).toBe("POP!");
     expect(words(view).length).toBeLessThanOrEqual(1);
+    expect(played).toEqual(["pop"]);
   });
 
   it("sync billboards the ribbon: a newborn draws nothing, a flying arc draws its strip", () => {
@@ -316,6 +324,21 @@ describe("THE COMIC WORD (plans/15 item 13): your own landings speak in the worl
     setEvents({ ...empty, impacts: [landing(0, 20, true)] });
     shotsView.step(GEOM, noop);
     expect(words(shotsView).length).toBe(0);
+  });
+
+  it("THE PAIRING LAW (slice 6): the sound rides the word's exact predicate — splat/plop by speed, own town only, grains silent", () => {
+    const { shotsView, setEvents } = harness();
+    const played: string[] = [];
+    const fx = { ...noop, sound: (key: string) => played.push(key) };
+    setEvents({ ...empty, impacts: [landing(0, 20)] }); // hot → splat
+    shotsView.step(GEOM, fx);
+    setEvents({ ...empty, impacts: [landing(0, 1)] }); // gentle → plop
+    shotsView.step(GEOM, fx);
+    setEvents({ ...empty, impacts: [landing(1, 20)] }); // foreign → silent
+    shotsView.step(GEOM, fx);
+    setEvents({ ...empty, impacts: [landing(0, 20, true)] }); // grain → silent
+    shotsView.step(GEOM, fx);
+    expect(played).toEqual(["splat", "plop"]);
   });
 
   it("the word lives its beat and leaves — nothing piles up", () => {

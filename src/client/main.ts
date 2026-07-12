@@ -35,6 +35,8 @@ import {
 import { PostHud } from "./post-hud";
 import { ReportView } from "./report-view";
 import { deriveMood, MusicBox } from "./music";
+import { createAudioBus } from "./audio-bus";
+import { SfxBox, type ClientFx } from "./sfx";
 import { DessertSnapshot } from "./snapshot";
 import { InputTracker, deriveMove } from "./input";
 import { postAnchors, postAt, postOp, type Post } from "./posts";
@@ -102,6 +104,14 @@ async function main(): Promise<void> {
     sprinklesView.add(pos, normal, frostingView.coatsNear(pos));
   const ghosts = new GhostManager(scene);
 
+  // THE VOLUME BUS + THE SOUND TABLE (slice 6, plans/20 §5): born
+  // before any consumer — MusicBox and SfxBox both hang off the bus,
+  // and world views get the narrow `sound` half of the FX port.
+  const bus = createAudioBus();
+  const sfx = new SfxBox(bus);
+  sfx.load();
+  const sound: ClientFx["sound"] = (k, o) => sfx.sound(k, o);
+
   // THE PIPELINE PROOF (plans/16 slice 1): the first real asset through
   // Blender → glTF → the loader seam. Decor beside town 0's pantry —
   // no collider, no interaction; if the .glb is missing the seam yields
@@ -123,7 +133,7 @@ async function main(): Promise<void> {
   // cast.ts; PatronBody choreography now hosts per-species pose
   // tables. Both managers poll view state each frame (async loads and
   // mid-banner joiners recover; events would miss both).
-  const patronTable = new PatronTable(scene);
+  const patronTable = new PatronTable(scene, sound);
   const line = new LineManager(scene);
 
   const hud = document.getElementById("hud");
@@ -137,7 +147,7 @@ async function main(): Promise<void> {
   // shutter on the show edge.
   const snapshot = new DessertSnapshot(renderer);
   snapshot.aimAt(view.dessert.spec.tiers);
-  const report = new ReportView(snapshot, scene);
+  const report = new ReportView(snapshot, scene, sound);
   let flashMsg = "";
   let flashUntil = 0;
   const flash = (msg: string, ms = 4000): void => {
@@ -149,12 +159,22 @@ async function main(): Promise<void> {
   // client-only ambience — music.ts is the table and the laws. M is the
   // global mute (noted beside POST_KEYS — the key namespace's audit);
   // the corner button is M's clickable twin (the iPad rider has no M).
-  const music = new MusicBox();
+  // Since slice 6 both engines hang off THE BUS (audio-bus.ts): M mutes
+  // music AND sfx; the settings panel later grows knobs here.
+  const music = new MusicBox(bus);
+  // The client FX port (slice 6): what a world view may announce — the
+  // corner flash line and the sound, threaded together so the word and
+  // the sound land as one announcement (item 13's pairing law).
+  const fxPort: ClientFx = { flash, sound };
+  /** THE TENSION METRONOME's memory (slice 6): last seen click count on
+   * YOUR machine — each increment ratchets once (poll culture; resets to
+   * zero on fire, and only increases speak). */
+  let lastWinchClicks = 0;
   const muteBtn = document.getElementById("mute-btn");
   const toggleMusic = (): void => {
-    const muted = music.toggleMute();
-    if (muteBtn) muteBtn.textContent = muted ? "🔇" : "🔊";
-    flash(muted ? "music muted — M brings it back" : "music on 🎵", 2000);
+    bus.muted = !bus.muted;
+    if (muteBtn) muteBtn.textContent = bus.muted ? "🔇" : "🔊";
+    flash(bus.muted ? "audio muted — M brings it back" : "audio on 🎵", 2000);
   };
   window.addEventListener("keydown", (e) => {
     if (e.code === "KeyM" && !e.repeat) toggleMusic();
@@ -176,6 +196,14 @@ async function main(): Promise<void> {
         tiltNotch: msg.tiltNotch,
       };
       shotsView.spawn(msg);
+      // Slice 6: YOUR crew's machine speaks — the lever's THUNK under
+      // the lob's whoosh, one mechanical instant (non-spatial: you're
+      // at the machine; teammate-machinery presence is a later dial).
+      // Over ws the broadcast returns a beat late — accepted for v1.
+      if (msg.town === view.yourTown) {
+        sound("leverThunk");
+        sound("lobWhoosh");
+      }
     },
     spawnResting: (t) => shotsView.spawnResting(t),
     restoreFrosting: (coats) => frostingView.restore(coats),
@@ -209,6 +237,7 @@ async function main(): Promise<void> {
     upsertGhost: (p) => ghosts.upsert(p),
     removeGhost: (id) => ghosts.remove(id),
     flash,
+    sound,
     bindTown: (t) => {
       gs.bindTown(t);
       // The comic word (plans/15 item 13) speaks for YOUR machine only —
@@ -339,6 +368,16 @@ async function main(): Promise<void> {
     // should still fade politely).
     music.setMood(deriveMood(view.run.phase, view.order.status));
     music.step(dtMs);
+    // The sound table polls the same bus; the listener rides the camera
+    // (distance falloff — the ruled scalar, no PannerNode).
+    sfx.step();
+    sfx.setListener(camera.position.x, camera.position.y, camera.position.z);
+    // The tension metronome: one ratchet per click on YOUR machine —
+    // read off the same broadcast state the HUD words (non-spatial:
+    // the winch is the crew's shared clock).
+    const winch = myMachine(view).machine.tensionClicks;
+    if (winch > lastWinchClicks) sound("winchRatchet");
+    lastWinchClicks = winch;
 
     while (accumulator >= FIXED_DT) {
       tickCounter++;
@@ -410,8 +449,10 @@ async function main(): Promise<void> {
       // that executes (same comedy line the crosshair lever spoke).
       if (fEdge && manned === "gunner") {
         transport.send({ t: "lever" });
-        if (myMachine(view).machine.loaded === null)
+        if (myMachine(view).machine.loaded === null) {
           flash("dry release — the crank was for nothing", 2500);
+          sound("leverThunk"); // the mistake still CLUNKS (it executes)
+        }
       }
 
       // Gate fences first (they shape THIS tick's movement): your fort's
@@ -466,7 +507,7 @@ async function main(): Promise<void> {
 
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
-      shotsView.step(view.dessert, flash);
+      shotsView.step(view.dessert, fxPort);
 
       // THE RUN'S EDGES (plans/13): rung 1 deals the moment the countdown
       // holds — a baker readied in town 0's circle while ASSIGNED to town
@@ -628,6 +669,10 @@ async function main(): Promise<void> {
       getPatronBody: () => patronTable.body,
       getTableSpecies: () => patronTable.species,
       getEatBeat: () => patronTable.eatBeat,
+      getSfx: () => sfx.debug(),
+      getBus: () => ({ ...bus }),
+      setBus: (b: Partial<{ music: number; sfx: number; muted: boolean }>) =>
+        Object.assign(bus, b),
       getLineSnapshot: () => line.snapshot(),
       getNetStatus: () => view.netStatus,
       getMyId: () => view.myId,

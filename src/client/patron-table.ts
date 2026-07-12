@@ -24,6 +24,7 @@ import type { Judgment } from "../game/judgment";
 import { loadModel } from "./assets";
 import { lineSlots, tablePatron, TABLE_POS, TABLE_YAW } from "./cast";
 import { EatTheatre, eatAction } from "./eat-beat";
+import type { SfxFn } from "./sfx";
 import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
 import {
   ARRIVE_SPEED,
@@ -70,7 +71,13 @@ export class PatronTable {
    * callback (models resolve async; the world may have moved on). */
   private gen = 0;
 
-  constructor(private readonly scene: THREE.Scene) {}
+  constructor(
+    private readonly scene: THREE.Scene,
+    /** The FX port's sound half (slice 6) — handed to each EatTheatre
+     * so the chomp sting fires on the CHOMP edge. Optional: tests and
+     * assetless boots stay silent by construction. */
+    private readonly sound?: SfxFn,
+  ) {}
 
   /** The seam main.ts exposes (__game.getPatronBody). */
   get body(): PatronBody | null {
@@ -185,7 +192,9 @@ export class PatronTable {
         this.eat?.dispose(); // a straggler from the last beat (never in practice)
         const action = eatAction(verdict);
         // HUNGRY walks away mournful, the cake uneaten (the ruled split).
-        this.eat = action ? new EatTheatre(this.scene, tiers, action) : null;
+        this.eat = action
+          ? new EatTheatre(this.scene, tiers, action, this.sound)
+          : null;
       } else if (!verdict && this.arriving) {
         // Fresh deal: the arrival takes his seat whatever step he was
         // on. shownRung stays where the departure set it — the rung

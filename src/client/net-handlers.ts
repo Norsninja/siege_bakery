@@ -15,6 +15,7 @@ import type {
   ServerMsg,
   StuckTopping,
 } from "../game/protocol";
+import type { SfxKey, SfxPlayOptions } from "./sfx";
 import { freshTownMachine, type MatchView } from "./state";
 
 export type ShotMsg = Extract<ServerMsg, { t: "shot" }>;
@@ -61,6 +62,11 @@ export interface NetFx {
   upsertGhost(pose: PlayerPose): void;
   removeGhost(id: number): void;
   flash(msg: string, ms?: number): void;
+  /** Slice 6, optional: the sound half of the FX port. The patron's
+   * grumble-rumble rides his flash line here (ruling 2: the grumble
+   * ACCOMPANIES the text, never replaces it — the line is load-bearing
+   * comedy). Absent in tests: announcements into the void. */
+  sound?(key: SfxKey, opts?: SfxPlayOptions): void;
   /** MY town changed (welcome or an honored pick): re-target the scene's
    * interactables/highlights at TOWNS[town]'s rig and pantry. Assignment,
    * not position — the baker runs to the new fort on foot. */
@@ -175,6 +181,10 @@ export function applyServerMsg(
     case "patron":
       view.lastPatron = { text: msg.text, seq: msg.seq };
       fx.flash(`THE GIANT — ${msg.text}`, 6000);
+      // The grumble under the line (slice 6, ruling 2) — non-spatial for
+      // now: a 36 m giant's grumble fills the yard. Row silent until the
+      // visionary's file lands (the drop-in law).
+      fx.sound?.("grumbleRumble");
       break;
     case "run": {
       // The run container moved (plans/13). Voice the edges the crew
