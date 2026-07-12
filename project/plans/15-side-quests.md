@@ -489,3 +489,294 @@ relief landed same session: the dwarf now lazy-loads on the first
 remote ghost (solo boot never fetches it), but the wire weight
 itself is untouched. The budget law stays plans/16 §4's; this item
 is its claim line.
+
+## 15. THE LANDING VERDICT — green/red splat feedback — UNCLAIMED
+
+**Status: recorded 2026-07-12 (eighteenth session, visionary's eye
+pass + playtest notes). One ruling landed in the discussion; one
+recommendation stands pending his taste at build time.**
+
+The ask: gamify projectile contact. The splat exists (item 13's comic
+word + the impact FX); now it should carry a VERDICT — green when the
+shot lands on the cake, red when it lands off the cake or on the
+giant.
+
+RULED (visionary, 2026-07-12): **solids get their color verdict AT
+REST, frosting at impact** — the two-gate honesty law applied to
+juice. Frosting is impact-scored, so an impact-time verdict is
+truthful; a solid can land red and roll on (rare, but "the at-rest
+policy will save it"). Solids show a neutral impact splat, then the
+color cue fires where the census actually reads them.
+
+RULED (visionary, 2026-07-12, second discussion): **binary first**
+(green = on cake, red = off). Orders demand tiers, so
+green-but-wrong-tier can still read as a lie when the ask was TOP
+TIER — but zone-awareness can't fix the sibling case (right zone,
+requirement already full), so the CHECKLIST stays the truth surface
+and a third "right cake, wrong zone" color is a later door, opened
+only if playtests show confusion.
+
+Constraints binding the build: client-only juice, derived from the
+broadcasts every client already replays (impacts and settles carry
+positions; `DessertGeometry.isOnCake` is the oracle — geometry is an
+argument, per core/dessert.ts). The comic-word pairing law (item 13)
+extends: the word, the sound (plans/16 slice 6), and now the COLOR
+land as one announcement. On-giant = red needs item 16's capsule to
+exist before a giant hit is even a distinct event. This feature IS
+onboarding ("where did my shot land?" — plans/20 §6 claims the same
+family).
+
+## 16. THE GIANT COLLIDER + the shake-off — UNCLAIMED
+
+**Status: shape RULED 2026-07-12 (second discussion of the eighteenth
+session): PER-SPECIES AUTHORED COLLIDERS, gated on the deal
+boundary. The generic-capsule proposal is DEAD — the visionary's
+sighting-in-advance: a topping bouncing off a shape that doesn't
+match the body reads as a FORCEFIELD, and hitting the giant for fun
+is a feature, so the bounce must happen where the body visually is.**
+
+The ask: the patron at the table needs a collider so wild shots (and
+frosting) can hit HIM — followed by a shake-it-off animation and a
+patron-voice scold to put the frosting on the CAKE. Tone guard holds:
+annoyed, never hurt; the wild shot deserves the laugh.
+
+THE RULED SHAPE:
+- **Per-species colliders, authored in the patron workflow** — a
+  coarse primitive set (body/head/limb capsules, 3–6 shapes) authored
+  as named markers in each rig .blend and exported by script to a
+  CHECKED-IN DATA TABLE. core/ runs headless and cannot read GLBs
+  through three.js — the collider is DATA in code, never mesh. Coarse
+  is correct: comedy physics needs "the bounce lands on the body,"
+  not mesh accuracy. The road recipe (rig → diet → smoke) grows a
+  collider-authoring step.
+- **On/off rides the DEAL BOUNDARY, not a client signal.** The
+  authority correction (discussed and explained): the client can
+  never tell the sim anything about presentation — the sim must reach
+  the same answer on the server and every replica by itself. It
+  already can: species = castIndexForRung(rung) is pure math, and the
+  deal boundary is sim truth. Collider ON at the fresh deal (the
+  giant visibly stands at the mark all order), OFF at the verdict
+  (exactly when the walk theatre plays). Same lifecycle the dessert's
+  own per-deal colliders already ride. Residue: during the linger a
+  shot passes THROUGH the visibly departing giant — order's over,
+  nothing scores, he's leaving; accepted.
+- **Promotion pressure, named:** the sim needing rung→species pulls
+  castIndexForRung toward game/ (the mapping-home ruling said promote
+  with species orders). The slice may promote the mapping early, or
+  ship a minimal core-side species table and let the prize session
+  finish the move — claimer's call, both legal.
+- Frosting ON the giant is client juice (a temporary splat decal/blob
+  on the body), NEVER census — the cake's census is the only scoring
+  surface.
+
+Rider noted, not scoped: the scold line is the first PATRON VOICE in
+the game — it previews the species-voice work (the prize session) and
+should be written to survive it.
+
+## 17. THE LIGHTING PASS — sun, moon, shadows, town lighting — UNCLAIMED
+
+**Status: recorded 2026-07-12 (eighteenth session, visionary's eye
+pass). An aesthetics slice with a perf gate.**
+
+The ask: real environment lighting — a sun and moon, cast shadows,
+town lighting. The cost is FRAME TIME, not bytes: shadow maps over a
+500 m-far region with 40 m giants means cascade work, and plans/16
+§4's perf law (a party game holds 60) makes before/after measurement
+part of the slice, not a follow-up. The atmosphere rule (fourteenth
+session: near_/mid_ lit + fogged, far_/sky_ unlit + fog-exempt) is
+the standing contract any light rig must respect — far geometry wears
+BAKED haze and must not suddenly receive shadows.
+
+Sequencing note: item 19 (per-patron weather) wants night, mist, and
+mood — the weather design session INHERITS whatever rig this pass
+builds. Land a basic movable sun + shadows first; don't design the
+full mood system here.
+
+## 18. THE BAKERY, THE PANTRY, THE STALL — fleet build — UNCLAIMED
+
+**Status: ruled 2026-07-12 (eighteenth session): built by the BLENDER
+DESIGN FLEET — the research/18 loop (REGION STRUCTURE RULES + THE
+SCRIPT CONTRACT, scripts tracked in project/blender/region-scripts/)
+that shipped sixteen structures fifteen-for-fifteen.**
+
+The ask: construct the siege bakery itself from the reference images,
+plus the pantry (the ammo run's anchor) and the stall (the shop's
+body). Turnarounds are already on disk: project/blender/bakery/
+(front/top/back). A catapult turnaround also arrived
+(project/blender/catapult/, four angles) — that one belongs to the
+standing machine-dress culture (nose=+Y, drive nodes, dress()
+abort-to-greybox), recorded here so it isn't orphaned.
+
+Constraints binding the fleet run: the winding audit is LAW (Blender
+renders are not a winding oracle — BVH ray-parity before export; the
+watchtower door lesson); greybox fallback preserved (assetless boot);
+the diet pipeline (`npm run diet`) on anything textured; concept art
+of record is project/concept/. The bakery is the biggest prop yet but
+it is a BUILDING — no rig, no poses; the pantry and stall dress
+existing gameplay anchors.
+
+## 19. PER-PATRON WEATHER — OWN FOCUSED DESIGN SESSION (do not fold in)
+
+**Status: ruled 2026-07-12 (eighteenth session): this gets ITS OWN
+design session — deliberately NOT folded into the species-orders +
+voice session, and not built casually before it.**
+
+The shape (visionary): each patron brings environmental effects with
+him — the frost giant's snowfall, rain, night, mist, an ember dusk —
+the world changes because HE is at the table. The strongest form of
+the unified fiction: the line doesn't just stand in the world, it
+DRIVES the world.
+
+The boundary the session must rule FIRST: **cosmetic vs gameplay.**
+Cosmetic weather (particles, sky, fog tint, light mood) is
+client-derived from the same rung→species mapping as everything else
+— deterministic, zero protocol, zero core/. Gameplay weather (wind
+bending ballistics) crosses into core/ and touches the envelope every
+pinned coverage number was measured under — that is a SYSTEM, and
+wind is already an ownerless re-pin item in the standing ledger.
+Recommendation on record: cosmetic-only first pass; wind stays a
+named later door.
+
+Dependencies: item 17's light rig (night needs a moon); the
+atmosphere rule's name-prefix contract (baked far haze vs live
+weather must not fight); cast.ts stays the single mapping.
+
+## 20. THE WALK FEEL PASS — giants stride like giants — CLAIMED 2026-07-12 (eighteenth session, the eat-beat wrap)
+
+**Status: recorded 2026-07-12 (eighteenth session; Chronus's eat-beat
+wrap-up notes, physics-checked). A ONE-SESSION dials pass with the
+visionary's live eye — no slice, no design session. CLAIMED same
+session with item 21 (plans/21 build lane head).**
+
+The diagnosis: it's the CADENCE, more than the ground speed. Froude
+similarity says a 36 m biped strides ~once per 2 s at ~6 m/s; we ship
+a step every ~0.5 s (human scurry) and a 66 m/s departure (highway
+speed). The scurry is what reads as "small creature scaled up."
+
+Differentiated dials, each walk has its own deadline:
+- **Departure:** no deadline — drop to a true amble (~10 m/s reads
+  stately without taking a minute to reach the fog).
+- **Arrival:** bounded by the linger (fresh deal 18 s, departure
+  fires ~7.7 s → ~10 s of walk before the deal-edge snap teleports
+  him). A physically honest ~5 s walk fits with room to spare. NAMED
+  TENSION: the gap was shortened 66→50 because the arrival read
+  long; slowing the walk re-lengthens the moment. Bet on record: a
+  slow heavy arrival beats a short scurry — the eye rules at the
+  dials.
+- **Line advance:** 150 frames for 42 m — pure cosmetic lerp, can
+  stretch to ~300–360 frames freely.
+- **The bob:** 0.35 m on a 36 m body is 1% of height — invisible.
+  Slower phase, deeper bob (~0.8 m), more rock.
+
+CLEANUP RIDER, do it FIRST: the walk constants are duplicated between
+patron-table.ts and line.ts — unify in one home or we tune two copies
+forever.
+
+## 21. THE FRAME MOVE — the polaroid vs the eat beat — CLAIMED 2026-07-12 (eighteenth session, the eat-beat wrap)
+
+**Status: recorded 2026-07-12 (eighteenth session; Chronus's note +
+this session's code check). CLAIMED same session with item 20
+(plans/21 build lane head). The eat beat (shipped 4fd0533) made this
+urgent: the giant stands at +x — SCREEN RIGHT — and the whole eat
+theatre (arc, CHOMP, sparkle) plays in the upper right BEHIND the
+photo. Photo-then-eat wants your eyes in the same corner in the same
+seconds. We built the trailer shot and hung a photo over it.**
+
+The corner map: top-left = order checklist (#hud), bottom-left =
+gunner post panel, top-right = photo + mute.
+
+VERIFIED THIS SESSION (code, hud.ts hudLines): the corner checklist
+does NOT clear during the linger — checks rows render whenever the
+run phase is live. BUT the end-of-order banner already carries the
+checklist to name the culprit, so the corner copy is REDUNDANT
+exactly during the linger. Recommended shape: **collapse the corner
+checklist at the verdict edge** (the banner owns the culprit) **and
+move the photo to top-left** — a perfect timeshare of the corner.
+Fallback if the collapse is unwanted: bottom-left, accepting a rare
+overlap when someone mans the gunner post mid-linger.
+
+Laws that follow the move: item 3's column carve (the proclamation
+yields the photo its column) MIRRORS to the new side; the pending
+polaroid tween (plans/16 slice 7, big-center → corner) must land
+inside the law wherever the corner ends up. CLOSABLE: deferred,
+likely permanently — pointer-lock means closable = another key to
+teach for an 18-second frame; the move alone probably dissolves the
+itch.
+
+## 22. PATRON MOTION — fidgets, gait, and the leg question — DESIGN DISCUSSION BEFORE TIER (c)
+
+**Status: recorded 2026-07-12 (eighteenth session: visionary's
+variety note + Chronus's rig facts). Three tiers, cheapest first;
+tier (c) needs a design discussion before boning (the dragon
+precedent).**
+
+The load-bearing fact: the ogre-recipe rigs are ~10 bones, NO LEG
+BONES — legs are mesh only. A real walk cycle is not an animation
+task, it is RIG SURGERY × 6 biped species (hips/thighs, dot-free
+names, weights, re-diet, re-smoke) plus a shared gait driver.
+
+- **Tier (a) — fidgets + species pose tables (existing bones,
+  cheap, anytime):** idle gestures seeded off the queue-index
+  individuality (the breath-desync culture — a giant keeps his
+  habits as he advances, every client computes the same fidget at
+  the same moment). SPECIES_POSES already carries per-species
+  verdict variants; more rows = more variety, table-driven like the
+  music playlist. The cyclops checks his spotting gear; the treefolk
+  sways; the queen has queenlier angles (standing eye note).
+- **Tier (b) — the gait AUDITION (existing bones):** arm-swing +
+  spine counter-twist at stride cadence. Counter-phase arm swing is
+  disproportionately convincing — it may carry to friend-test
+  standard for the cost of a patron-body rider. Whether it lands on
+  the right side of "good enough" is an audition question (Blender
+  render, the visionary's eye), not an argument.
+- **Tier (c) — leg rigs + gait driver (the real slice):** only if
+  (b) auditions short. Design-discuss before boning.
+
+THE SLICE OWNS TWO ORPHANS: the walk-bob sync sibling (all advancing
+giants bob in step — a gait question, now homed) and **STEP EVENTS**
+— the gait driver knows the exact frame each foot plants. Step
+events are the hook item 23 consumes; they exist from tier (b)
+onward (stride cadence is the clock, legs or no legs).
+
+## 23. THE EARTH SHAKES — booming steps, camera shake, the bop — UNCLAIMED, gated on item 22
+
+**Status: recorded 2026-07-12 (eighteenth session). The bop is RULED
+FAIR (visionary): giants move during the linger, and being rattled
+because a giant stomped past you is the world — "environment and
+hazards off the job of being a siege baker." Build order is LAW:
+nothing here keys off the current fake bob — everything consumes
+item 22's step events, or we wire it twice.**
+
+Three organs, one footstep clock:
+- **The mixing law (SFX, slice 6 rows):** the line advance is ONE
+  designed sound — a composite earth-rumble for the whole queue; the
+  fiction supports it (the ground complains once), and ten
+  independent booms are mud. Individual step booms only for the NEAR
+  FIELD (table patron + nearest line actor) with distance rolloff;
+  standees and impostors are silent scenery. The per-giant stride
+  desync (item 22's sibling, the breath-desync culture) makes near
+  steps interleave instead of stomping in unison.
+- **Camera shake:** client juice off locally-known footfalls,
+  distance falloff (a far-line shuffle murmurs; a 38 m queen walking
+  past is an event). Needs an intensity/off toggle — the classic
+  motion-sickness item; plans/20 §5 owns the knob.
+- **The bop:** a small local impulse on YOUR OWN baker from nearby
+  footfalls — each client is authoritative over its own baker, so
+  this is client-only, no protocol, no core/ change. Small hops,
+  never control theft (the tone guard applies to game feel). Radius
+  tight: near the table or the road.
+
+## 24. NPC HELPER GIANTS — shape noted, unruled — AWAITS DESIGN ATTENTION
+
+**Status: shape recorded 2026-07-12 (eighteenth session, visionary's
+aside in the bop ruling). No action; recorded so it isn't lost.**
+
+The shape: NPC giants helping move the cakes from the bakery to the
+serving mark — ambient world-labor that would make item 23's bopping
+an IN-GAME hazard, not just linger comedy. It answers a standing
+fiction question nobody asked out loud (how does a 5 m cake get to
+the mark?) and could give the redeal reset a second fiction beside
+the eat beat's. Belongs to a world-life / fiction design session —
+natural neighbor of item 19 (weather) or the species session;
+whichever seats it first should also decide whether the eat beat's
+later "cake LIFT dress pass" (plans/16 slice 7) is the same machinery.

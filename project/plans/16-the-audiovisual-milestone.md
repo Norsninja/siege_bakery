@@ -341,12 +341,15 @@ land → linger flows on. Nothing new — this slice SEQUENCES slices
 2 + 6 + the toast into a single readable moment and tunes the
 timings inside the existing 18s.
 
-PLUS THE POLAROID BEAT (visionary, 2026-07-09): the report snapshot
-appears BIG AND CENTER first (the moment — everyone looks), lingers
-a beat, then tweens up to its corner (the record — filed away). The
-frame's FINAL position must land where item 3's column law already
-holds (the banner yields the photo its column) — the tween ends
-inside the law, it does not renegotiate it.
+PLUS THE POLAROID BEAT (visionary, 2026-07-09; BUILT 2026-07-12,
+eighteenth session, riding plans/15 item 21's frame move): the report
+snapshot appears BIG AND CENTER first (the moment — everyone looks),
+lingers a beat (~1.8 s, MOMENT_TICKS in report-view.ts — the BANNER
+WAITS for the filing), then tweens to its corner (the record — filed
+away; the corner is TOP-LEFT since the frame move). The frame's FINAL
+position lands where item 3's column law holds (mirrored left) — the
+tween ends inside the law, it does not renegotiate it. Cross-law pin:
+the photo files before the eat starts.
 
 PLUS THE EAT BEAT (visionary rulings 2026-07-12, seventeenth
 session; BUILT 2026-07-12, eighteenth session — eat-beat.ts +
