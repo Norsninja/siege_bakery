@@ -13,10 +13,18 @@
  * PatronBody) — the script HARD-FAILS if the set changes. Authoring
  * sources keep full resolution (.blends, meshy account); this touches
  * only the shipping copy. Hand-road GLBs (flat colors, no textures)
- * pass through unchanged — running it on them is a harmless no-op.
+ * pass through the texture steps unchanged.
+ *
+ * DRACO ADOPTED (ruled 2026-07-12, the weight session): the diet ends
+ * with mesh compression — post-diet giants were ~70% geometry, and
+ * draco cut the fleet 24 → 8.5 MB with names/skins byte-identical.
+ * assets.ts carries the decoder (public/draco/); re-running the diet
+ * on an already-draco'd GLB is legal (the IO registers the decoder).
  */
 import { NodeIO } from "@gltf-transform/core";
-import { textureCompress, prune } from "@gltf-transform/functions";
+import { KHRONOS_EXTENSIONS } from "@gltf-transform/extensions";
+import { textureCompress, prune, draco } from "@gltf-transform/functions";
+import draco3d from "draco3dgltf";
 import sharp from "sharp";
 
 const name = process.argv[2];
@@ -26,7 +34,12 @@ if (!name) {
 }
 const path = `public/models/${name}.glb`;
 
-const io = new NodeIO();
+const io = new NodeIO()
+  .registerExtensions(KHRONOS_EXTENSIONS)
+  .registerDependencies({
+    "draco3d.encoder": await draco3d.createEncoderModule(),
+    "draco3d.decoder": await draco3d.createDecoderModule(),
+  });
 const doc = await io.read(path);
 const root = doc.getRoot();
 const before = (await import("node:fs")).statSync(path).size;
@@ -66,6 +79,7 @@ await doc.transform(
     resize: [512, 512],
     slots: /metallicRoughness/i,
   }),
+  draco(), // the mesh half of the diet (ruled 2026-07-12)
 );
 
 const namesAfter = JSON.stringify(root.listNodes().map((n) => n.getName()).sort());

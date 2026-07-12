@@ -19,8 +19,26 @@
  */
 import type * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 
 const cache = new Map<string, Promise<THREE.Group | null>>();
+
+/** ONE loader, lazily built (DRACO ADOPTED, ruled 2026-07-12 — the
+ * weight session: models 24 → 8.5 MB, names/skins verified identical).
+ * The decoder ships self-hosted in public/draco/ (wasm + wrapper; no
+ * JS fallback — a wasm-less browser just boots assetless, the
+ * fallback law's normal Tuesday). Workers/wasm spin up once, shared
+ * by every model. */
+let loader: GLTFLoader | null = null;
+const getLoader = (): GLTFLoader => {
+  if (!loader) {
+    loader = new GLTFLoader();
+    const draco = new DRACOLoader();
+    draco.setDecoderPath("/draco/");
+    loader.setDRACOLoader(draco);
+  }
+  return loader;
+};
 
 /** Load `public/models/<name>.glb` — null when headless, missing, or
  * broken (the fallback law: the caller's primitive carries on null). */
@@ -32,7 +50,7 @@ export function loadModel(name: string): Promise<THREE.Group | null> {
     // headless legs play the whole game on primitives.
     if (typeof document === "undefined") return null;
     try {
-      const gltf = await new GLTFLoader().loadAsync(`/models/${name}.glb`);
+      const gltf = await getLoader().loadAsync(`/models/${name}.glb`);
       return gltf.scene;
     } catch {
       // eslint-disable-next-line no-console
