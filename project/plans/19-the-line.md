@@ -154,6 +154,18 @@ patron reaches the table as the next order deals.
   HOLE, unruled: giants_far.glb has no far_giant_cyclops impostor —
   far-tier cyclops slots render empty until one is authored (the
   visionary's open giants-far.blend may already be this).
+- 2026-07-12 (seventeenth session): THE CLOUD GIANT JOINS — the queen
+  in the cloud-hemmed gown (whipped-meringue updo; the cast's first
+  lady), same headless road: 34.7k tris, 38 m ruling (above ogre 36,
+  below treefolk 40), roughness 0.354→0.709, her OWN joint layout
+  (arms hang nearly vertical: neck pinch z≈28.5, shoulders z≈26,
+  hands x≈5.4 z≈10.9 — the x-decile armline split into sleeve-flare
+  vs hand clusters and was read accordingly). Delighted audition:
+  gown holds, arms open in welcome — no skirt weight-bleed worth a
+  species pose table yet (eye pass may still want queenlier angles).
+  cloudgiant.glb 20.67→2.46 MB (lightest giant). CAST_SEED re-rolled
+  0xbab36f: all SIX species inside the first seven rungs. FireGiant
+  expected next — same road, same one CAST line.
 - 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
   whole cast heaved as one metronome (every PatronBody booted phase 0
   at one fixed rate). PatronBody gains an `individuality` seed (the

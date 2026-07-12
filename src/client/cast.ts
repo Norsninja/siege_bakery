@@ -33,6 +33,7 @@ export const CAST: readonly CastMember[] = [
   { species: "treefolk", visualScale: 1 },
   { species: "dragon", visualScale: 1 },
   { species: "cyclops", visualScale: 1 }, // 33 m (seventeenth session) — the artillery spotter
+  { species: "cloudgiant", visualScale: 1 }, // 38 m (seventeenth session) — the queen in the cloud-hemmed gown
 ];
 
 /** Fixed seed for the cast shuffle — change it and every client's
@@ -41,7 +42,7 @@ export const CAST: readonly CastMember[] = [
  * first output is visibly correlated across nearby seeds (found live
  * 2026-07-12 — the "shuffle" alternated two species for eight rungs
  * straight). */
-const CAST_SEED = 0xbab306; // re-rolled as the cyclops joined (CAST.length reshuffles every draw; each roster change re-scans for an opening that reads shuffled — this one deals all five species in the first five rungs)
+const CAST_SEED = 0xbab36f; // re-rolled as the cloud giant joined (CAST.length reshuffles every draw; each roster change re-scans for an opening that reads shuffled — this one deals all six species inside the first seven rungs)
 const rungDraw = (rung: number): number => {
   const rng = mulberry32(CAST_SEED ^ Math.imul(rung, 2654435761));
   rng(); // burn-in — decorrelates neighboring rungs
