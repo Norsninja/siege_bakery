@@ -88,6 +88,32 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE FIFTEENTH SESSION (2026-07-11 pm): THREE FLEETS POPULATE THE
+REGION — three commits ending 127ed14, all pushed, 415 tests,
+region.glb 2.12 MB. THE FLEET LOOP proven and scaled (research/18
+REGION STRUCTURE RULES + THE SCRIPT CONTRACT): sixteen structures by
+dispatched Sonnet agents (mills, orchards, pines, wheat fields with
+the ruled gold rows #C98A2B/#D8B878, milestones, watchtower,
+bakehouse, well, the giant rest stop — bench/table-with-bun/lantern),
+fifteen-for-fifteen on first live run, zero rework; scripts = tracked
+provenance in project/blender/region-scripts/. THE WINDING AUDIT: a
+fleet agent cross-reading precedents caught the shipped watchtower
+door's LEFT-HANDED tapered_box (all faces inverted; EEVEE double-
+sided preview hid it, three.js would cull) — LAW: Blender renders are
+not a winding oracle, audit normals programmatically (BVH ray-parity;
+recalc-diff over-flags authored undersides). Visionary played the
+populated world: "it's looking fantastic." Dessert design landed:
+the playable cake is DATA (DessertSpec tiers) → FLAVORS material
+table + procedural drip rim, flavor derived deterministically from
+broadcast state (fixed-per-rung recommended, RULING PENDING); meshy
+= ambiance props only (research/19 image-run specs: matte prompt,
+no text, budget ~4-6 props before the audio diet). NEW PATRONS
+ARRIVED untracked in project/blender/: FrostGiant.blend /
+Dragon.blend / TreeFolk.blend (raw meshy, 26-30 MB) + turnaround
+folders — next session: review, then meshy road + diet + rigs (ogre
+recipe: ~10 bones no legs, dot-free names, offsets-from-rest; DRAGON
+HARDEST — design-discuss the rig before boning), then slice 3 THE
+LINE on the giants' road (built for it). Prior s14 canon holds below.
 THE FOURTEENTH SESSION (2026-07-11): THE FRIEND TEST PASSES + THE
 REGION RISES — four commits ending 81fb845, all pushed, 415 tests,
 both tsc legs, dist 21 MB. THE SUCCESS LINE PASSED: visionary hosted
