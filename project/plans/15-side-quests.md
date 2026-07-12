@@ -462,6 +462,24 @@ MP3s at ~2.9 MB each. No build yet; recorded so the slice is claimed
 deliberately, BEFORE the cast grows (slice 3's line and the machine
 model are both incoming weight).**
 
+**THE WEIGHT SESSION 2026-07-12 (nineteenth session — THE PATH entry
+3): the menu is CLOSED. (c) DRACO ADOPTED (de6c391): post-diet giants
+measured ~70% geometry, so mesh compression was the lever — models
+23.9 → 8.5 MB, region 2.12 → 0.10; node/bone names + skins verified
+byte-identical BEFORE adoption; decoder self-hosted public/draco/
+(245 KB, no JS fallback — wasm-less boots assetless); draco() is now
+the diet's closing pass and assets.ts carries one shared DRACOLoader.
+Live-smoked: six rigs bind with root bones AT their slots. (b) KTX2
+DEFERRED, ruled with the why: textures already small JPEG, ~2-3 MB of
+wire for a transcoder dependency; its real win is GPU memory — not
+today's pain; revisit if texture-heavy props multiply. (d) AUDIO:
+192 kbps STAYS (visionary's ear on 128k/96k candidates — the 96k
+cymbals fizz); the LOUDNESS RULING rode along (627fa6c): music was
+drowning the game — BG_VOLUME is now the 0.4 CEILING, the bus rests
+the dial at half (~20% effective), pinned. Fresh dist 23.61 MB —
+UNDER the alarm; the release gate (plans/20 §8 organs, 9ad4f95)
+holds the line from here.**
+
 **FIRST SERVING 2026-07-11 (fourteenth session, after the friend test
 measured 15–30 s loads): menu item (a) built as a PIPELINE STEP, not
 per-asset surgery — `npm run diet -- <name>` (scripts/model-diet.mjs,

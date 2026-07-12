@@ -41,7 +41,10 @@ Why first: it completes and protects the spectacle that JUST shipped
 — the eat beat currently plays behind the photo at scurry cadence.
 Cheapest session on the board, largest immediate read improvement.
 
-**2. SOUND — plans/16 slice 6**: the SFX table + the VOLUME BUS
+**2. ~~SOUND — plans/16 slice 6~~ DONE 2026-07-12 (nineteenth
+session, 397300d — design walked same session; sting keys speak game
+language, the visionary's own rule applied harder)**: the SFX table +
+the VOLUME BUS
 (plans/20 §5 sequencing rule — built here, never retrofitted). Rows:
 winch ratchet, lever THUNK, whoosh, SPLAT (hooked exactly at the
 item-13 comic words — the word, the sound, one announcement),
@@ -50,8 +53,13 @@ EXPLICITLY DEFERRED from this slice: step booms — item 23's mixing
 law consumes item 22's step events; wiring them off the fake bob is
 forbidden (wire-it-twice law).
 
-**3. THE WEIGHT — plans/15 item 14 menu (d) + the Draco/KTX2
-ruling**: audio bitrate with the visionary's ear on his own
+**3. ~~THE WEIGHT — plans/15 item 14 menu (d) + the Draco/KTX2
+ruling~~ DONE 2026-07-12 (nineteenth session, same sitting as entry
+2: draco adopted de6c391 — models 24 → 8.5 MB, rigs verified; KTX2
+deferred with the why recorded; 192 kbps STAYS, the 96k fizz ruled it
+— the loudness ruling rode along, music rests ~20% ceilinged at 40;
+release gate 9ad4f95 — fresh dist 23.61 MB, UNDER the alarm)**: audio
+bitrate with the visionary's ear on his own
 compositions, the mesh/texture compression decision, a FRESH dist
 build. RIDER PULLED FORWARD from plans/20 §8: the release script's
 first organs (size report + diet verification + untracked-asset
