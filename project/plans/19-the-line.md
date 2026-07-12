@@ -138,6 +138,22 @@ patron reaches the table as the next order deals.
   have reshuffled the moment the cast grows — Cyclops looms).
   LINE_SLOT0_X 66→50 (the table gap read "a little far"); arrival
   walk shortens ~2.4 s → ~1.5 s.
+- 2026-07-12 (seventeenth session): THE CYCLOPS JOINS — the artillery
+  spotter (RANGE DATA clipboard, reticle apron) walked the meshy road
+  headless (Steam Blender 5.1 CLI — the live instance held the
+  visionary's dirty giants-far.blend and was left untouched): 39.6k
+  tris no decimation, origin to feet, 33 m ruling (between frost 30
+  and ogre 36; retunable), roughness lift 0.537→0.792, frostgiant-
+  recipe rig (same 10 dot-free joints; joints from numpy measurements,
+  beard mass confirmed front=−Y), delighted-pose audition clean.
+  cyclops.glb 24.95→3.55 MB dieted; cyclops-rig.blend tracked. CAST
+  grew its one line; CAST_SEED re-rolled 0xbab306 (roster change
+  reshuffles every draw — scan standard: no abab in 30, opening deals
+  ALL FIVE species in the first five rungs). Live seam smoke: loads,
+  10 bones arrive, PatronBody breathes the chest, height exactly 33.
+  HOLE, unruled: giants_far.glb has no far_giant_cyclops impostor —
+  far-tier cyclops slots render empty until one is authored (the
+  visionary's open giants-far.blend may already be this).
 - 2026-07-12 (seventeenth session, eye note): THE BREATH DESYNC — the
   whole cast heaved as one metronome (every PatronBody booted phase 0
   at one fixed rate). PatronBody gains an `individuality` seed (the
