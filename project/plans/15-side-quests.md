@@ -508,11 +508,26 @@ remote ghost (solo boot never fetches it), but the wire weight
 itself is untouched. The budget law stays plans/16 §4's; this item
 is its claim line.
 
-## 15. THE LANDING VERDICT — green/red splat feedback — UNCLAIMED
+## 15. THE LANDING VERDICT — green/red splat feedback — BUILT
 
-**Status: recorded 2026-07-12 (eighteenth session, visionary's eye
-pass + playtest notes). One ruling landed in the discussion; one
-recommendation stands pending his taste at build time.**
+**Status: BUILT 2026-07-12 (twentieth session, entry 4 with item 16).
+THE RINGS RECOLOR RULED (visionary, same day): color is the VERDICT
+channel everywhere — green = on the cake, red = off it — and landing
+energy keeps the channels it already owned, word choice and ring size
+(before this, ring color spoke energy: red = splat, green = gentle).
+The two-gate split shipped as ruled: paint verdicts AT IMPACT — the
+oracle is the local field's painted-sample count (frosting-view
+returns it; the exact truth the Room's `painted > 0` reads — isOnCake
+would lie red on an honest wall splat), stale globs wear red (they
+scored nothing); solids ring NEUTRAL at impact and take their color
+AT REST via isOnCake, the ring repositioning to the rest spot — and
+only while it still belongs to that lob (bodyHandle rides the
+marker). Grains stay quiet at every layer (a Settled.grain flag joined
+core for this). Live-smoked all four paths, including a cherry that
+bonked off the ogre and rolled red, and a mid-air two-lob kiss whose
+red was honest. A knocked solid re-settles silently and keeps its
+landing's verdict — the ring is the LANDING record; the checklist
+stays the truth surface.**
 
 The ask: gamify projectile contact. The splat exists (item 13's comic
 word + the impact FX); now it should carry a VERDICT — green when the
@@ -544,14 +559,38 @@ exist before a giant hit is even a distinct event. This feature IS
 onboarding ("where did my shot land?" — plans/20 §6 claims the same
 family).
 
-## 16. THE GIANT COLLIDER + the shake-off — UNCLAIMED
+## 16. THE GIANT COLLIDER + the shake-off — BUILT (ogre; six species = fleet lane)
 
-**Status: shape RULED 2026-07-12 (second discussion of the eighteenth
-session): PER-SPECIES AUTHORED COLLIDERS, gated on the deal
-boundary. The generic-capsule proposal is DEAD — the visionary's
-sighting-in-advance: a topping bouncing off a shape that doesn't
-match the body reads as a FORCEFIELD, and hitting the giant for fun
-is a feature, so the bounce must happen where the body visually is.**
+**Status: BUILT 2026-07-12 (twentieth session, entry 4 with item 15).
+THE CLAIMER'S-CALL LINE IS CLOSED: the mapping promoted to game/cast.ts
+NOW (both terminals concurring — a minimal core-side duplicate beside
+the client's copy is exactly the two-sources-drift the determinism
+laws kill; the prize session inherits a finished foundation).
+core/patron-collider.ts is plans/21 §0's first named exception made
+real: capsule DATA + PatronColliderRig, reconciled EVERY TICK in BOTH
+worlds against game/cast's patronAtMark(phase, rung, verdictPending) —
+poll, never edges, so late joiners and every lifecycle seam fall out
+free. INTERIM LOBBY RULE (ruled with the pair): the mark stands rung
+1's patron through lobby/countdown — warmup lobbing at a visible ogre
+must bounce; item 25's training lobby RAZES this branch (cross-note
+there). Known accepted residues: the linger's walk theatre plays with
+capsules down (ruled); ~one-round-trip flip races (the dessert swap's
+own class); post-loss lobby visibly holds the next-up species while
+both worlds agree on rung 1's shape. Impact.otherHandle joined core
+(the pair's other collider handle — handle-set interpretation beat
+the analytic oracle: ankle ricochets misread). GROUP_PATRON joined
+the collision groups (shots + grains bounce; bakers never entangle —
+item 23's bop owns proximity feel). THE ROAD RECIPE GREW ITS STEP:
+col_* marker empties in each rig .blend, exported by
+project/blender/collider-scripts/export-patron-colliders.py at RULED
+height (--scale = the client visualScale; the ogre trap: rig ships
+21 m, renders 36). Ogre authored + exported + live-smoked (BONK! word,
+patronBonk synth row, shake-off flinch on the real rig, the scold
+flash, paint dabs riding the body group). SIX SPECIES AWAIT MARKERS —
+fleet-dispatchable against the ogre precedent + the export script.
+The scold table (patron-table.ts SCOLD_LINES) is the first patron
+voice, keyed by game/cast's species strings so the prize session
+extends it, never replaces it.**
 
 The ask: the patron at the table needs a collider so wild shots (and
 frosting) can hit HIM — followed by a shake-it-off animation and a
@@ -853,3 +892,52 @@ lobby-rings behavior and the memory smoke recipes retarget to the
 practice cake. The target→cake swap at run start ships PLAIN; its
 dress (item 24's helper giants carrying the target off and the cake
 in) is a later pass and the fiction's natural closing loop.
+
+CROSS-NOTE FROM ENTRY 4 (2026-07-12, twentieth session): item 16
+shipped an INTERIM lobby-collider rule — game/cast.ts's patronAtMark
+stands rung 1's patron at the mark through lobby/countdown, because
+until this item builds, the lobby's visible ogre must bounce warmup
+shots. This item RAZES that branch with the lobby giant: the deletion
+is patronAtMark's final `return speciesForRung(1)` lines (isolated
+there on purpose — one place, one line), replaced by whatever this
+item's empty-table truth is; the practice cake's own collider takes
+the lobby's physics from there.
+
+## 26. THE CLOCK RELIEF — the solo clock is tuned past human — FIX SOON
+
+**Status: recorded 2026-07-12 (eighteenth session, visionary's
+playtest: going as fast as he can, he cannot meet rung 1's
+threshold). URGENT — the tutorial rung fails its own job. Fix rides
+the next build session or stands alone; it touches game/ (balance,
+not presentation — legal under the milestone law) and re-pins tests.**
+
+THE STRUCTURAL FINDING: the order clock is CREW-BLIND. parShots
+scales solo/duo and pay stamps order.hands, but clockSeconds is the
+same for one baker as for four — solo workload is ~2× per second on
+the same clock. Rung 1 math: solo par 11 shots × a full solo ferry
+cycle ≈ 140+ s of flawless play against 150 s. The designer's
+playtest is the first real measurement of the row.
+
+The fix menu, discussed (visionary's floor proposal: +5 s, possibly
+across the board):
+- **(a) RECOMMENDED — hands-aware clock AT THE DEAL:** the deal
+  already stamps order.hands (the lone-hero pricing seam); apply a
+  solo clock factor where the order deals, so the RUNGS rows stay
+  VERBATIM — rung 3's anchor law ("never rebalanced from here")
+  survives untouched, both replicas derive the factor from broadcast
+  state, one constant, deterministic.
+- **(b) RECOMMENDED WITH (a) — rung 1 tutorial generosity:** if the
+  DESIGNER misses by ~5 s, a first-time stranger misses by 30+.
+  Rung 1's standard is "a fumbling first-timer feeds the ogre while
+  learning the winch" — real slack (180 s territory, or a lower
+  frost ask), not a shave. Pressure is rung 2+'s job.
+- **(c) the measurement rider:** a headless study script computes
+  PERFECT-PLAY minimum time per rung (cycle math × par shots, solo
+  and duo); clocks become perfect × comfort factor — derived like
+  the envelope numbers, tuned by playtest as ONE dial. The re-pin
+  law's spirit applied to time.
+
+Caution on record: the friend test played DUO under current clocks
+and "it's fun" — relieve solo hard and rung 1 especially; touch
+multi-crew timing only if playtests ask. A flat +5 across the board
+is the bluntest option and quietly edits the anchor row.

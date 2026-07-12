@@ -66,13 +66,33 @@ first organs (size report + diet verification + untracked-asset
 scan) get built IN this session — the weight work produces them
 naturally, and the stale-dist trap already fired once.
 
-**4. THE FEEDBACK PAIR — plans/15 items 15 + 16 together**: the
-landing verdict (binary, ruled) and the giant collider
+**3.5 — URGENT INSERTION 2026-07-12: THE CLOCK RELIEF — plans/15
+item 26**: the solo clock is tuned past human (the visionary at
+full sprint cannot clear rung 1). Hands-aware clock factor at the
+deal (rows verbatim, anchor intact) + rung 1 tutorial generosity;
+the perfect-play time study derives the numbers. Small enough to
+ride entry 4's session as its opening act or stand alone — but it
+lands BEFORE any further playtesting rounds, because every playtest
+until then measures a broken floor.
+
+**4. ~~THE FEEDBACK PAIR — plans/15 items 15 + 16 together~~ DONE
+2026-07-12 (twentieth session: the rings recolor got the visionary's
+explicit yes and shipped — color = verdict everywhere, energy keeps
+word + size; the mapping promoted to game/cast.ts; the collider
+reconciles per tick in BOTH worlds off patronAtMark; the ogre's
+capsules authored via col_* markers + the export script; BONK/
+shake-off/scold/dabs live-smoked; items 15 + 16 carry the record)**:
+the landing verdict (binary, ruled) and the giant collider
 (per-species authored shapes, deal-boundary gating). One family:
 red-on-giant needs the capsule to be a distinct event, and both
 land on the same impact seams. The collider's species table is the
 path's first game/-ward promotion pressure — minimal core table now,
 the prize session finishes the move.
+AMENDED 2026-07-12 (framing review): the mapping promotes to game/
+IN this slice (the two-tables alternative is worse residue — drift);
+the lobby collider extension is INTERIM until entry 5 removes the
+lobby giant; the RINGS RECOLOR (color = verdict channel everywhere,
+energy keeps word + size) awaits the visionary's explicit yes.
 
 **5. THE TRAINING LOBBY + THE OPENING PARADE — plans/15 item 25**:
 no lobby cake — the practice-cake target (run-boundary collider),
@@ -105,6 +125,14 @@ design lane's rulings will have changed the board.
 
 ## 2. THE FLEET LANE (dispatchable now, any order)
 
+- **SIX SPECIES' COLLIDER MARKERS** (item 16, opened by entry 4) —
+  col_* empties into each rig .blend against the ogre precedent
+  (author-ogre-colliders.py) + export via collider-scripts/
+  export-patron-colliders.py (--scale = the species' client
+  visualScale; all six ship at ruled height → --scale 1); rows paste
+  into core/patron-collider.ts and the table pins audit them. Coarse
+  comedy: 3–6 capsules, torso radii EXCLUDE spread arms/wings.
+  Dragon is the odd body (seated, neck arc) — capsule the seated mass.
 - **The bakery + pantry + stall** (item 18) — turnarounds on disk,
   research/18 contract, winding audit law.
 - **The catapult dress** (item 18's recorded orphan) — machine-dress
@@ -123,9 +151,11 @@ design lane's rulings will have changed the board.
 
 ## 3. THE DESIGN LANE (the visionary's calendar, any order)
 
-- **THE PRIZE: species-themed orders + patron voice** — promotes the
-  cast mapping to game/ (finishing what the collider started), own
-  session, the biggest content unlock on the board.
+- **THE PRIZE: species-themed orders + patron voice** — own session,
+  the biggest content unlock on the board. (The cast mapping already
+  lives in game/cast.ts — entry 4 promoted it whole; this session
+  builds content on the finished foundation and extends the first
+  patron voice, patron-table.ts's SCOLD_LINES.)
 - **WEATHER** (item 19) — own focused session, ruled; rules the
   cosmetic/gameplay boundary first; inherits the lighting rig.
 - **THE GAIT RULING** (item 22 tier c) — ONLY if the tier-(b)
