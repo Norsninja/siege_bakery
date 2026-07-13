@@ -286,27 +286,58 @@ system does not depend on precise duo numbers.
   priced by §7.
 - The realm's-favor curve (how much mood moves coins).
 - Per-order-serve confirmation (§2.7) — recommended, to be blessed.
-- Whether the flourish's reveal trigger / bonus value change under the
-  whole-order home (§2.9).
+- ~~Whether the flourish's reveal trigger / bonus value change under the
+  whole-order home (§2.9).~~ RULED 2026-07-13 (twenty-fifth session):
+  BOTH HELD. The reveal fires at 2★ coverage (patron.ts rule 3) and the
+  bonus stays `FLOURISH_BONUS_COINS = 10`. Note: under the whole-order
+  home `revealed` is PURELY presentational — `stampFlourish` gates the
+  coda on physical truth (cherry on the summit at an accepted conclusion,
+  whenever thrown), never on the reveal — so the trigger is a pacing
+  choice ("when does the Giant voice his desire"), not an eligibility
+  gate.
 
 ---
 
-## 9. Build sequence (once the plan is blessed)
+## 9. Build sequence (RE-SEQUENCED in the build, 2026-07-13)
 
-1. **The measurements (§7)** — data first.
-2. **The scoring flip** — absolute coverage; Gate-1-at-the-buzzer;
-   remove `evaluateOrder`'s auto-conclude. Pins re-cut.
-3. **Earned time** — fresh-coverage → clock, capped. The reliable clock
-   lands here (patience stops draining).
-4. **The realm's favor** — patience → payout; `judge()` gains the axis;
-   the noun lands in the HUD.
-5. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
-   banking. Finish-window deleted; flourish rehomed.
-6. **Re-derive the clocks** — from the reliable clock + earned-time (the
-   0.72 derating retires; item-26 rung-2 folds in).
+**This supersedes the original 6-step draft.** The twenty-third session's
+build planning split the "scoring flip" into a safety refactor + the flip
++ the coverage change (so the behavioural cut lands on a proven-behaviour-
+preserving base), and pushed earned-time / serve / realm's-favor to the
+back (the flip is the load-bearing change; the rest builds on a stable
+conclusion path). Eight steps now, matching the commit history and the
+handoff vocabulary:
 
-Each step is a session-sized slice; the tick-ordering audit (§4) rides
-step 2.
+1. **The measurements (§7)** — data first. DONE (research/21).
+2. **The conclusion-path refactor** — extract the shared conclusion tail
+   (stampFlourish → lingerVerdict, endedWon, ending broadcast, awardPay)
+   from the two sites into one `concludeOrder`. Behaviour-preserving; the
+   tick-ordering audit (§4) rides here. DONE (8bc3c80).
+3. **The conclusion flip** — `evaluateOrder` check-only; the auto-conclude
+   branch deleted; `concludeOrder` owns the status flip; conclusion fires
+   only at the buzzer. The finish window goes inert. DONE (9b99f58).
+4. **Absolute coverage** — the of-potential denominator retired; frost
+   floor + star tiers graded absolute against the whole cake; per-rung
+   tiers on the RUNGS row. DONE (3355ff7).
+5. **Delete the finish-window + rehome the flourish** — the inert
+   machinery removed (`finishTicksLeft`, openFinishWindow/closeFinishWindow,
+   concludeFinishWindow, FINISH_WINDOW_TICKS, the `finishOver` event,
+   pendingVerdict, and the client's `FINISH IT!` banner + finishTicksLeft
+   prediction). The flourish already lives at the buzzer (stampFlourish);
+   the reveal trigger (2★) and bonus value (10) are HELD (§8, ruled
+   2026-07-13). Pure deletion — no behavioural change. NEXT.
+6. **Earned time + re-derive the clocks** — fresh-coverage → clock, capped.
+   The reliable clock lands here (patience stops draining the clock). The
+   base clocks re-derive from the reliable clock + earned-time (the 0.72
+   derating retires; the item-26 rung-2 over-relief folds in). Solo's
+   coverage relief (§2.8) gets its real calibration here. The heaviest
+   remaining slice; needs the rate/cap/base-clock rulings (§8).
+7. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
+   banking; joins `concludeOrder` as the second conclusion trigger.
+8. **The realm's favor** — patience → payout; `judge()` gains the mood
+   axis; the noun lands in the HUD (§2.6, the payout-multiplier band).
+
+Each step is a session-sized slice.
 
 ---
 
