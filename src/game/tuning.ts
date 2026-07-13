@@ -176,25 +176,24 @@ export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
  * hypothesis like every number in this file. */
 export const CREW_LABOR: readonly number[] = [0, 0.35, 1.0, 1.0, 1.0];
 
-/** THE CLOCK RELIEF (plans/15 item 26, 2026-07-12 twentieth session):
- * the clock was the last CREW-BLIND number — asks and par scaled solo,
- * the seconds did not, so solo ferried ~2× the workload per second on
- * the same clock. Menu (a) as ruled: a hands-aware clock factor AT THE
- * DEAL — the RUNGS rows stay VERBATIM (rung 3's anchor law survives
- * untouched), both replicas read the broadcast ticksLeft, one constant.
- * Indexed by connected crew at deal time, exactly CREW_LABOR's shape.
- * [1] = 1.25 DERIVED (research/20 study, calibrated on the visionary's
- * measured rung-1 miss-by-~5s: his practiced line needs ~113 s against
- * a 108 s effective clock): with rung 1's row at 180, solo rung 1
- * yields ~162 s effective — the designer passes with real room, a
- * learner has a fighting chance, and rung 2+ solo remains the ladder
- * that outruns one dwarf (hard mode stays the fiction: the factor
- * relieves, it does not conquer). [2+] = 1.0: the friend test's duo
- * clocks inherit ZERO drift (the caution on record — touch multi-crew
- * timing only if playtests ask). THE ONE DIAL: if his next solo run
- * still runs hot or cold, this number moves — nothing else. A
- * feel-pass hypothesis like every number in this file. */
-export const CREW_CLOCK: readonly number[] = [0, 1.25, 1.0, 1.0, 1.0];
+/** THE CLOCK RELIEF (plans/15 item 26, 2026-07-12): the clock was the
+ * last CREW-BLIND number — asks and par scaled solo, the seconds did
+ * not, so solo ferried ~2× the workload per second on the same clock.
+ * Menu (a): a hands-aware clock factor AT THE DEAL, rows verbatim
+ * (rung 3's anchor untouched), both replicas read the broadcast
+ * ticksLeft. Born a flat scalar CREW_CLOCK = [0, 1.25, 1.0, …].
+ *
+ * WENT PER-RUNG (item 26 addendum, twenty-second session): the flat
+ * 1.25 over-relieved rung 2 by ~a minute — the ferry-to-par ratio
+ * changes shape as tiers stack, and rung 1 was the only calibrated
+ * row (research/20). THE RULING: the relief is the TUTORIAL'S — the
+ * solo factor moved onto the Rung row (campaign.ts `soloClock`,
+ * rung 1 = 1.25, rung 2+ = 1.0), sitting beside clockSeconds/parShots,
+ * the other per-rung feel knobs. Duo stays ZERO drift (the deal reads
+ * a literal 1.0 for crew 2+; the crew dimension returns at that code
+ * site if a playtest ever asks). This constant retired — a scalar
+ * cannot say "rung 1 only," and a live scalar beside a per-rung column
+ * is exactly the drift this project guards against. */
 
 /** The frost PASS ask, as a fraction of potential (plans/08 — "50% is
  * just passing"; the 2D game asked 50 too, of a cake it could fully

@@ -8,7 +8,6 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
-  CREW_CLOCK,
   CREW_LABOR,
   FINISH_WINDOW_TICKS,
   FLOURISH_BONUS_COINS,
@@ -1317,11 +1316,11 @@ describe("Room: the match, headless over protocol", () => {
     expect(fresh?.order.status).toBe("running");
     expect(fresh?.rung).toBe(4); // rung 3 won → the cupcake deals
     // One baker played this script: the clock prices hands too (THE
-    // CLOCK RELIEF, item 26 — the row stays verbatim, the solo ticket
-    // stretches by CREW_CLOCK[1]).
-    expect(fresh?.order.ticksLeft).toBe(
-      Math.round(rungRow(4).clockSeconds * CREW_CLOCK[1]! * 60),
-    );
+    // CLOCK RELIEF, item 26 + addendum — the row stays verbatim; solo
+    // relief is per-rung now, and rung 4 (past the tutorial) runs the
+    // honest row, soloClock 1.0 — no stretch).
+    expect(rungRow(4).soloClock).toBe(1.0);
+    expect(fresh?.order.ticksLeft).toBe(rungRow(4).clockSeconds * 60);
     expect(fresh?.order.parShots).toBe(rungRow(4).parShots.solo);
     // The CLIMB is a live deal, and one baker played this script: the
     // anchor seam pinned rung 3 at full labor, but the ladder prices the

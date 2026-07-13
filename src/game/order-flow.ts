@@ -26,7 +26,6 @@ import {
 import { createOrder, tickOrder, type OrderState } from "./order";
 import { createGiant, type Patron } from "./patron";
 import {
-  CREW_CLOCK,
   CREW_LABOR,
   FINISH_WINDOW_TICKS,
   ORDER_RESET_TICKS,
@@ -173,14 +172,17 @@ export class OrderFlow {
   private freshOrder(row: Rung): OrderState {
     return createOrder(
       requirementsFor(row, this.activeTowns, this.activeCrew),
-      // THE CLOCK RELIEF (plans/15 item 26): the clock prices HANDS like
-      // everything else at the deal — the rows stay verbatim (anchor law),
-      // the factor rides the same crew stamp the labor scaling reads.
-      // Clamped exactly as CREW_LABOR is in requirementsFor.
+      // THE CLOCK RELIEF (plans/15 item 26 + addendum): the clock prices
+      // HANDS at the deal — the rows stay verbatim (anchor law). Solo
+      // reads the row's PER-RUNG relief (soloClock — went per-rung when
+      // the flat factor over-relieved rung 2; the relief is the
+      // tutorial's, rung 1 = 1.25, rung 2+ = 1.0). Crew 2+ never
+      // stretches: duo zero-drift, the friend-test caution (if a
+      // playtest ever asks for crew-scaled duo clocks, the crew factor
+      // returns HERE). activeCrew 0 clamps to solo, exactly as
+      // CREW_LABOR does in requirementsFor.
       Math.round(
-        row.clockSeconds *
-          CREW_CLOCK[Math.max(1, Math.min(this.activeCrew, CREW_CLOCK.length - 1))]! *
-          60,
+        row.clockSeconds * (this.activeCrew <= 1 ? row.soloClock : 1.0) * 60,
       ),
       {
         // The ticket wears its pricing (the HUD's "one pair of hands"

@@ -63,3 +63,41 @@ else. Duo timing moves only if a playtest asks, and any such move
 restates this document's math. Pins: order-flow.test.ts (the solo
 stretch, duo zero-drift, clamps, rung 1 = 180), room.test.ts (the
 cupcake deal prices the lone hero's clock over protocol).
+
+## ADDENDUM — the flat factor went PER-RUNG (twenty-second session, 2026-07-12)
+
+The one dial moved, and it revealed the scalar's flaw. The visionary's
+rung-2 solo playtest: **~1 minute too much time.** The flat 1.25 is a
+rung-1-shaped fix wrongly applied to the ladder — the ferry-to-par
+ratio changes shape as tiers stack, and rung 1 was the only calibrated
+row.
+
+The exact clock arithmetic (effective = nominal × factor × 0.72),
+anchored on the two measured solo pass-lines (rung 1 ≈ 113 s quantified;
+rung 2 ≈ 135 s inferred from "~1 min too much" at the 189 s clock):
+
+| rung | row | eff @1.25 | eff @1.00 | measured line | room @1.25 | room @1.00 |
+|------|-----|-----------|-----------|---------------|------------|------------|
+| 1    | 180 | 162 s     | 130 s     | ~113 s        | +49 s      | +17 s      |
+| 2    | 210 | 189 s     | 151 s     | ~135 s        | +54 s      | +16 s      |
+
+The factor each measured rung *wants*: **rung 1 → 1.22** (~45 s tutorial
+room), **rung 2 → 1.03** (~20 s hard-mode room). A single scalar can't
+serve both.
+
+**Why not the row (the coupling trap):** the row is shared solo/duo
+(duo clock = row × 1.0), so lowering rung 2's row drags DUO down too —
+and duo is validated-fun (the friend test). The row can't move.
+
+**THE RULING (visionary, 2026-07-12): the relief is the TUTORIAL'S.**
+The solo factor moved onto the Rung row as `soloClock` (campaign.ts,
+beside clockSeconds/parShots): **rung 1 = 1.25, rung 2+ = 1.0.** At
+1.0, rung 2 solo (151 s eff) equals its duo clock — the honest ladder;
+solo relief comes from CREW_LABOR (the 0.35 ask), and the *clock*
+relief was only ever acute at rung 1. Duo stays zero-drift (the deal
+reads a literal 1.0 for crew 2+). Rung 3+ default to 1.0 too — one
+clean rule; a per-cell bump waits for a solo playtest that asks.
+CREW_CLOCK the scalar is RETIRED (a live scalar beside a per-rung
+column is the drift this project guards against). New pins in
+order-flow.test.ts (per-rung: rung 1 stretches, rung 3 does not) and
+room.test.ts (the cupcake, rung 4, runs the honest row).

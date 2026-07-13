@@ -103,6 +103,16 @@ export interface Rung {
   spec: string;
   /** Per-rung order clock, seconds (nominal — patience is the real clock). */
   clockSeconds: number;
+  /** THE SOLO CLOCK RELIEF, per rung (plans/15 item 26 addendum,
+   * 2026-07-12): the clock stretch a LONE baker's ticket gets at the
+   * deal (crew 2+ never stretches — duo zero-drift). The relief went
+   * per-rung when the flat 1.25 over-relieved rung 2 by ~a minute (the
+   * ferry-to-par ratio changes shape as tiers stack; rung 1 was the
+   * only calibrated row). THE RULING: the relief is the TUTORIAL'S —
+   * rung 1 = 1.25 (a fumbling first-timer), rung 2+ = 1.0 (the honest
+   * row; solo stays the ladder that outruns one dwarf). Duo reads none
+   * of this; only crew === 1 applies it. */
+  soloClock: number;
   asks: {
     /** The pass-tier fraction of the ask potential ("50% is just
      * passing" — the per-rung difficulty knob of that spirit). */
@@ -139,27 +149,31 @@ export const RUNGS: readonly Rung[] = [
   // rung 1's standard is "a fumbling first-timer feeds the ogre while
   // learning the winch" — real slack, not a shave; pressure is rung
   // 2+'s job. NOT the anchor (rung 3 is); the row edit is legal.
-  { spec: "cake-1", clockSeconds: 180, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
-  // 2 — teaches the ledge and the burst; still no flourish.
-  { spec: "cake-2", clockSeconds: 210, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
+  // soloClock 1.25 — THE TUTORIAL RELIEF (item 26 addendum): rung 1
+  // alone gets the clock stretch; a first-timer learns the winch here.
+  { spec: "cake-1", clockSeconds: 180, soloClock: 1.25, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
+  // 2 — teaches the ledge and the burst; still no flourish. soloClock
+  // 1.0: the honest row (the flat 1.25 over-relieved this by ~a minute,
+  // measured — item 26 addendum; pressure is rung 2+'s job).
+  { spec: "cake-2", clockSeconds: 210, soloClock: 1.0, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
   // 3 — THE ANCHOR: today's live numbers verbatim (300s, FROST_FRAC
   // 0.5, SPRINKLES_NEEDED 60, solo par 24). Never rebalanced from here.
-  { spec: "cake-3", clockSeconds: 300, asks: { frostFrac: 0.5, sprinkles: 60, crown: true }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
+  { spec: "cake-3", clockSeconds: 300, soloClock: 1.0, asks: { frostFrac: 0.5, sprinkles: 60, crown: true }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
   // 4 — THE CUPCAKE: tiny census (68), so the frost ask is samples-few
   // but every miss is floor waste; sprinkles must land on a 1.2m disc;
   // the flourish's 8 windows all arrive hot (header finding). Short
   // clock: a precision beat, not a marathon. Par carries the authored
   // miss allowance (header — the formula's 5/7 prices zero misses).
-  { spec: "cupcake", clockSeconds: 150, asks: { frostFrac: 0.6, sprinkles: 30, crown: true }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
+  { spec: "cupcake", clockSeconds: 150, soloClock: 1.0, asks: { frostFrac: 0.6, sprinkles: 30, crown: true }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
   // 5 — the climb begins: 701 census, 7 flourish windows.
-  { spec: "cake-4", clockSeconds: 300, asks: { frostFrac: 0.55, sprinkles: 60, crown: true }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
+  { spec: "cake-4", clockSeconds: 300, soloClock: 1.0, asks: { frostFrac: 0.55, sprinkles: 60, crown: true }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
   // 6 — the heroic flourish: FOUR windows (three PLACE at c8n1–3), the
   // last rung the flourish can honestly be offered on.
-  { spec: "cake-5", clockSeconds: 330, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
+  { spec: "cake-5", clockSeconds: 330, soloClock: 1.0, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
   // 7 — the top of the ladder. Winnable by WORKLOAD (barely): MASTER
   // BAKER. The flourish stands over a summit no shipped combo reaches —
   // the ULTRA ask, sold by the future economy (§1 amendment).
-  { spec: "cake-6", clockSeconds: 360, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
+  { spec: "cake-6", clockSeconds: 360, soloClock: 1.0, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1

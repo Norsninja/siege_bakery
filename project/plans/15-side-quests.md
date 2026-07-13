@@ -1016,6 +1016,24 @@ math before touching any number: measure, then move ONE dial
 rung 2 row itself, which is NOT the anchor). The caution stands:
 duo timing stays untouched.**
 
+**ADDENDUM RESOLVED — BUILT 2026-07-12 (same sitting): THE RELIEF
+WENT PER-RUNG. The clock study (research/20 addendum, exact
+arithmetic on the two measured solo lines) confirmed the scalar is a
+rung-1 fix mis-applied: rung 1 wants factor ~1.22, rung 2 wants ~1.03.
+The row can't move (it's shared — lowering it drags DUO down, and duo
+is validated-fun). THE RULING (visionary): the relief is the
+TUTORIAL'S. The solo factor moved onto the Rung row as `soloClock`
+(campaign.ts, beside clockSeconds/parShots) — rung 1 = 1.25, rung 2+
+= 1.0 (the honest ladder; solo relief lives in CREW_LABOR's ask, the
+clock relief was only acute at rung 1). The deal reads a literal 1.0
+for crew 2+ — duo zero-drift preserved; the crew dimension returns at
+that code site if a playtest ever asks. CREW_CLOCK the scalar RETIRED
+(no live scalar beside a per-rung column — the drift guard). Pins
+re-cut: order-flow.test (per-rung — rung 1 stretches, rung 3 does
+not), room.test (rung 4 cupcake runs the honest row). 503 tests.
+THE ONE DIAL is now per-rung soloClock; rung 3+ default 1.0 awaits a
+solo playtest that asks for more.**
+
 **Original record (eighteenth session): visionary's playtest — going
 as fast as he can, he cannot meet rung 1's threshold. URGENT — the
 tutorial rung fails its own job.**
