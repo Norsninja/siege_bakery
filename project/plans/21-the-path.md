@@ -143,8 +143,11 @@ design lane's rulings will have changed the board.
   Dragon is the odd body (seated, neck arc) — capsule the seated mass.
 - **The bakery + pantry + stall** (item 18) — turnarounds on disk,
   research/18 contract, winding audit law.
-- **The catapult dress** (item 18's recorded orphan) — machine-dress
-  culture, drive nodes, abort-to-greybox.
+- ~~The catapult dress~~ CANCELLED 2026-07-12 (visionary's ruling,
+  twenty-second sitting): the machine was HAND-BUILT (the s13 hand
+  road — catapult.glb with its drive nodes) because meshy couldn't do
+  it well; there is no dress to pursue. The turnarounds stay on disk
+  as reference provenance only.
 - **The cloudgiant far impostor re-read** (s17 eye note: chunky) —
   voxel-remesh recipe, one agent.
 - ~~**The practice cake** (item 25)~~ CANCELLED 2026-07-12 (the

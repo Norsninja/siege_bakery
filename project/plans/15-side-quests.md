@@ -663,6 +663,12 @@ body). Turnarounds are already on disk: project/blender/bakery/
 (project/blender/catapult/, four angles) — that one belongs to the
 standing machine-dress culture (nose=+Y, drive nodes, dress()
 abort-to-greybox), recorded here so it isn't orphaned.
+CATAPULT RULING 2026-07-12 (visionary, twenty-second sitting): the
+machine was already HAND-BUILT (the s13 hand road) because meshy
+couldn't do it well — the catapult dress is CANCELLED as a pursuit;
+the turnarounds are reference provenance only. The bakery and stall
+halves of this item are DONE (fleet, this same day: near_bakery +
+prop_stall, wired); the PANTRY remains the item's open half.
 
 Constraints binding the fleet run: the winding audit is LAW (Blender
 renders are not a winding oracle — BVH ray-parity before export; the
