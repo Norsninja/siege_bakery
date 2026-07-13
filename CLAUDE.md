@@ -88,6 +88,34 @@ spectacle, front door. Zero systems; client/ + assets only; §6 open
 rulings need the visionary BEFORE building. Concept art of record is
 IN REPO: project/concept/ (courtyard shot + dwarf turnaround — Read
 the images directly). Current state:
+THE TWENTY-FIRST SESSION (2026-07-12, same day): THE TRAINING LOBBY +
+THE OPENING PARADE — entry 5 struck; commits bd1f1e6/0619ff1/c35d555,
+pushed, 494 tests. THE WOODEN-SKIN SHAPE: the practice target IS a
+dessert spec row — core/dessert.ts PRACTICE_TARGET (id "practice",
+one tier r3/top5, never in DESSERT_SPECS/RUNGS/wire) +
+game/campaign.dessertSpecFor(phase, rung), the ONE derivation both
+worlds resolve standing geometry through (colliders/field/verdict/
+rings fell out FREE). Room redeals at the runover→lobby edge; client
+reconciles by derived spec id on the run word (poll-by-compare).
+patronAtMark's interim branch RAZED (lobby/countdown → null; mirror
+residue accepted — capsules stand ~10 s before the parade body
+arrives). Greybox plank in setDessert until HIS MODEL lands
+(re-ruled: cupcake painted on a wooden plank, HE provides it —
+project/blender/wood_target_lg.blend 21 MB UNTRACKED IN TREE, next
+session integrates via road recipe, model-fits-spec). Bench ogre at
+game (155,−10) STANDS (the lean audition FAILED his eye — removed
+c35d555; a real SITTING animation is a later asset session). Parade:
+bench→table at PARADE_SPEED 13 m/s (EAGER, ruled) at ALL-IN; line
+marches 150 m column in LINE_PARADE_FRAMES; templates stream during
+lobby, mid-parade arrivals spawn IN COLUMN (loading-as-fiction).
+Live-smoked the full cycle (plank paint 18 samples = green oracle;
+loss → runover holds final cake → lobby restores plank). COLLIDER
+FLEET GATE OPEN: he confirmed Blender clean — dispatch the six
+species' col_* markers early next session. His mid-session commits:
+bakery/stall (7618b24/1e9274c/bddda03). NEXT SESSION (his words):
+review + discussion FIRST, then wood_target_lg integration + fleet
+dispatch + his eye pass on the lobby. Handoff:
+2026-07-12-twentyfirst-the-training-lobby.md. Prior s20 canon below.
 THE TWENTIETH SESSION (2026-07-12 late night): THE FEEDBACK PAIR +
 THE CLOCK RELIEF — entries 4 AND 3.5 struck; three commits ending
 6ccf2f7, pushed, 488 tests. ENTRY 4 (items 15+16, two-terminal
