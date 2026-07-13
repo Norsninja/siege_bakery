@@ -409,18 +409,6 @@ describe("hudLines", () => {
     expect(secret.join("\n")).not.toContain("THE FLOURISH");
   });
 
-  it("FINISH IT (slice 4b): the window swaps the dead order clock for its own countdown", () => {
-    const order = {
-      ...createOrder([], 71 * 60, {
-        desire: { topping: "cherry", revealed: true, met: false },
-      }),
-      finishTicksLeft: 300,
-    };
-    const lines = hudLines(view({ order }));
-    expect(lines[0]).toBe("PATRON 1 · ⭐ FINISH IT! 5s ⭐   [solo bakery]");
-    expect(lines.join("\n")).not.toContain("THE ORDER ·");
-  });
-
   it("ULTRA (slice 4b): the runover header upgrades when the wire says so", () => {
     const lines = hudLines(
       view({ run: { phase: "runover", rung: 7, won: true, ultra: true } }),

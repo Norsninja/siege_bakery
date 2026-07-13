@@ -15,7 +15,6 @@ import {
 } from "./order-flow";
 import {
   CREW_LABOR,
-  FINISH_WINDOW_TICKS,
   FLOOR_COVERAGE,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
@@ -222,35 +221,6 @@ describe("OrderFlow", () => {
 
   it("THE TOPPERS LAW holds: validateDesires passes (no desire topping is orderable)", () => {
     expect(() => validateDesires()).not.toThrow();
-  });
-
-  it("THE FINISH IT WINDOW holds every clock but its own, then reports finishOver once", () => {
-    const flow = new OrderFlow();
-    flow.dealFresh(rungRow(3));
-    const ticksBefore = flow.order.ticksLeft;
-    flow.openFinishWindow();
-    expect(flow.order.finishTicksLeft).toBe(FINISH_WINDOW_TICKS);
-    expect(flow.order.status).toBe("running"); // decided, not ended
-    expect(flow.shouldLook()).toBe(false); // the patron holds his breath
-    for (let i = 0; i < FINISH_WINDOW_TICKS - 1; i++)
-      expect(flow.tickClock()).toEqual([]);
-    expect(flow.tickClock()).toEqual(["finishOver"]);
-    expect(flow.order.finishTicksLeft).toBe(0);
-    // The order clock held for the whole window — decided is decided.
-    expect(flow.order.ticksLeft).toBe(ticksBefore);
-    expect(flow.order.status).toBe("running"); // the CLOSE is the Room's word
-  });
-
-  it("closeFinishWindow ends the decided win; the linger runs from there", () => {
-    const flow = new OrderFlow();
-    flow.dealFresh(rungRow(3));
-    flow.openFinishWindow();
-    flow.closeFinishWindow();
-    expect(flow.order.status).toBe("won");
-    expect(flow.order.finishTicksLeft).toBe(0);
-    for (let i = 0; i < ORDER_RESET_TICKS - 1; i++)
-      expect(flow.tickClock()).toEqual([]);
-    expect(flow.tickClock()).toEqual(["lingerOver"]);
   });
 
   it("the deal: tag ratchets, shots reset, fresh order, fresh cadence", () => {

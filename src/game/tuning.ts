@@ -79,16 +79,6 @@ export const ORDER_PAR_SHOTS = 24;
  * un-staged + imperfect line ≈ 13–14s) with slack, without dragging the
  * between-orders beat for non-switchers (visionary's call: comfortable). */
 export const ORDER_RESET_TICKS = 1080; // 18s
-/** THE FINISH IT WINDOW (plans/13 §1 finish-it amendment, 2026-07-09):
- * ticks the crew gets to land the flourish after a qualifying win's
- * rows-met tick (the decided beat — status stays "running", the order
- * clock holds, the base verdict waits frozen in the Room). GENEROUS by
- * ruling: an un-staged cherry needs a real pantry ferry loop (grab →
- * load → aim → fire ≈ 10s+); too short and the window only rewards
- * pre-staging, which the ledger-judged desire already rewards. Ends
- * EARLY the moment the desire settles. A feel-pass number like the
- * linger above (the visionary's ladder run moves it). */
-export const FINISH_WINDOW_TICKS = 900; // 15s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
 

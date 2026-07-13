@@ -25,12 +25,7 @@ import {
 } from "./judgment";
 import { createOrder, tickOrder, type OrderState } from "./order";
 import { createGiant, type Patron } from "./patron";
-import {
-  CREW_LABOR,
-  FINISH_WINDOW_TICKS,
-  ORDER_RESET_TICKS,
-  PATRON_LOOK_EVERY,
-} from "./tuning";
+import { CREW_LABOR, ORDER_RESET_TICKS, PATRON_LOOK_EVERY } from "./tuning";
 
 /** THE HONEST ORDER (plans/07 phase O), per-rung since the ladder went
  * live (plans/13 slice 4) — the decorating truth as a ticket: frost the
@@ -111,12 +106,7 @@ export type FlowEvent =
    * rung's asks — the rung climbs in orderConcluded, which the Room
    * must run FIRST. The Room answers with dealFresh(the right row) +
    * the physical resets + the broadcast, every path. */
-  | "lingerOver"
-  /** THE FINISH IT WINDOW's countdown died with the flourish unlanded
-   * (plans/13 §1, 2026-07-09): the Room closes the window — completes
-   * the frozen verdict (one last ledger read; a shoved cherry is honest)
-   * and broadcasts the ending. */
-  | "finishOver";
+  | "lingerOver";
 
 export class OrderFlow {
   /** The live order. The Room writes the buzzer verdict's status flip and
@@ -213,9 +203,6 @@ export class OrderFlow {
    * patience lands on the clock the same tick, exactly as pre-decomp). */
   shouldLook(): boolean {
     if (this.order.status !== "running") return false;
-    // The finish-it window is its own beat: the patron holds his breath
-    // (a look could burn patience into a clock that isn't moving).
-    if (this.order.finishTicksLeft > 0) return false;
     this.orderTicks++;
     return this.orderTicks % PATRON_LOOK_EVERY === 0;
   }
@@ -273,23 +260,6 @@ export class OrderFlow {
     this.order = this.freshOrder(row);
   }
 
-  /** THE FINISH IT WINDOW opens (plans/13 §1, 2026-07-09): the Room
-   * decided the rows-met outcome qualifies (accepted + flourish rung +
-   * revealed + desire unmet) and holds the frozen base verdict; the flow
-   * holds the countdown. Status stays "running" — decided, not ended:
-   * gates shut, banner suppressed, clocks held (tickClock below). */
-  openFinishWindow(): void {
-    this.order = { ...this.order, finishTicksLeft: FINISH_WINDOW_TICKS };
-  }
-
-  /** The window's end — early on the landed flourish, or at "finishOver":
-   * the decided win formally ends NOW (S-MED-1 as amended: base frozen at
-   * the decided tick, verdict COMPLETE here). The Room completes the coda
-   * and broadcasts; the linger starts counting from this tick. */
-  closeFinishWindow(): void {
-    this.order = { ...this.order, status: "won", finishTicksLeft: 0 };
-  }
-
   /** Advance the lifecycle one tick: the clock, the transition, the
    * linger. Events come back in the order they happened — on the
    * transition tick the linger ALSO counts (pre-decomp behavior, pinned
@@ -297,14 +267,6 @@ export class OrderFlow {
    * deals NOTHING — the Room answers with dealFresh(the right row)
    * every path (see FlowEvent), which zeroes the linger count. */
   tickClock(): FlowEvent[] {
-    // The finish-it window holds every other clock: the outcome is
-    // decided, so the order clock is irrelevant (plans/13 §1) — only the
-    // window's own countdown runs, and its death asks the Room to close.
-    if (this.order.finishTicksLeft > 0) {
-      const left = this.order.finishTicksLeft - 1;
-      this.order = { ...this.order, finishTicksLeft: left };
-      return left <= 0 ? ["finishOver"] : [];
-    }
     const events: FlowEvent[] = [];
     const before = this.order.status;
     this.order = tickOrder(this.order);

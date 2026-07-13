@@ -56,12 +56,6 @@ export interface OrderState {
   /** The patron's desire — present exactly on flourish rungs (asks.crown);
    * absent means this order offers no fatality. */
   desire?: Desire;
-  /** THE FINISH IT WINDOW's countdown, in ticks (0 = no window). While
-   * positive the outcome is DECIDED but not formally ended: status stays
-   * "running" (gates shut, banner suppressed), the order clock holds, and
-   * the frozen base verdict waits in the Room (plans/13 §1 finish-it
-   * amendment). OrderFlow ticks it; the Room opens and closes it. */
-  finishTicksLeft: number;
   /** THE LONE HERO stamp (plans/13 §5, 2026-07-09): the connected crew
    * this ticket was priced for at deal time (REACH × LABOR — the rows
    * above already carry the scaled numbers; this is the label). On the
@@ -98,7 +92,6 @@ export function createOrder(
     requirements,
     ...(opts?.desire ? { desire: opts.desire } : {}),
     ...(opts?.hands !== undefined ? { hands: opts.hands } : {}),
-    finishTicksLeft: 0,
     parShots: opts?.parShots ?? 6,
     passScore: opts?.passScore ?? 50,
     star2Coverage: opts?.star2Coverage ?? STAR2_COVERAGE,

@@ -179,13 +179,6 @@ export class Room {
    * everyone else is celebrating. Served in the welcome; cleared at the
    * redeal. */
   private lingerVerdict: Judgment | null = null;
-  /** THE FINISH IT WINDOW's frozen base (plans/13 §1, 2026-07-09): the
-   * judgment computed at the rows-met tick of a QUALIFYING win, held here
-   * unbroadcast while the window runs — S-MED-1 as amended: base frozen
-   * at the decided tick, verdict COMPLETE (coda stamped, lingerVerdict
-   * set, ending broadcast) at the window's end. Null whenever no window
-   * is open. */
-  private pendingVerdict: Judgment | null = null;
   /** Mints the per-shot seed S (plans/10): a burst's scatter is drawn from
    * mulberry32(seed) on every replica — the wire carries the seed, never
    * the grains. The stream itself is seeded, so a headless re-run of the
@@ -399,7 +392,6 @@ export class Room {
     this.frosting = new FrostingField(this.dessert.samples);
     this.settled = [];
     this.lingerVerdict = null; // the fresh deal owes nobody a verdict
-    this.pendingVerdict = null; // no window survives a deal (defensive)
   }
 
   /** Step physics; landings become scored deliveries (stale tags litter,
@@ -560,27 +552,6 @@ export class Room {
     return { ...j, flourish: true };
   }
 
-  /** The window's end — the flourish landed (the scoring early-out) or
-   * the countdown died ("finishOver"): the decided win formally ends NOW.
-   * One last ledger read stamps the coda (a shoved cherry is honest both
-   * ways), the frozen base completes into lingerVerdict, and the ending
-   * broadcast is the same atomic word as every conclusion — `judgment`
-   * rides exactly when the order message ENDS the order, unchanged. */
-  private concludeFinishWindow(): void {
-    const base = this.pendingVerdict!; // set with the window, always
-    this.pendingVerdict = null;
-    this.flow.closeFinishWindow();
-    this.lingerVerdict = this.stampFlourish(base);
-    this.endedWon = true; // the window only ever opens on an accepted win
-    this.roster.broadcast({
-      t: "order",
-      order: this.flow.order,
-      checks: this.currentChecks(),
-      judgment: this.lingerVerdict,
-    });
-    this.awardPay(this.lingerVerdict);
-  }
-
   /** The lifecycle, phase-driven since the run container (plans/13):
    * lobby/countdown tick the ready gate, runover ticks the report, and
    * only a live run ticks the ORDER lifecycle (patron looks, the clock,
@@ -635,13 +606,7 @@ export class Room {
     }
 
     for (const event of this.flow.tickClock()) {
-      if (event === "finishOver") {
-        // The window's countdown died with the flourish unlanded — the
-        // close still reads the ledger once (concludeFinishWindow's
-        // stamp): a cherry shoved onto the summit between landings is
-        // honest, and so is one shoved off.
-        this.concludeFinishWindow();
-      } else if (event === "ended") {
+      if (event === "ended") {
         // THE BUZZER (plans/22 step 3): the clock died — judge the cake as
         // it lies. This is now the SOLE conclusion (the instant win is
         // gone): a finished cake that met the rows AND cleared gate 2 wins

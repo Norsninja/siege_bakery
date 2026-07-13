@@ -28,17 +28,6 @@ describe("predictClock", () => {
     const ended = { ...createOrder([], 100), status: "lost" as const, ticksLeft: 0 };
     expect(predictClock(ended)).toEqual(ended);
   });
-
-  it("THE FINISH IT WINDOW (slice 4b): predicts the window's countdown, holds the order clock", () => {
-    let o = { ...createOrder([], 100), finishTicksLeft: 10 };
-    o = predictClock(o);
-    expect(o.finishTicksLeft).toBe(9);
-    expect(o.ticksLeft).toBe(100); // the outcome is decided; this clock is dead
-    // Same advisory clamp: the CLOSE is the room's to declare.
-    for (let i = 0; i < 20; i++) o = predictClock(o);
-    expect(o.finishTicksLeft).toBe(1);
-    expect(o.status).toBe("running");
-  });
 });
 
 describe("shopState — the stall's prediction of the Room's shop law (slice 5)", () => {

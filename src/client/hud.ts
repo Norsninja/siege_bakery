@@ -470,15 +470,12 @@ export function hudLines(v: HudView): string[] {
                 } · 🪙 purse: ${v.run.purse ?? 0}   [${who}]`,
               ]
             : [
-              // THE FINISH IT WINDOW (plans/13 §1, slice 4b): the outcome
-              // is decided — the header swaps the dead order clock for the
-              // window's own countdown; the golden row below names the ask.
               // THE SEMANTIC AUDIT (item 12): the rung number IS the
               // patron's place in the line (plans/16 queue, plans/18) —
-              // the header names the guest, never the ladder.
-              v.order.finishTicksLeft > 0
-                ? `PATRON ${v.run.rung} · ⭐ FINISH IT! ${Math.ceil(v.order.finishTicksLeft * FIXED_DT)}s ⭐   [${who}]`
-                : `PATRON ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
+              // the header names the guest, never the ladder. (The order
+              // runs to the buzzer now — plans/22 step 3; the finish-it
+              // window it used to swap in was deleted in step 5.)
+              `PATRON ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
               ...v.checks.map(
                 (c) =>
                   `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,
