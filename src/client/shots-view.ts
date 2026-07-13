@@ -26,6 +26,7 @@ import type { DessertGeometry } from "../core/dessert";
 import { TOWNS } from "../core/arena";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import { isPaint, TOPPINGS } from "../game/toppings";
+import { EARNED_TIME_PER_SAMPLE_S } from "../game/tuning";
 import type { RestingTopping } from "../game/protocol";
 import { ComicWord } from "./comic-word";
 import type { ClientFx } from "./sfx";
@@ -81,6 +82,9 @@ export const TRAIL_WIDTH = PROJECTILE_RADIUS; // …tapering to a point behind
  * beat); these are the landing-specific aesthetics-pass dials: */
 const WORD_SPLAT_WIDTH_M = 2.4; // landing energy = word size…
 const WORD_PLOP_WIDTH_M = 1.5; // …a gentle placement whispers
+/** The earned-time "+Ns" rises above the splat word it shares a spot with
+ * (plans/22 step 6b) — a clear second beat, not an overlap. */
+const EARNED_WORD_RISE_M = 1.4;
 
 /** THE LANDING VERDICT (plans/15 item 15, rings recolor RULED
  * 2026-07-12): color is the VERDICT channel everywhere — green = on
@@ -270,13 +274,23 @@ export class ShotsView {
   /** Whose crew this client bakes for — main keeps it current (the
    * welcome and every pickTown ack). Only THIS town's landings speak. */
   yourTown = 0;
+  /** Whether a live rung's clock is ticking — main keeps it current. Gates
+   * the earned-time "+Ns" pop-up (plans/22 step 6b): fresh coverage only
+   * buys clock on a live order, so only there does the pop float (the
+   * sandbox paints the practice plank, but no timer is running). */
+  orderLive = false;
   /** A paint glob landed in the local sim — main wires this to the
    * FrostingView (the deterministic twin of the Room's field). The topping
    * rides along: fudge paints under its own splat law and renders dark.
-   * Returns the painted-sample count (item 15): the paint verdict's
-   * oracle — the exact truth the Room's `painted > 0` reads. */
+   * Returns {footprint, fresh}: footprint is the paint verdict's oracle
+   * (item 15, the Room's `painted > 0` truth); fresh is the coverage delta
+   * the "+Ns" earned-time pop reads (plans/22 step 6b). */
   onPaintImpact:
-    | ((topping: string, pos: Vec3, speed: number) => number)
+    | ((
+        topping: string,
+        pos: Vec3,
+        speed: number,
+      ) => { footprint: number; fresh: number })
     | null = null;
   /** THE GIANT'S INTERPRETER (item 16): main binds the patron rig's
    * handle set — Impact.otherHandle in this set means the shot hit
@@ -460,10 +474,11 @@ export class ShotsView {
       // ruled two-gate split): the local field's painted count is the
       // deterministic twin of the Room's `painted > 0`. A stale glob
       // paints nothing and wears red — it scored nothing, honestly.
-      const painted =
+      const paintResult =
         paint && deal === this.deal
-          ? (this.onPaintImpact?.(im.topping, im.pos, im.speed) ?? 0)
-          : 0;
+          ? (this.onPaintImpact?.(im.topping, im.pos, im.speed) ?? null)
+          : null;
+      const painted = paintResult?.footprint ?? 0;
       // The firing gun's ring moves to its newest lob — a stale-deal shot
       // still visibly lands (it always did), it just can't paint. Color
       // is the verdict channel (ruled): paint verdicts now; a solid's
@@ -511,6 +526,24 @@ export class ShotsView {
           ),
         );
         fx.sound(splat ? "splat" : "plop", { at: im.pos });
+        // THE EARNED-TIME POP (plans/22 step 6b): fresh cake coverage bought
+        // clock — a green "+Ns" rises above the splat, the racing-game beat.
+        // Client-local juice off the SAME deterministic fresh the Room
+        // scored the clock from; live-rung only (orderLive) so the sandbox
+        // plank never fakes a timer. A re-coat (fresh 0) earns nothing and
+        // stays silent, exactly as it buys the Room no clock.
+        if (this.orderLive && paintResult && paintResult.fresh > 0) {
+          const secs = Math.round(paintResult.fresh * EARNED_TIME_PER_SAMPLE_S);
+          this.words.push(
+            new ComicWord(
+              `+${secs}s`,
+              VERDICT_GREEN,
+              { x: im.pos.x, y: im.pos.y + EARNED_WORD_RISE_M, z: im.pos.z },
+              WORD_PLOP_WIDTH_M,
+              this.scene,
+            ),
+          );
+        }
       }
       fx.flash(
         `${splat ? "SPLAT!" : "placed."} ${im.topping} landed at ${im.speed.toFixed(1)} m/s`,

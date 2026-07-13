@@ -101,11 +101,12 @@ async function main(): Promise<void> {
   // splat BURIES stuck sprinkles under its footprint (conversion law,
   // plans/10 §8) — the mirror of the Room's ledger filter.
   shotsView.onPaintImpact = (topping, pos, speed) => {
-    const painted = frostingView.paintImpact(topping, pos, speed);
+    const result = frostingView.paintImpact(topping, pos, speed);
     sprinklesView.buryBy(pos, speed, TOPPINGS[topping]?.splat);
-    // The painted count back to the shots-view (item 15): the paint
-    // verdict's oracle — the same truth the Room's `painted > 0` reads.
-    return painted;
+    // Back to the shots-view: footprint is the paint verdict's oracle (item
+    // 15, the Room's `painted > 0` truth); fresh drives the "+Ns" pop-up
+    // (plans/22 step 6b).
+    return result;
   };
   // The conversion law's paint oracle (plans/10 §8): grains grip where
   // they hit wet paint — the local field twin answers, same as the Room's
@@ -537,6 +538,10 @@ async function main(): Promise<void> {
       );
       // Local visual projectile sim: advances the SHARED world (after
       // Baker.step registered its movement); markers + splat readout only.
+      // orderLive gates the earned-time "+Ns" pop-up (plans/22 step 6b) —
+      // only a live rung's fresh coverage buys clock, so only there does the
+      // pop float (the sandbox paints the plank, but no clock is ticking).
+      shotsView.orderLive = orderLive;
       shotsView.step(view.dessert, fxPort);
 
       // THE RUN'S EDGES (plans/13): rung 1 deals the moment the countdown

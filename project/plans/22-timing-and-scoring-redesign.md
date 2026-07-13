@@ -174,6 +174,11 @@ Well-scoped: the change lives in `game/` (order, order-flow, patron,
 judgment) + the Room's wiring. **`core/` (frosting, dessert, physics)
 and the cake-state-as-events sync are UNTOUCHED; determinism law is
 unaffected; the serve action is a standard authoritative edge-input.**
+(FOOTNOTE, step 6 as-built: earned time needed ONE `core/` addition —
+`FrostingField.paint()` now returns `{footprint, fresh}`, the fresh being
+the coverage delta earned time prices off. Pure deterministic arithmetic
+on existing state; the determinism law and the events-sync are still
+untouched. The "core untouched" line held in spirit, not to the letter.)
 
 **Deletes:**
 - `order.ts` `evaluateOrder`'s auto-conclude branch. `checkRequirements`
@@ -330,8 +335,16 @@ handoff vocabulary:
    The reliable clock lands here (patience stops draining the clock). The
    base clocks re-derive from the reliable clock + earned-time (the 0.72
    derating retires; the item-26 rung-2 over-relief folds in). Solo's
-   coverage relief (§2.8) gets its real calibration here. The heaviest
-   remaining slice; needs the rate/cap/base-clock rulings (§8).
+   coverage relief (§2.8) gets its real calibration here. DONE, split as
+   built into two commits: **6a** the mechanic — core `paint()` fresh delta,
+   `OrderFlow.earnTime` (capped), patience dormant (`patienceDebt` for step
+   8), base clocks re-derived to nominal × 0.72 (ORDER_SECONDS 300→216),
+   soloClock kept (63e6bff); **6b** the client "+Ns" pop-up — a green
+   earned-time comic word off the deterministic frosting twin, live-rung
+   gated. THE TRIO IS PROVISIONAL (EARNED_TIME_PER_SAMPLE_S 2, EARNED_TIME
+   _CAP_S 120, the base clocks) — the gentle-honest first cut (nobody worse
+   off than today; earned time is pure upside), to be tuned at a playtest.
+   The RATING/CAP/base-clock feel rulings (§8) stay open until then.
 7. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
    banking; joins `concludeOrder` as the second conclusion trigger.
 8. **The realm's favor** — patience → payout; `judge()` gains the mood

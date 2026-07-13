@@ -123,16 +123,24 @@ export class FrostingView {
    * Room's `painted > 0` onCake truth, and therefore the landing
    * verdict's paint oracle (item 15): isOnCake would lie red on an
    * honest wall splat, the ball center resting 0.3 m off the skin. */
-  paintImpact(topping: string, pos: Vec3, speed: number): number {
+  paintImpact(
+    topping: string,
+    pos: Vec3,
+    speed: number,
+  ): { footprint: number; fresh: number } {
     const spec = TOPPINGS[topping]?.splat;
-    const { footprint } = this.field.paint(pos, speed, spec);
+    const result = this.field.paint(pos, speed, spec);
     const color = new THREE.Color(PAINT_COLORS[topping] ?? FROSTING_COLOR);
     for (const i of splatSamples(this.samples, pos, speed, spec))
       this.blobs.setColorAt(i, color);
     if (this.blobs.instanceColor) this.blobs.instanceColor.needsUpdate = true;
     if (pos.y < GROUND_SPLAT_BELOW_Y) this.addGroundSplat(pos, speed, topping);
     this.refresh();
-    return footprint;
+    // footprint = the deterministic twin of the Room's onCake truth (the
+    // paint verdict, item 15); fresh = the coverage delta the "+Ns"
+    // earned-time pop-up reads (plans/22 step 6b), the same twin the Room
+    // scores earned clock from.
+    return result;
   }
 
   /** The welcome snapshot: the painted cake as it lies (late join/refresh). */

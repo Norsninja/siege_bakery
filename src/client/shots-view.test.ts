@@ -101,6 +101,37 @@ describe("ShotsView same-tick bury/add ordering (audit 2026-07-06)", () => {
   });
 });
 
+describe("THE EARNED-TIME POP (plans/22 step 6b): fresh coverage floats a green +Ns", () => {
+  const words = (v: ShotsView): Array<{ text: string }> =>
+    (v as unknown as { words: Array<{ text: string }> }).words;
+  const plusNs = (v: ShotsView): number =>
+    words(v).filter((w) => /^\+\d+s$/.test(w.text)).length;
+
+  it("a live rung's FRESH paint floats +Ns; a re-coat stays silent (zero fresh)", () => {
+    const { shotsView, setEvents } = harness();
+    shotsView.orderLive = true;
+    // First frosting glob on the naked anchor cake — all fresh, buys clock.
+    setEvents({ ...empty, impacts: [coveringImpact] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).map((w) => w.text)).toContain("SPLAT!"); // still shouts
+    expect(plusNs(shotsView)).toBe(1); // and the earned-time pop rides above
+    // A re-coat on the SAME spot is zero fresh — the cake is saturated there,
+    // so it earns the Room no clock and floats no new pop.
+    setEvents({ ...empty, impacts: [coveringImpact] });
+    shotsView.step(GEOM, noop);
+    expect(plusNs(shotsView)).toBe(1); // no NEW "+Ns" (still just the first)
+  });
+
+  it("the SANDBOX never fakes a timer: orderLive false → no +Ns even on fresh paint", () => {
+    const { shotsView, setEvents } = harness();
+    shotsView.orderLive = false; // lobby: the plank paints, no clock ticks
+    setEvents({ ...empty, impacts: [coveringImpact] });
+    shotsView.step(GEOM, noop);
+    expect(words(shotsView).map((w) => w.text)).toContain("SPLAT!"); // landing speaks
+    expect(plusNs(shotsView)).toBe(0); // but no earned-time pop
+  });
+});
+
 type RingRec = { mesh: THREE.Mesh; bodyHandle: number };
 const rings = (v: ShotsView): Map<number, RingRec> =>
   (v as unknown as { markers: Map<number, RingRec> }).markers;
