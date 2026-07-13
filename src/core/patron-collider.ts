@@ -69,6 +69,73 @@ export const PATRON_COLLIDERS: Record<string, readonly PatronCapsule[]> = {
     { x: 0.0, y: 24.5, z: 0.0, halfHeight: 0.8, radius: 9.5 }, // chest
     { x: 0.0, y: 31.0, z: 2.0, halfHeight: 0.8, radius: 4.5 }, // head
   ],
+  // THE SIX-SPECIES FLEET (2026-07-12, twenty-second session — the
+  // plans/21 fleet lane row): every row below exported by the same
+  // script from col_* markers authored against the measured mesh
+  // (band histograms; each species' author-*-colliders.py records
+  // its bands). All six rigs ship AT ruled height — --scale 1.
+  // frostgiant: exported by collider-scripts/export-patron-colliders.py
+  // (markers in frostgiant-rig.blend, --scale 1 baked in). Arms flare
+  // to |x|≈15.7 across z 14–21 — excluded (forcefield rule).
+  frostgiant: [
+    { x: 0.0, y: 5.6, z: 0.5, halfHeight: 0.3, radius: 5.5 }, // haunches
+    { x: 0.0, y: 12.5, z: 0.9, halfHeight: 1.0, radius: 5.9 }, // belly
+    { x: 0.0, y: 19.5, z: -0.3, halfHeight: 1.0, radius: 6.3 }, // chest
+    { x: 0.0, y: 26.6, z: 0.3, halfHeight: 0.5, radius: 3.2 }, // head
+  ],
+  // treefolk: exported by collider-scripts/export-patron-colliders.py
+  // (markers in treefolk-rig.blend, --scale 1 baked in). The branch-arm
+  // canopy (radial ~18.6 at z 9–23) and root-tip flare are excluded;
+  // the crown TOP leans face-ward (+z jut).
+  treefolk: [
+    { x: 0.0, y: 8.0, z: 0.0, halfHeight: 0.3, radius: 8.0 }, // roots
+    { x: 0.0, y: 15.5, z: 0.2, halfHeight: 1.5, radius: 7.0 }, // trunk
+    { x: 0.0, y: 22.0, z: -0.5, halfHeight: 0.5, radius: 8.0 }, // shoulders
+    { x: 0.0, y: 27.5, z: -0.6, halfHeight: 1.0, radius: 9.8 }, // crown
+    { x: 0.0, y: 34.0, z: 2.5, halfHeight: 0.3, radius: 6.0 }, // crownTop
+  ],
+  // dragon: exported by collider-scripts/export-patron-colliders.py
+  // (markers in dragon-rig.blend, --scale 1 baked in). THE ODD BODY:
+  // seated at 30 m; wings excluded PRECISELY via the rig's wingL/wingR
+  // vertex groups; the neck arc is a stack of vertical capsules
+  // stepping forward (+z) and up; ground-sweeping tail and front feet
+  // deliberately uncovered (coarse comedy).
+  dragon: [
+    { x: 0.0, y: 6.0, z: -1.0, halfHeight: 0.2, radius: 5.8 }, // haunches
+    { x: 0.0, y: 13.0, z: 3.5, halfHeight: 0.8, radius: 5.2 }, // chest
+    { x: 0.0, y: 17.5, z: 5.5, halfHeight: 1.5, radius: 3.0 }, // neck1
+    { x: 0.0, y: 23.0, z: 6.5, halfHeight: 1.0, radius: 3.5 }, // neck2
+    { x: 0.0, y: 26.8, z: 6.5, halfHeight: 0.5, radius: 3.0 }, // head
+  ],
+  // cyclops: exported by collider-scripts/export-patron-colliders.py
+  // (markers in cyclops-rig.blend, --scale 1 baked in). Arms reach
+  // |x|≈14.2 across z 8–25 — excluded; jaw juts face-ward.
+  cyclops: [
+    { x: 0.0, y: 6.0, z: 0.0, halfHeight: 0.7, radius: 5.3 }, // haunches
+    { x: 0.0, y: 12.5, z: 0.5, halfHeight: 1.5, radius: 6.0 }, // belly
+    { x: 0.0, y: 21.5, z: 0.0, halfHeight: 1.0, radius: 6.3 }, // chest
+    { x: 0.0, y: 30.0, z: 0.4, halfHeight: 0.6, radius: 3.4 }, // head
+  ],
+  // cloudgiant: exported by collider-scripts/export-patron-colliders.py
+  // (markers in cloudgiant-rig.blend, --scale 1 baked in). Spread arms
+  // and the bell-skirt billow shaved (forcefield rule); collar/bust
+  // mass falls forward — chest and head ride +z offsets.
+  cloudgiant: [
+    { x: 0.0, y: 6.8, z: 0.0, halfHeight: 0.6, radius: 6.2 }, // skirt
+    { x: 0.0, y: 17.8, z: 1.0, halfHeight: 0.3, radius: 4.5 }, // belly
+    { x: 0.0, y: 25.0, z: 1.9, halfHeight: 0.4, radius: 3.5 }, // chest
+    { x: 0.0, y: 33.0, z: 0.9, halfHeight: 1.7, radius: 3.2 }, // head
+  ],
+  // firegiant: exported by collider-scripts/export-patron-colliders.py
+  // (markers in firegiant-rig.blend, --scale 1 baked in). Arms hang low
+  // and wide (|x| to 15.2) — excluded; the beard/flame plume down the
+  // front sits inside the belly/chest radii.
+  firegiant: [
+    { x: 0.0, y: 6.8, z: -0.3, halfHeight: 0.4, radius: 6.4 }, // haunches
+    { x: 0.0, y: 11.5, z: 0.2, halfHeight: 1.0, radius: 6.6 }, // belly
+    { x: 0.0, y: 18.0, z: -0.3, halfHeight: 1.2, radius: 6.8 }, // chest
+    { x: 0.0, y: 26.0, z: 1.0, halfHeight: 0.4, radius: 4.6 }, // head
+  ],
 };
 
 /** Place one authored capsule at the mark: rotate patron space by the

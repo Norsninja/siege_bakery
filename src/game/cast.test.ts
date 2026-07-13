@@ -7,6 +7,7 @@
  * trajectories, not just paint.
  */
 import { describe, expect, it } from "vitest";
+import { PATRON_COLLIDERS } from "../core/patron-collider";
 import {
   castIndexForRung,
   patronAtMark,
@@ -18,6 +19,11 @@ describe("castIndexForRung", () => {
   it("THE OPENING PIN: rung 1 is always the ogre, whatever the seed", () => {
     expect(castIndexForRung(1)).toBe(0);
     expect(SPECIES[0]).toBe("ogre");
+  });
+
+  it("THE FLEET IS COMPLETE (2026-07-12): every species bounces — a row " +
+     "in the collider table for the whole roster", () => {
+    for (const s of SPECIES) expect(PATRON_COLLIDERS[s], s).toBeDefined();
   });
 
   it("is deterministic — same rung, same patron, every derivation", () => {
