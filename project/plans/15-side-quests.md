@@ -1005,6 +1005,17 @@ one-pair-of-hands tag. Pins: order-flow.test (stretch, zero-drift,
 clamps, rung 1 = 180), room.test (the cupcake deal prices the lone
 hero's clock over protocol).**
 
+**ADDENDUM 2026-07-12 (visionary's playtest, twenty-second sitting):
+rung 1 now lands right — but RUNG 2 (the two-tier cake) deals ALMOST
+A MINUTE too much solo time. The relief factor is flat 1.25 across
+every solo rung while the ferry-to-par ratio changes shape as tiers
+stack — rung 2 was never measured (rung 1 was the only calibrated
+row). Next move is the (c) study run against rung 2's real cycle
+math before touching any number: measure, then move ONE dial
+(CREW_CLOCK[1] cannot fix a per-row overshoot — this may want the
+rung 2 row itself, which is NOT the anchor). The caution stands:
+duo timing stays untouched.**
+
 **Original record (eighteenth session): visionary's playtest — going
 as fast as he can, he cannot meet rung 1's threshold. URGENT — the
 tutorial rung fails its own job.**
@@ -1079,3 +1090,36 @@ except gates):
 OPEN (his eye/ruling): the dormant look's dress level; the sign
 wording; whether the lobby teaches the purchase at all or lets the
 run discover it.
+
+## 28. THE EARLY SHUTTER — the polaroid fires before the air clears — RECORDED, UNCLAIMED
+
+**Status: recorded 2026-07-12 (visionary's playtest, twenty-second
+sitting). Needs one small design ruling at claim time; no build yet.**
+
+The sighting: the order fulfilled the instant the census crossed the
+threshold — while his sprinkles were STILL IN FLIGHT. The snapshot
+took its picture immediately, and the comic word ("plop.") is IN the
+framed photo. The win felt like it happened TO him, not because of
+his last shot; the keepsake frames the seam instead of the dessert.
+
+The boundary that must hold: the SIM's win edge is truth and stays
+where it is — scoring, pay, and the linger clock are not delayed by
+presentation (the two-gate honesty law). What moves is THEATRE: the
+polaroid (and possibly the banner beat that rides it) should wait for
+the air to clear before framing the cake.
+
+The claim-time ruling (one choice):
+- **(a) wait-for-quiet (recommended):** the photo waits until your
+  town's projectiles have all impacted/settled or vanished — the
+  shots-view already tracks every body's lifecycle (trail-halt reads
+  the same truth), so "quiet air" is a client-derivable predicate;
+  cap the wait (~2.5 s) so a stray rolling cherry can't hold the
+  camera hostage.
+- **(b) fixed grace beat:** a flat ~1.5–2 s between the verdict edge
+  and the shutter — dumber, cheaper, close to right most days.
+
+Also in frame: comic words live ~1.1 s — any wait ≥ that clears them
+from the photo for free. The eat beat derives from the verdict edge
+and must NOT move (the giant's reaction is to the WIN, not the
+photo); only the polaroid slides. Scope: client-only, patron-table's
+beat sheet + the snapshot call site.
