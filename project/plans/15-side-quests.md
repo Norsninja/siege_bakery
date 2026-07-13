@@ -891,6 +891,34 @@ runover holds the final cake → lobby restores plank/bench/empty mark.
 494 tests. PENDING HIS EYE: the plank greybox look, the lean, parade
 pacing (dials named above), and his plank MODEL when ready.**
 
+**ADDENDUM 2026-07-12 (twenty-second session): THE MODEL LANDS + THE
+STAND COLLIDER. His wood_target_lg.blend integrated by the road recipe
+— project/blender/export-target.py (the tracked recipe; it STRIPS the
+meshy emissive bake at export — 5% of the map glowed junk, and the
+emissive trap law wants color AND strength zeroed) → npm run diet →
+target.glb 0.56 MB; the setDessert practice arm dresses it over the
+greybox (visibility swap, stall culture; abort-to-greybox holds).
+HIS RULING, same day: the collider FITS THE STAND, not a cylinder —
+core/dessert.ts PRACTICE_STAND (authored boxes from the measured
+blend: board/legs/rail at ruled scale 3, board face w 5.31 spanning
+y 1.13–5.41) and dessertGeometry() forks to box oracles + cuboid
+colliders for spec id "practice" ONLY (every dessert row rides the
+cylinder road byte-identically; pinned). The census moved ONTO the
+stand: the painted face (+z — the lobby seats everyone in town 0, his
+ruling, so one face is the whole audience) plus the upward skin
+(board top edge, foot rail — the cake-wall-base ruling's spirit),
+122 samples; paint finally sits ON the board instead of floating on
+the interim cylinder. THE FORCEFIELD FIX pinned in dessert.test: a
+near-miss beside the board that the interim r3 cylinder "caught" is
+honestly air now. Range lesson honest to the machine's language:
+clicks 7 crosses the face plane on the board (one-click window, like
+every rung's combos); 6 falls short, 8 sails over. Live-smoked the
+full cycle (model dresses lobby, clicks-7 paints the stand, ALL-IN
+swaps cake-1 in and hides the stand, runover holds the final cake,
+lobby restores stand + fresh field). The sticky-grip room test
+re-anchored on rung 3 (its property is phase-agnostic; the 6-click
+arc no longer reaches the thin board — recorded in the test).**
+
 Original ruling (eighteenth session, third discussion, born of
 repeated playtests): no cake in the lobby — a practice target;
 horizon-only crowd plus the BENCH OGRE; the WALK-UP PARADE at run
@@ -1011,3 +1039,43 @@ Caution on record: the friend test played DUO under current clocks
 and "it's fun" — relieve solo hard and rung 1 especially; touch
 multi-crew timing only if playtests ask. A flat +5 across the board
 is the bluntest option and quietly edits the anchor row.
+
+## 27. THE LOCKED FORT — town 2 reads as locked until the stall sells it — PLANNED, UNCLAIMED
+
+**Status: PLANNED 2026-07-12 (twenty-second session, the visionary's
+ask: "only unlock the second town after purchased in the stall").
+Research done, shape below; a build session claims it whole.**
+
+WHAT THE SIM ALREADY DOES (found, not to rebuild): the Room's towns
+array starts at 1 and grows only through the stall `buy` (the catalog
+whitelist); pickTown validates against towns.length; machine ops
+route to your roster town, so town 2's machine cannot be operated
+pre-purchase; inventory dies with the run — startRun re-locks town 2
+and re-addresses its crew home (the C-MED-2 ordering). THE LOCK IS
+REAL. What lies: the PRESENTATION. In the lobby every gate stands
+open (gates.ts: fences exist only while an order runs), so a baker
+strolls into town 2's fully-dressed fort — live-looking machine,
+crates, stall, pennant — and nothing there answers. A dead fort
+reads as a bug; a LOCKED fort reads as a promise.
+
+THE SHAPE (client presentation + one gate rule; core/game untouched
+except gates):
+- **The fence rule gains an ownership clause:** gate i is shut when
+  (order runs AND it's your gate) OR (town i is unowned). Both
+  worlds already run the same Gates rule off broadcast state — the
+  owned-towns count rides the machines array length the client
+  already holds. Late joiners derive it, nothing new syncs.
+- **The dormant dress:** the unowned fort's portcullis stays down
+  (the scene already knows how to show it), pennant flies GREY (no
+  town color until it wakes), maybe tarped machine as a dress pass.
+- **The waking:** the buy already broadcasts the new fort's machine
+  (the fort wakes in state); the theatre is the gate RISING + the
+  banner taking its blue — the purchase's spectacle, the stall's
+  best advertisement.
+- **The affordance:** the shut gate should SAY why (the E-prompt
+  culture: a sign at the gate — "FOR SALE at the stall" spirit, his
+  words to rule).
+
+OPEN (his eye/ruling): the dormant look's dress level; the sign
+wording; whether the lobby teaches the purchase at all or lets the
+run discover it.

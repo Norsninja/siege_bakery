@@ -133,14 +133,15 @@ design lane's rulings will have changed the board.
 
 ## 2. THE FLEET LANE (dispatchable now, any order)
 
-- **SIX SPECIES' COLLIDER MARKERS** (item 16, opened by entry 4) —
-  col_* empties into each rig .blend against the ogre precedent
-  (author-ogre-colliders.py) + export via collider-scripts/
-  export-patron-colliders.py (--scale = the species' client
-  visualScale; all six ship at ruled height → --scale 1); rows paste
-  into core/patron-collider.ts and the table pins audit them. Coarse
-  comedy: 3–6 capsules, torso radii EXCLUDE spread arms/wings.
-  Dragon is the odd body (seated, neck arc) — capsule the seated mass.
+- ~~**SIX SPECIES' COLLIDER MARKERS** (item 16, opened by entry 4)~~
+  DONE 2026-07-12 (twenty-second session: six fleet agents dispatched
+  in parallel, six-for-six first pass — every rig measured EXACTLY at
+  ruled height, --scale 1 confirmed; author-<species>-colliders.py ×6
+  record the measured bands; rows pasted into core/patron-collider.ts;
+  cast.test pins THE FLEET IS COMPLETE — every SPECIES row exists.
+  Dragon's wings excluded via the rig's own vertex groups, neck arc =
+  three vertical capsules stepping forward; treefolk canopy/root flare
+  excluded per the forcefield rule).
 - **The bakery + pantry + stall** (item 18) — turnarounds on disk,
   research/18 contract, winding audit law.
 - ~~The catapult dress~~ CANCELLED 2026-07-12 (visionary's ruling,
