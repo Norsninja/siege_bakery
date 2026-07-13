@@ -325,8 +325,11 @@ export class PatronTable {
     const wantRung = Math.max(1, rung);
 
     // THE TRAINING LOBBY (item 25): pre-run the table stands empty —
-    // the practice plank owns the mark; the founding patron waits on
-    // the bench, leaning (the cheap-lean audition, existing bones).
+    // the practice plank owns the mark; the founding patron waits at
+    // the rest stop, standing and breathing. The cheap-lean audition
+    // FAILED the visionary's eye (2026-07-12: a sustained lean reads
+    // off-putting) — the bench wants a real SITTING animation, a
+    // later asset pass; until then he simply waits.
     // lastVerdict stays synced so a stale post-loss verdict can never
     // fire an edge into the fresh run's opening frames.
     if (phase === "lobby" || phase === "countdown") {
@@ -340,10 +343,7 @@ export class PatronTable {
         this.snapEmpty();
       this.lastVerdict = verdict;
       this.ensureBench();
-      if (this.bench) {
-        this.bench.body.holdLean();
-        this.bench.body.update(null, null);
-      }
+      this.bench?.body.update(null, null);
       return;
     }
 

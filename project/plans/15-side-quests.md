@@ -861,9 +861,11 @@ TEACHING SCOPE NARROWED (ruling): the plank teaches RANGE + TRAVERSE
 dial-in (it stands at the cake mark, so aim transfers to every rung);
 tier-zones/ledge/crown lessons wait for real rungs — that's what
 rungs are for. THE BENCH OGRE: patron-table stands rung 1's patron at
-the rest stop (game 155,−10, the s15 bench site) holding the LEAN
-pose — the cheap-lean audition shipped as the first form; the
-pose-baked sit awaits the visionary's eye. THE PARADE: at ALL-IN the
+the rest stop (game 155,−10, the s15 bench site). THE LEAN AUDITION
+FAILED (visionary's eye, same day): a sustained lean reads
+off-putting — REMOVED; he stands and breathes, and the bench wants a
+real SITTING ANIMATION (a later asset/animation pass, noted). THE
+PARADE: at ALL-IN the
 bench body becomes the arrival and walks bench→table at PARADE_SPEED
 (walk.ts, 0.22 ≈ 13 m/s — EAGER, ruled: he waited all lobby and the
 bakery just opened; ~10.5 s while the crew sprints for ammo); the

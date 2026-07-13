@@ -152,11 +152,12 @@ design lane's rulings will have changed the board.
   PLANK, and he provides the model HIMSELF — entry 5 shipped greybox
   and pinned the spec dims in core/dessert.ts PRACTICE_TARGET; his
   model dresses those dims when it arrives, model-fits-spec).
-- **The ogre resting pose** (item 25's bench ogre) — HOLD: the cheap
-  LEAN shipped with entry 5 (existing bones, patron-body's lean pose
-  held at the bench); dispatch a pose-baked seated variant ONLY if
-  the visionary's eye rules the lean short (no leg bones — a true
-  sit is mesh work).
+- **The ogre SITTING animation** (item 25's bench ogre) — the lean
+  audition FAILED the eye (2026-07-12: a sustained lean reads
+  off-putting; removed — he stands for now). The path is a real
+  sitting pose/animation: the rigs have no leg bones, so a true sit
+  is mesh work (a pose-baked seated variant or a new-bones pass) —
+  needs its own asset session, not a quick fleet row.
 - The lighting pass (item 17) is NOT fleet work — it's a build
   session (scene.ts + perf gate) — but fleet props should be
   authored knowing shadows are coming.
