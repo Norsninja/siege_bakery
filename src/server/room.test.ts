@@ -1079,16 +1079,17 @@ describe("Room: the match, headless over protocol", () => {
     expect(bob.last("welcome")?.toppings.map((t) => t.topping)).toEqual(["lime"]);
   });
 
-  it("the clock is authoritative — and the Patron BURNS it: the order dies EARLY", () => {
+  it("the clock is authoritative and RELIABLE — patience no longer burns it (plans/22 step 6)", () => {
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
-    const nominal = ORDER_SECONDS * 60;
-    // Untouched machine: no player, no mess — the Giant just grumbles, and
-    // each grumble burns PATIENCE_BURN_GRUMBLE_S off the clock. Tick one at
-    // a time until the order ends, counting how long it ACTUALLY survived.
+    // The order deals rung 1 solo, so its base is the reliable clock times
+    // the tutorial's soloClock stretch — no patience drain, no earned time
+    // (an untouched machine paints nothing). Tick one at a time until it
+    // ends, counting how long it ACTUALLY survived.
+    const base = Math.round(rungRow(1).clockSeconds * rungRow(1).soloClock * 60);
     let elapsed = 0;
-    const cap = nominal + 60 * 60; // a generous ceiling; it must end first
+    const cap = base + 60 * 60; // a generous ceiling; it must end first
     while (elapsed < cap) {
       room.tick();
       elapsed++;
@@ -1098,19 +1099,17 @@ describe("Room: the match, headless over protocol", () => {
     const ended = a.last("order");
     expect(ended?.order.status).toBe("lost");
     expect(ended?.order.ticksLeft).toBe(0);
-    // The clock died first: the verdict rides along, and it's the sad kind.
+    // The clock died: the verdict rides along, and it's the sad kind.
     expect(ended?.judgment?.met).toBe(false);
     expect(ended?.judgment?.stars).toBe(0);
-    // THE REAL PREDICATE (audit 2026-07-06): patience was burned, so the
-    // order died MEASURABLY before nominal — deterministically 240s of the
-    // nominal 300 (60s burned). The OLD assertion (patron.length > 2)
-    // passed on the 12s look cadence alone and never measured "early":
-    // delete the burning and `elapsed` is exactly `nominal`, which this now
-    // catches. 30s is the safe floor against the seeded whim variance.
-    expect(elapsed).toBeLessThan(nominal - 30 * 60);
-    // ...but it did not die instantly for some unrelated reason.
-    expect(elapsed).toBeGreaterThan(60 * 60);
-    // And everyone still heard the Giant on the way down.
+    // THE INVERSION (plans/22 step 6): the reliable clock ran its FULL base
+    // — patience no longer steals seconds. Under the old lie the Giant's
+    // grumbles burned ~60s (3600 ticks) off; now the order dies at its base
+    // (± the one-tick deal/observe fencepost). A residual drain would miss
+    // by hundreds of ticks — this pins that it's gone.
+    expect(Math.abs(elapsed - base)).toBeLessThanOrEqual(1);
+    // And everyone still heard the Giant on the way down (voice unchanged;
+    // his impatience is dormant now, captured for the realm's favor, step 8).
     expect(a.all("patron").length).toBeGreaterThan(2);
   });
 

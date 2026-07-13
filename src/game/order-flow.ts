@@ -25,7 +25,13 @@ import {
 } from "./judgment";
 import { createOrder, tickOrder, type OrderState } from "./order";
 import { createGiant, type Patron } from "./patron";
-import { CREW_LABOR, ORDER_RESET_TICKS, PATRON_LOOK_EVERY } from "./tuning";
+import {
+  CREW_LABOR,
+  EARNED_TIME_CAP_S,
+  EARNED_TIME_PER_SAMPLE_S,
+  ORDER_RESET_TICKS,
+  PATRON_LOOK_EVERY,
+} from "./tuning";
 
 /** THE HONEST ORDER (plans/07 phase O), per-rung since the ladder went
  * live (plans/13 slice 4) — the decorating truth as a ticket: frost the
@@ -138,6 +144,15 @@ export class OrderFlow {
   private looks = 0;
   private prevMess = 0;
   private endedTicks = 0;
+  /** EARNED TIME (plans/22 step 6): cumulative ticks this order has earned
+   * from fresh coverage, held to enforce EARNED_TIME_CAP_S. Resets each
+   * deal. */
+  private earnedTicks = 0;
+  /** THE PATIENCE DEBT (plans/22 step 6, DORMANT until step 8): patience no
+   * longer drains the clock — the Giant's impatience accumulates here (as
+   * positive seconds burned) for the realm's-favor payout to spend. Nothing
+   * reads it yet; the signal is captured, not dropped. Resets each deal. */
+  private patienceDebtSeconds = 0;
 
   constructor() {
     // The dormant lobby order is the next run's rung 1 (plans/13).
@@ -194,6 +209,34 @@ export class OrderFlow {
     return this.shots;
   }
 
+  /** THE PATIENCE DEBT (plans/22 step 6): seconds of impatience the Giant
+   * has burned this order — DORMANT until step 8 (the realm's favor reads
+   * it to move the payout, never the clock). Zero on a fresh deal. */
+  get patienceDebt(): number {
+    return this.patienceDebtSeconds;
+  }
+
+  /** EARNED TIME (plans/22 step 6 — the reliable clock's one positive
+   * force): fresh cake coverage buys clock. The Room calls this from the
+   * scoring phase with the tick's FRESH sample count (newly painted, the
+   * coverage delta). Adds EARNED_TIME_PER_SAMPLE_S per fresh sample, capped
+   * at EARNED_TIME_CAP_S cumulative this order — a saturated cake earns
+   * nothing, so a coasting line runs the base out and the round ends
+   * naturally (§2.5). No-op off a running order (the clock only grows while
+   * it ticks) or once the cap is hit. Returns the seconds actually granted. */
+  earnTime(freshSamples: number): number {
+    if (this.order.status !== "running" || freshSamples <= 0) return 0;
+    const capTicks = Math.round(EARNED_TIME_CAP_S * 60);
+    const grant = Math.min(
+      Math.round(freshSamples * EARNED_TIME_PER_SAMPLE_S * 60),
+      capTicks - this.earnedTicks,
+    );
+    if (grant <= 0) return 0;
+    this.earnedTicks += grant;
+    this.order = { ...this.order, ticksLeft: this.order.ticksLeft + grant };
+    return grant / 60;
+  }
+
   noteShot(): void {
     this.shots++;
   }
@@ -231,15 +274,13 @@ export class OrderFlow {
     });
     this.prevMess = mess;
     this.looks++;
-    if (act.patienceDeltaSeconds !== 0) {
-      // Patience IS the clock. Clamp to one tick — the loss itself must
-      // arrive through tickOrder, so the ending broadcast stays singular.
-      const ticksLeft = Math.max(
-        1,
-        this.order.ticksLeft + Math.round(act.patienceDeltaSeconds * 60),
-      );
-      this.order = { ...this.order, ticksLeft };
-    }
+    // PATIENCE IS DORMANT (plans/22 step 6): it no longer touches the clock
+    // — the reliable clock has ONE force, earned time (§2.6). The Giant's
+    // impatience is CAPTURED here (burns are negative; store them positive)
+    // for step 8's realm's favor to spend on the PAYOUT. His voice is
+    // unchanged; the debt just sits until then.
+    if (act.patienceDeltaSeconds < 0)
+      this.patienceDebtSeconds += -act.patienceDeltaSeconds;
     return { utterance: act.utterance };
   }
 
@@ -257,6 +298,8 @@ export class OrderFlow {
     this.orderTicks = 0;
     this.looks = 0;
     this.prevMess = 0;
+    this.earnedTicks = 0; // a fresh order earns its own time (step 6)
+    this.patienceDebtSeconds = 0; // and owes its own favor (step 8)
     this.order = this.freshOrder(row);
   }
 

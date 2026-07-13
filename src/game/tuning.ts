@@ -24,13 +24,26 @@
  * is PROVISIONAL — tune against a real run (the star thresholds and the
  * earned-time/clock re-derivation land through plans/22 steps 4/6).
  *
- * ── The effective clock ───────────────────────────────────────────────
- * The order NOMINALLY runs ORDER_SECONDS, but patience IS the clock: the
- * Giant looks every PATRON_LOOK_EVERY ticks and his idle grumble burns
- * PATIENCE_BURN_GRUMBLE_S each look (thunder/urgency burn more/less, whims
- * burn nothing). With grumbles on most looks the EFFECTIVE clock is about
- *   ORDER_SECONDS − (ORDER_SECONDS / 12) · ~3.3s  ≈  0.7–0.8 · nominal
- * (~225s of the nominal 300 today). Budget shot counts against THAT.
+ * ── The reliable clock + earned time (plans/22 step 6, SUPERSEDES the
+ *    effective-clock lie below) ─────────────────────────────────────────
+ * Patience NO LONGER drains the clock (the redesign's §0 disease: the
+ * secret drain made the number lie). The clock now has ONE force —
+ * EARNED TIME: it ticks UP as you paint FRESH cake coverage (the coverage
+ * delta, not the splat footprint — a re-coat earns nothing), capped at
+ * EARNED_TIME_CAP_S per order. Modest honest base + earn the rest: a
+ * productive line stays alive while it improves the cake and ends when the
+ * cake saturates (no fresh coverage → no time); a coasting line just runs
+ * the base out. Patience moved to the PAYOUT (the realm's favor, step 8) —
+ * it's captured dormant (OrderFlow.patienceDebt) until then; the Giant
+ * still grumbles, it just costs no clock.
+ *
+ * The base clocks (campaign.ts clockSeconds) were RE-DERIVED to the honest
+ * effective number — the old nominal × ~0.72 (the patience derating, now
+ * baked in and retired as a hidden factor). So a zero-earning line gets
+ * exactly today's effective clock (nobody worse off), and earned time is
+ * pure upside. HISTORICAL (the retired lie): the order nominally ran
+ * ORDER_SECONDS but patience drained it to ≈0.72 × nominal (~216s of the
+ * old nominal 300 on the anchor). All PROVISIONAL — tune against a real run.
  *
  * ── The shot cycle and the pass budget ────────────────────────────────
  * A full solo shot ≈ pantry round-trip + load + crank (CRANK_SECONDS_PER_
@@ -58,12 +71,15 @@
  */
 import { FIXED_DT } from "../core/constants";
 
-/** Nominal order clock, seconds. ANCHOR REFERENCE since the ladder went
- * live (plans/13 slice 4): the LIVE game reads each rung's clockSeconds
- * from game/campaign.ts RUNGS — this constant is rung 3's number, pinned
- * equal there (campaign.test.ts). Edit the ladder, not this.
- * (See effective-clock note above — patience is the real clock.) */
-export const ORDER_SECONDS = 300;
+/** THE RELIABLE base clock, seconds (plans/22 step 6 — RE-DERIVED from the
+ * old nominal 300 × 0.72, the retired patience derating). ANCHOR REFERENCE
+ * since the ladder went live (plans/13 slice 4): the LIVE game reads each
+ * rung's clockSeconds from game/campaign.ts RUNGS — this constant is rung
+ * 3's number, pinned equal there (campaign.test.ts). Edit the ladder, not
+ * this. The anchor-verbatim law for the CLOCK is superseded here (as step 4
+ * superseded it for coverage): patience no longer drains, so the base IS
+ * the honest number, and earned time adds on top. */
+export const ORDER_SECONDS = 216;
 /** Shots for full waste credit — a good line's count, not a perfect one:
  * ~20 frost + 2 sprinkles + 1 crown + slack (plans/08 math above).
  * ANCHOR REFERENCE (slice 4): the live game reads each rung's parShots
@@ -81,6 +97,23 @@ export const ORDER_PAR_SHOTS = 24;
 export const ORDER_RESET_TICKS = 1080; // 18s
 /** The Patron looks at the cake every N ticks of ORDER time (12s). */
 export const PATRON_LOOK_EVERY = Math.round(12 / FIXED_DT);
+
+/** EARNED TIME (plans/22 step 6 — THE reliable clock's one positive force):
+ * seconds of clock added per FRESH census sample newly painted (the
+ * coverage delta from FrostingField.paint, not the splat footprint — a
+ * re-coat over frosted skin earns nothing). PROVISIONAL, priced off
+ * research/21: the optimal marginal rate is ~0.5 fresh samples/s late-curve,
+ * and a productive line should roughly sustain then lose ground as the cake
+ * saturates. At 2s/sample an early splat on a naked cake banks ~15–20s
+ * (~7–12 fresh), a late one ~4–6s — the sustain-then-die shape §2.5 wants.
+ * THE tuning dial for "how long a good line lives"; tune against a real run. */
+export const EARNED_TIME_PER_SAMPLE_S = 2;
+/** The earned-time CAP, seconds — cumulative PER ORDER (plans/22 §2.5's
+ * backstop against a flawless crew painting forever). Loose by design:
+ * research/21's optimal solo ceiling is ~34–51% within 420s, so +120s over
+ * a modest base never bites normal play — it only kills the degenerate
+ * paint-forever case. A pure ceiling, not a live constraint. */
+export const EARNED_TIME_CAP_S = 120;
 
 /** THE ECONOMY's dials (plans/13 §5 as amended 2026-07-09 — the
  * shop-sells-infrastructure amendment). Both are feel-pass hypotheses,

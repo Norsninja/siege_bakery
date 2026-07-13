@@ -237,13 +237,26 @@ export class FrostingField {
   }
 
   /** Apply one paint event (a paint topping's first impact), under the
-   * topping's splat law (default: the frosting classic). Returns how many
-   * sample points it painted — 0 means floor frosting (mess). */
-  paint(impact: Vec3, speed: number, spec: SplatSpec = DEFAULT_SPLAT): number {
+   * topping's splat law (default: the frosting classic). Returns the
+   * FOOTPRINT (how many sample points it painted — 0 means floor frosting,
+   * mess) AND the FRESH count (samples that crossed from unpainted to
+   * painted THIS splat — the coverage delta, plans/22 step 6). Fresh ≤
+   * footprint; a re-coat over already-frosted skin adds a coat but zero
+   * fresh. Earned time buys clock off FRESH only, so a saturated cake earns
+   * nothing and the round ends naturally (plans/22 §2.5). */
+  paint(
+    impact: Vec3,
+    speed: number,
+    spec: SplatSpec = DEFAULT_SPLAT,
+  ): { footprint: number; fresh: number } {
     const hit = splatSamples(this.samples, impact, speed, spec);
     const add = splatCoats(speed, spec);
-    for (const i of hit) this.coats[i]! += add;
-    return hit.length;
+    let fresh = 0;
+    for (const i of hit) {
+      if (this.coats[i]! === 0) fresh++;
+      this.coats[i]! += add;
+    }
+    return { footprint: hit.length, fresh };
   }
 
   /** Fraction of the cake's sampled skin under at least one coat (0..1). */

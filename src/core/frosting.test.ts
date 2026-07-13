@@ -105,7 +105,9 @@ describe("the paint law", () => {
   it("a splash paints more points than a dollop at the same spot", () => {
     const a = new FrostingField(SAMPLES);
     const b = new FrostingField(SAMPLES);
-    expect(b.paint(SUMMIT, HOT)).toBeGreaterThan(a.paint(SUMMIT, GENTLE));
+    expect(b.paint(SUMMIT, HOT).footprint).toBeGreaterThan(
+      a.paint(SUMMIT, GENTLE).footprint,
+    );
   });
 
   it("paints one story: summit spray never reaches the bottom tier or its wall", () => {
@@ -125,8 +127,8 @@ describe("the paint law", () => {
     // within ~half a meter of the foot forgives; farther is honest mess.
     const field = new FrostingField(SAMPLES);
     const foot = { x: 0, y: 0.3, z: CAKE_Z + TIERS[0]!.radius + 0.3 };
-    const painted = field.paint(foot, GENTLE);
-    expect(painted).toBeGreaterThan(0);
+    const { footprint } = field.paint(foot, GENTLE);
+    expect(footprint).toBeGreaterThan(0);
     for (let i = 0; i < SAMPLES.length; i++) {
       if (field.coatAt(i) > 0) expect(SAMPLES[i]!.normal.y).toBe(0); // walls only
     }
@@ -134,8 +136,21 @@ describe("the paint law", () => {
 
   it("a glob that reaches no sample paints nothing — floor frosting", () => {
     const field = new FrostingField(SAMPLES);
-    expect(field.paint({ x: 0, y: 0.3, z: 0 }, HOT)).toBe(0);
+    expect(field.paint({ x: 0, y: 0.3, z: 0 }, HOT).footprint).toBe(0);
     expect(field.coverage()).toBe(0);
+  });
+
+  it("fresh counts only NEW samples — a re-coat over painted skin earns none", () => {
+    // The earned-time delta (plans/22 step 6): a naked cake paints all-fresh;
+    // the SAME splat again adds a coat but zero fresh — a saturated cake
+    // yields no fresh coverage, so the round ends naturally (§2.5).
+    const field = new FrostingField(SAMPLES);
+    const first = field.paint(SUMMIT, HOT);
+    expect(first.fresh).toBeGreaterThan(0);
+    expect(first.fresh).toBe(first.footprint); // every touched sample is new
+    const again = field.paint(SUMMIT, HOT); // same spot, already frosted
+    expect(again.footprint).toBe(first.footprint); // same reach
+    expect(again.fresh).toBe(0); // nothing crossed 0→>0
   });
 });
 

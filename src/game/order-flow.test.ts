@@ -15,6 +15,8 @@ import {
 } from "./order-flow";
 import {
   CREW_LABOR,
+  EARNED_TIME_CAP_S,
+  EARNED_TIME_PER_SAMPLE_S,
   FLOOR_COVERAGE,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
@@ -98,7 +100,7 @@ describe("OrderFlow", () => {
   it("dealFresh prices the GIVEN row — clock and asks climb with the rung", () => {
     const flow = new OrderFlow();
     flow.dealFresh(rungRow(3));
-    expect(flow.order.ticksLeft).toBe(ORDER_SECONDS * 60); // the anchor's 300s
+    expect(flow.order.ticksLeft).toBe(ORDER_SECONDS * 60); // the anchor's 216s (reliable clock)
     expect(flow.order.parShots).toBe(rungRow(3).parShots.solo); // 24
     expect(flow.order.requirements).toEqual(standardRequirements());
   });
@@ -135,14 +137,54 @@ describe("OrderFlow", () => {
   });
 
   it("THE CLOCK RELIEF (item 26 menu b): rung 1 carries real tutorial slack", () => {
-    // "A fumbling first-timer feeds the ogre while learning the winch" —
-    // 180 s territory + the 1.25 solo stretch, ruled. Rung 1 is NOT the
-    // anchor; the row edit is legal, and pressure is rung 2+'s job
-    // (rung 2 still says 210, and its solo factor is the honest 1.0).
-    expect(rungRow(1).clockSeconds).toBe(180);
+    // "A fumbling first-timer feeds the ogre while learning the winch" — the
+    // 1.25 solo stretch on a gentle base, ruled. The base RE-DERIVED to the
+    // reliable clock (plans/22 step 6: nominal × 0.72, patience no longer
+    // drains): rung 1 = 130 (was 180), rung 2 = 150 (was 210); the tutorial
+    // slack now rides soloClock, and earned time carries a good line further.
+    expect(rungRow(1).clockSeconds).toBe(130);
     expect(rungRow(1).soloClock).toBe(1.25);
-    expect(rungRow(2).clockSeconds).toBe(210);
+    expect(rungRow(2).clockSeconds).toBe(150);
     expect(rungRow(2).soloClock).toBe(1.0);
+  });
+
+  it("EARNED TIME (step 6): fresh coverage buys clock, zero-fresh earns nothing, capped", () => {
+    const flow = new OrderFlow();
+    flow.dealFresh(rungRow(3));
+    const base = flow.order.ticksLeft;
+    // Each fresh sample buys EARNED_TIME_PER_SAMPLE_S of clock.
+    const got = flow.earnTime(5);
+    expect(got).toBe(5 * EARNED_TIME_PER_SAMPLE_S);
+    expect(flow.order.ticksLeft).toBe(
+      base + Math.round(5 * EARNED_TIME_PER_SAMPLE_S * 60),
+    );
+    // A re-coat (zero fresh) earns nothing — a saturated cake ends the round.
+    expect(flow.earnTime(0)).toBe(0);
+    // THE CAP: pour in far more than EARNED_TIME_CAP_S worth; grants stop and
+    // cumulative earned never exceeds the cap.
+    const flood = Math.ceil(EARNED_TIME_CAP_S / EARNED_TIME_PER_SAMPLE_S) + 100;
+    flow.earnTime(flood);
+    const capped = flow.order.ticksLeft;
+    expect(capped - base).toBeLessThanOrEqual(Math.round(EARNED_TIME_CAP_S * 60));
+    expect(flow.earnTime(50)).toBe(0); // already at the cap
+    expect(flow.order.ticksLeft).toBe(capped);
+    // A FRESH deal earns its own time — the cap resets.
+    flow.dealFresh(rungRow(3));
+    expect(flow.earnTime(3)).toBe(3 * EARNED_TIME_PER_SAMPLE_S);
+  });
+
+  it("PATIENCE IS DORMANT (step 6): a look no longer drains the clock; the debt accrues", () => {
+    const flow = new OrderFlow();
+    flow.activeCrew = 1;
+    flow.dealFresh(rungRow(1));
+    const before = flow.order.ticksLeft;
+    // Look until the Giant grumbles (a burn) — the clock must NOT move.
+    for (let i = 0; i < 10; i++) flow.patronLook([], [], 3);
+    expect(flow.order.ticksLeft).toBe(before); // patience touches no clock
+    expect(flow.patienceDebt).toBeGreaterThan(0); // captured for step 8
+    // A fresh deal owes its own favor.
+    flow.dealFresh(rungRow(1));
+    expect(flow.patienceDebt).toBe(0);
   });
 
   it("par picks the duo column when the second town is active", () => {

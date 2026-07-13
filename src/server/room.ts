@@ -401,6 +401,13 @@ export class Room {
   private tickScoringPhase(): void {
     const ev = this.shots.step(this.world, this.dessert);
     const groups = new Map<string, { topping: string; onCake: boolean; count: number }>();
+    // EARNED TIME (plans/22 step 6): fresh cake coverage this tick buys
+    // clock. Accumulated across the paint impacts below (they land even in
+    // the sandbox — the field paints regardless), but only SPENT on a live
+    // order (the running gate + earnTime's own guard). Off-cake paint hits
+    // no census sample, so it contributes zero fresh — floor frosting earns
+    // no time, exactly like it scores nothing.
+    let freshThisTick = 0;
     const note = (topping: string, onCake: boolean): void => {
       const k = `${topping}|${onCake ? 1 : 0}`;
       const g = groups.get(k);
@@ -415,7 +422,8 @@ export class Room {
       if (!isPaint(im.topping)) continue;
       if (im.tag !== this.flow.deal) continue; // fired against a previous order
       const spec = TOPPINGS[im.topping]?.splat;
-      const painted = this.frosting.paint(im.pos, im.speed, spec);
+      const { footprint, fresh } = this.frosting.paint(im.pos, im.speed, spec);
+      freshThisTick += fresh;
       // BURIAL (conversion law, plans/10 §8): stuck sprinkles under this
       // splat's footprint are covered — IN the cake now, not on it. Their
       // records leave the ledger and the count drops; the checks riding
@@ -423,8 +431,8 @@ export class Room {
       this.settled = this.settled.filter(
         (s) => !(s.stuck && splatCovers(s.pos, im.pos, im.speed, spec)),
       );
-      this.settled.push({ topping: im.topping, pos: im.pos, onCake: painted > 0 });
-      note(im.topping, painted > 0);
+      this.settled.push({ topping: im.topping, pos: im.pos, onCake: footprint > 0 });
+      note(im.topping, footprint > 0);
     }
     // Solids land at REST — scoring truth unchanged. A stale solid still
     // litters the world (its body landed); it just counts for nothing.
@@ -461,6 +469,11 @@ export class Room {
     // dormant order must not advance before the run starts. startRun's
     // fresh deal wipes the cake and the ledger anyway.
     if (this.run.phase !== "running") return;
+    // EARNED TIME lands here (plans/22 step 6), before the broadcast so the
+    // `scored` order carries the risen ticksLeft (the client's authoritative
+    // clock; the "+Ns" pop-up is client-local juice off its own frosting
+    // twin). No-op off a running order or at the cap (earnTime guards both).
+    if (freshThisTick > 0) this.flow.earnTime(freshThisTick);
     // THE DESIRE'S LIVE CHECKMARK (slice 4b): ledger truth for the HUD's
     // golden row, refreshed before this tick's broadcasts carry the order.
     // Presentation only — every VERDICT re-reads the ledger at its own

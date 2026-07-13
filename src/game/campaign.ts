@@ -154,22 +154,25 @@ export interface Rung {
 export const RUNGS: readonly Rung[] = [
   // 1 — the humble cake: teaches machine + frost. No sprinkles, no
   // flourish: one ask, one lesson (gentle by design, plans/13 §4).
-  // 150 → 180 (THE CLOCK RELIEF, plans/15 item 26 menu (b), 2026-07-12):
-  // rung 1's standard is "a fumbling first-timer feeds the ogre while
-  // learning the winch" — real slack, not a shave; pressure is rung
-  // 2+'s job. NOT the anchor (rung 3 is); the row edit is legal.
-  // soloClock 1.25 — THE TUTORIAL RELIEF (item 26 addendum): rung 1
-  // alone gets the clock stretch; a first-timer learns the winch here.
-  { spec: "cake-1", clockSeconds: 180, soloClock: 1.25, asks: { floorCoverage: 0.08, sprinkles: 0, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
-  // 2 — teaches the ledge and the burst; still no flourish. soloClock
-  // 1.0: the honest row (the flat 1.25 over-relieved this by ~a minute,
-  // measured — item 26 addendum; pressure is rung 2+'s job).
-  { spec: "cake-2", clockSeconds: 210, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 40, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
-  // 3 — THE ANCHOR: clock/par/sprinkles/pay verbatim (300s, 60 grains,
-  // solo par 24). COVERAGE re-based to absolute (plans/22 step 4 supersedes
-  // the anchor-verbatim law for coverage): the flat 8% floor + 18/35 tiers,
-  // no longer the of-potential 0.5/0.7/0.9.
-  { spec: "cake-3", clockSeconds: 300, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
+  // clockSeconds RE-DERIVED to the reliable clock (plans/22 step 6): the
+  // old nominal 180 × 0.72 (patience no longer drains) ≈ 130; earned time
+  // adds on top for a productive line. soloClock 1.25 STAYS — THE TUTORIAL
+  // RELIEF (item 26 addendum): rung 1 alone gets the base stretch (earned
+  // time crew-scales toward a crew, so solo still needs base relief;
+  // plans/22 §2.8). A first-timer learns the winch here.
+  { spec: "cake-1", clockSeconds: 130, soloClock: 1.25, asks: { floorCoverage: 0.08, sprinkles: 0, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
+  // 2 — teaches the ledge and the burst; still no flourish. soloClock 1.0:
+  // the honest row (item 26: the flat 1.25 over-relieved this — the fold-in
+  // plans/22 §2.8 names; nothing to re-relieve, it was already 1.0).
+  // clockSeconds re-derived: 210 × 0.72 ≈ 150 (the reliable clock, step 6).
+  { spec: "cake-2", clockSeconds: 150, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 40, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
+  // 3 — THE ANCHOR: par/sprinkles/pay verbatim (60 grains, solo par 24).
+  // CLOCK re-derived to the reliable number (plans/22 step 6 supersedes the
+  // anchor-verbatim law for the clock, as step 4 did for coverage): 300 ×
+  // 0.72 = 216 (the old effective, patience baked in and retired). COVERAGE
+  // is the flat 8% floor + 18/35 tiers (step 4), not the of-potential
+  // 0.5/0.7/0.9.
+  { spec: "cake-3", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
   // 4 — THE CUPCAKE: tiny census (68), so the frost ask is samples-few
   // but every miss is floor waste; sprinkles must land on a 1.2m disc;
   // the flourish's 8 windows all arrive hot (header finding). Short
@@ -178,16 +181,16 @@ export const RUNGS: readonly Rung[] = [
   // BESPOKE coverage tiers (plans/22 step 4): the cupcake is tiny and
   // fully reachable (solo covers 75–91%, research/21) — an absolute-flat
   // floor would gift 3★, so its floor + tiers ride high (55/70/85).
-  { spec: "cupcake", clockSeconds: 150, soloClock: 1.0, asks: { floorCoverage: 0.55, sprinkles: 30, crown: true }, stars: { two: 0.70, three: 0.85 }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
+  { spec: "cupcake", clockSeconds: 108, soloClock: 1.0, asks: { floorCoverage: 0.55, sprinkles: 30, crown: true }, stars: { two: 0.70, three: 0.85 }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
   // 5 — the climb begins: 701 census, 7 flourish windows.
-  { spec: "cake-4", clockSeconds: 300, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
+  { spec: "cake-4", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
   // 6 — the heroic flourish: FOUR windows (three PLACE at c8n1–3), the
   // last rung the flourish can honestly be offered on.
-  { spec: "cake-5", clockSeconds: 330, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
+  { spec: "cake-5", clockSeconds: 238, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
   // 7 — the top of the ladder. Winnable by WORKLOAD (barely): MASTER
   // BAKER. The flourish stands over a summit no shipped combo reaches —
   // the ULTRA ask, sold by the future economy (§1 amendment).
-  { spec: "cake-6", clockSeconds: 360, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
+  { spec: "cake-6", clockSeconds: 259, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1
