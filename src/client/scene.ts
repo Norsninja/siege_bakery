@@ -631,6 +631,17 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   });
   const townInteractables: Array<Record<InteractableKind, THREE.Mesh[]>> = [];
   const stallSlabs: THREE.Mesh[][] = [];
+  // THE HIGHLIGHT FOLLOWS THE DRESS (2026-07-12): when a greybox
+  // interactable is dressed with a GLB, the invisible proxy keeps
+  // CATCHING the crosshair (raycast, the dish-proxy law) but the GLOW
+  // must move to the visible model — else pointing at a dressed prop
+  // detects with no light (the regression the visionary caught on the
+  // stall). Per town, per kind: the meshes setHighlight actually glows,
+  // overriding the greybox when a dress registers here. The pattern the
+  // pantry/future dresses reuse. */
+  const townGlow: Array<Partial<Record<InteractableKind, THREE.Mesh[]>>> =
+    TOWNS.map(() => ({}));
+  let boundTown = 0;
   for (let ti = 0; ti < TOWNS.length; ti++) {
     const t = TOWNS[ti]!;
     const rig = new MachineRig(scene, t.base, t.facingDeg);
@@ -685,15 +696,29 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // stall IS the solid bakers lean on. The greybox retires by VISIBILITY,
   // never disposal — the invisible proxies still catch the crosshair (the
   // dish-proxy law above), and null from the seam keeps them forever.
+  // THE GLOW FOLLOWS (2026-07-12): each town's dressed clone registers as
+  // that town's "shop" highlight target (materials cloned per town so one
+  // fort's glow never lights another's shared material), then the current
+  // town re-binds so the crosshair lights the WOOD, not the hidden box.
   void loadModel("stall").then((t) => {
     if (!t) return;
-    for (const p of stallPlacements(TOWNS)) {
+    stallPlacements(TOWNS).forEach((p, i) => {
       const m = t.clone();
+      const glow: THREE.Mesh[] = [];
+      m.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        o.material = (o.material as THREE.Material).clone(); // per-town glow
+        glow.push(o);
+      });
       m.position.set(p.x, 0, p.z);
       m.rotation.y = p.rotY;
       scene.add(m);
-    }
+      townGlow[i]!.shop = glow;
+    });
     for (const meshes of stallSlabs) for (const m of meshes) m.visible = false;
+    // No re-bind needed: setHighlight resolves townGlow live each frame,
+    // so the next crosshair tick lights the wood. Raycast is unchanged —
+    // still the invisible proxies (the dish-proxy law holds).
   });
 
   // The gate panels — the greybox portcullis. Hidden while a gate stands
@@ -752,15 +777,22 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     },
     setDessert,
     setHighlight(kind: InteractableKind | null): void {
-      for (const meshes of Object.values(gs.interactables))
-        for (const m of meshes)
+      // Glow the VISIBLE surface for each kind: the dressed GLB where a
+      // dress registered one (townGlow), else the greybox proxy itself.
+      // Raycast still rides gs.interactables (the proxy); only the light
+      // moved to the model (the highlight-follows-the-dress law above).
+      const glowOf = (k: InteractableKind): THREE.Mesh[] =>
+        townGlow[boundTown]?.[k] ?? gs.interactables[k];
+      for (const k of Object.keys(gs.interactables) as InteractableKind[])
+        for (const m of glowOf(k))
           (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x000000);
       if (kind)
-        for (const m of gs.interactables[kind])
+        for (const m of glowOf(kind))
           (m.material as THREE.MeshStandardMaterial).emissive.setHex(0x443300);
     },
     bindTown(t: number): void {
       gs.setHighlight(null); // drop any glow on the old town's gear
+      boundTown = t;
       gs.interactables = townInteractables[t] ?? townInteractables[0]!;
       // THE CROSSHAIR SPEAKS ONLY TO THE PANTRY LOOP while the gun crew
       // runs (plans/14; review 2026-07-08): the machine's controls leave
