@@ -2,11 +2,11 @@
  * The order lifecycle — an EXPLICIT state machine (Room.tick decomp,
  * research/05 parked item 4; built 2026-07-05). One order's life:
  *
- *   RUNNING --clock dies--> ENDED --linger ORDER_RESET_TICKS--> lingerOver
- *      \--last row met + score (via evaluateOrder, Room writes back)--^
- *   (the ROOM deals fresh at lingerOver — it must run orderConcluded
- *   first, so the deal prices the rung the ladder just climbed to;
- *   plans/13 slice 4)
+ *   RUNNING --clock dies (or serve, later)--> ENDED --linger ORDER_RESET_TICKS--> lingerOver
+ *   (grade-at-the-buzzer, plans/22 step 3: meeting the rows no longer ends
+ *   the order — the Room JUDGES at conclusion, clock-expiry today. The ROOM
+ *   deals fresh at lingerOver — it must run orderConcluded first, so the
+ *   deal prices the rung the ladder just climbed to; plans/13 slice 4)
  *
  * OrderFlow owns everything whose lifetime IS the deal: the order, the
  * shot count (waste axis), the deal generation tag, the patron and his
@@ -130,9 +130,10 @@ export type FlowEvent =
   | "finishOver";
 
 export class OrderFlow {
-  /** The live order. The Room writes evaluateOrder results and patron
-   * amendments back here — one owner of the object, many writers of the
-   * reference, same as the pre-decomp field. */
+  /** The live order. The Room writes the buzzer verdict's status flip and
+   * patron amendments back here — one owner of the object, many writers of
+   * the reference, same as the pre-decomp field. (evaluateOrder is
+   * check-only since the flip — it no longer writes a conclusion back.) */
   order: OrderState;
   /** How many towns the NEXT deal is priced for (plans/11 §6). The Room
    * writes it when the second town activates; the RUNNING order keeps the

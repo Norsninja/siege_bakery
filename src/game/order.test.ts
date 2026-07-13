@@ -1,13 +1,18 @@
 /**
- * Order law with rows: every row met while the clock runs → won; the clock
- * dying first → lost; the Patron may mutate the rows mid-order.
+ * Order law with rows (grade-at-the-buzzer, plans/22 step 3): meeting the
+ * rows leaves the order RUNNING — `evaluateOrder` is CHECK-ONLY now. The
+ * clock's death is the conclusion, and the verdict (`judge`) is rendered at
+ * the buzzer, by the Room (server/room.ts concludeOrder). These tests pin
+ * the check-only census + the clock; the judge outcomes are exercised
+ * directly (the judge logic is unchanged — only WHEN it runs moved). The
+ * Patron may still mutate the rows mid-order.
  */
 import { describe, it, expect } from "vitest";
 import { CAKE_Z } from "../core/arena";
 import { CAKE_3, dessertGeometry } from "../core/dessert";
 import { buildCensus, FrostingField } from "../core/frosting";
 import { createOrder, tickOrder, evaluateOrder } from "./order";
-import type { Requirement, SettledTopping } from "./judgment";
+import { judge, type Requirement, type SettledTopping } from "./judgment";
 
 // The spec refactor (plans/13 §3): the order judges against the deal's
 // geometry — cake-3 here, the anchor row.
@@ -52,7 +57,7 @@ describe("orders with rows", () => {
     const o = createOrder(rows(), 5400);
     expect(o.status).toBe("running");
     expect(o.ticksLeft).toBe(5400);
-    const { checks } = evaluateOrder(GEOM, o, [], naked(), 0);
+    const checks = evaluateOrder(GEOM, o, [], naked());
     expect(checks.every((c) => !c.met && c.current === 0)).toBe(true);
   });
 
@@ -66,27 +71,26 @@ describe("orders with rows", () => {
     expect(tickOrder(o).ticksLeft).toBe(0);
   });
 
-  it("some rows met is still running; ALL rows met renders the Judgment", () => {
+  it("meeting every row leaves the order RUNNING — the verdict waits for the buzzer", () => {
     const o = createOrder(rows(), 5400);
-    const partial = evaluateOrder(GEOM, o, [onCake("cherry"), onCake("cherry", -3.5)], naked(), 2);
-    expect(partial.checks[0]?.met).toBe(true);
-    expect(partial.state.status).toBe("running");
-    expect(partial.judgment).toBeUndefined();
-    // A clean bake, under par: both gates clear — delighted, full marks.
-    const full = evaluateOrder(GEOM, 
-      o,
-      [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
-      fullCoat(),
-      3,
-    );
-    expect(full.state.status).toBe("won");
-    expect(full.judgment?.met).toBe(true);
-    expect(full.judgment?.accepted).toBe(true);
-    expect(full.judgment?.score).toBe(100);
-    expect(full.judgment?.stars).toBe(3);
+    const partial = evaluateOrder(GEOM, o, [onCake("cherry"), onCake("cherry", -3.5)], naked());
+    expect(partial[0]?.met).toBe(true);
+    expect(o.status).toBe("running");
+    // ALL rows met no longer renders a verdict or ends the order (the flip):
+    const settled = [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")];
+    const allChecks = evaluateOrder(GEOM, o, settled, naked());
+    expect(allChecks.every((c) => c.met)).toBe(true);
+    expect(o.status).toBe("running"); // still running — the buzzer hasn't rung
+    // The Room judges at conclusion (concludeOrder → judge): a clean bake,
+    // under par, clears both gates — delighted, full marks.
+    const j = judge(GEOM, o, settled, fullCoat(), 3);
+    expect(j.met).toBe(true);
+    expect(j.accepted).toBe(true);
+    expect(j.score).toBe(100);
+    expect(j.stars).toBe(3);
   });
 
-  it("gate 2 refusal: every box ticked, but the floor wears most of it", () => {
+  it("gate 2 refusal at the buzzer: every box ticked, but the floor wears most of it", () => {
     const o = createOrder(rows(), 5400); // passScore 50
     const settled = [
       onCake("cherry"),
@@ -94,62 +98,49 @@ describe("orders with rows", () => {
       onSummit("lime"),
       ...Array.from({ length: 9 }, () => onFloor("cherry")),
     ];
-    const r = evaluateOrder(GEOM, o, settled, naked(), 24); // 12 toppings, 24 shots vs par 6
-    expect(r.judgment?.met).toBe(true); // you did what was asked...
-    expect(r.judgment?.accepted).toBe(false); // ...badly. REFUSED.
-    expect(r.state.status).toBe("lost");
-    expect(r.judgment?.stars).toBe(0);
+    // 12 toppings, 24 shots vs par 6 — the verdict is the Room's at the buzzer.
+    const j = judge(GEOM, o, settled, naked(), 24);
+    expect(j.met).toBe(true); // you did what was asked...
+    expect(j.accepted).toBe(false); // ...badly. REFUSED.
+    expect(j.stars).toBe(0);
   });
 
   it("floor cherries and lower-tier limes move no row", () => {
     const o = createOrder(rows(), 5400);
-    const { state, checks } = evaluateOrder(GEOM, 
+    const checks = evaluateOrder(
+      GEOM,
       o,
       [
         onFloor("cherry"),
         onCake("lime"), // on the cake but not the summit — no crown
       ],
       naked(),
-      2,
     );
     expect(checks.map((c) => c.current)).toEqual([0, 0]);
-    expect(state.status).toBe("running");
+    expect(o.status).toBe("running");
   });
 
   it("an empty order cannot win — nothing was asked", () => {
-    const { state } = evaluateOrder(GEOM, createOrder([], 5400), [], naked(), 0);
-    expect(state.status).toBe("running");
-  });
-
-  it("a finished order never un-finishes", () => {
-    const o = createOrder([{ kind: "count-on-cake", topping: "cherry", needed: 1 }], 5400);
-    const won = evaluateOrder(GEOM, o, [onCake("cherry")], naked(), 1).state;
-    expect(won.status).toBe("won");
-    expect(evaluateOrder(GEOM, won, [], naked(), 1).state.status).toBe("won"); // even re-censused empty
-    let lost = createOrder(rows(), 1);
-    lost = tickOrder(lost);
-    expect(
-      evaluateOrder(GEOM, 
-        lost,
-        [onCake("cherry"), onCake("cherry", -3.5), onSummit("lime")],
-        naked(),
-        3,
-      ).state.status,
-    ).toBe("lost");
+    const o = createOrder([], 5400);
+    expect(evaluateOrder(GEOM, o, [], naked())).toHaveLength(0);
+    // At the buzzer an empty order can't be met (no rows) — hungry, never won.
+    const j = judge(GEOM, o, [], naked(), 0);
+    expect(j.met).toBe(false);
+    expect(j.accepted).toBe(false);
   });
 
   it("the Patron may mutate rows mid-order: tightening un-meets, appending demands more", () => {
     const o = createOrder(rows(), 5400);
     const settled = [onCake("cherry"), onCake("cherry", -3.5)];
-    expect(evaluateOrder(GEOM, o, settled, naked(), 2).checks[0]?.met).toBe(true);
+    expect(evaluateOrder(GEOM, o, settled, naked())[0]?.met).toBe(true);
     // MORE. CHERRIES. (tighten row 0 in place — the array is deliberately mutable)
     const r0 = o.requirements[0];
     if (r0?.kind === "count-on-cake") r0.needed = 3;
-    const after = evaluateOrder(GEOM, o, settled, naked(), 2);
-    expect(after.checks[0]?.met).toBe(false);
-    expect(after.checks[0]?.target).toBe(3);
+    const after = evaluateOrder(GEOM, o, settled, naked());
+    expect(after[0]?.met).toBe(false);
+    expect(after[0]?.target).toBe(3);
     // ...IT NEEDS A CHERRY. ON THE VERY TOP. (append a row)
     o.requirements.push({ kind: "crown", topping: "cherry" });
-    expect(evaluateOrder(GEOM, o, settled, naked(), 2).checks).toHaveLength(3);
+    expect(evaluateOrder(GEOM, o, settled, naked())).toHaveLength(3);
   });
 });

@@ -476,25 +476,20 @@ export class Room {
     const desire = this.flow.order.desire;
     if (desire && this.flow.order.status === "running")
       desire.met = crownedWith(this.dessert, this.ledger(), desire.topping);
-    const r = evaluateOrder(
+    // THE BUZZER MODEL (plans/22 step 3): the scoring phase no longer
+    // concludes. Meeting the rows renders no verdict — the order runs to
+    // the clock (or, later, a serve), and the Judgment is the Room's at
+    // conclusion (concludeOrder). evaluateOrder is CHECK-ONLY now; this
+    // phase censuses the rows for the live HUD and broadcasts them, then
+    // gets out of the way. (The finish window is inert once the instant
+    // win is gone — its trigger lived exactly here; the machinery goes in
+    // step 5, the flourish already survives via stampFlourish at the buzzer.)
+    const checks = evaluateOrder(
       this.dessert,
       this.flow.order,
       this.ledger(), // earlier deliveries may have been shoved since
       this.frosting,
-      this.flow.shotsFired,
     );
-    if (r.judgment && r.judgment.accepted && desire && desire.revealed && !desire.met) {
-      // THE FINISH IT WINDOW OPENS (plans/13 §1, 2026-07-09): accepted +
-      // flourish rung (the desire exists) + reveal fired + desire unmet.
-      // r.state's status flip is NOT applied — the outcome is DECIDED,
-      // not ended: the base verdict freezes here unbroadcast, status
-      // stays "running" (gates shut, banner suppressed, clocks held),
-      // and the countdown rides the order onto this tick's `scored`.
-      this.pendingVerdict = r.judgment;
-      this.flow.openFinishWindow();
-    } else {
-      this.flow.order = r.state;
-    }
     for (const g of groups.values())
       this.roster.broadcast({
         t: "scored",
@@ -502,43 +497,29 @@ export class Room {
         onCake: g.onCake,
         ...(g.count > 1 ? { count: g.count } : {}),
         order: this.flow.order,
-        checks: r.checks,
+        checks,
       });
-    if (this.flow.order.finishTicksLeft > 0) {
-      // Landings while the window runs (evaluateOrder's finish guard
-      // yields checks only): the one question is the fatality — the
-      // moment the desire rests met, the window cuts to the payoff.
-      if (desire?.met) this.concludeFinishWindow();
-      return;
-    }
-    if (r.judgment) {
-      // The instant conclusion — every non-qualifying win/refusal renders
-      // exactly as it always has (coda stamped from the live ledger; a
-      // PRE-MET desire skips the window straight to verdict + flourish; a
-      // REFUSED order concludes lost, same as clock death). THE ONE
-      // CONCLUSION PATH (plans/22 step 2): the shared tail is concludeOrder.
-      this.concludeOrder(r.judgment, r.checks);
-    }
   }
 
-  /** THE ONE CONCLUSION PATH (plans/22 step 2, the safety refactor). Every
-   * order ending funnels its shared tail through here: freeze the verdict
-   * (stampFlourish stamps the coda from the live ledger — a no-op on a
-   * loss, whose desire never met), record HOW it ended for the run
-   * container, broadcast the ending word, and pay (awardPay gates on
-   * accepted — a no-op on a loss). The two callers still differ only in the
-   * HEAD — how the verdict is obtained: a met-rows win via evaluateOrder, a
-   * clock death via judgeNow — and that divergence stays at each site until
-   * the flip (step 3) deletes the instant win and serve (step 7) joins
-   * clock-expiry, at which point both heads read judgeNow()+currentChecks()
-   * and this can take a `reason` instead. `endedWon = accepted` is
-   * behaviour-preserving today: a clock death can only reach here with rows
-   * unmet (a met/refused order concluded in the scoring phase a tick
-   * earlier and tickOrder early-returned), so its verdict is never accepted
-   * — matching the `endedWon = false` the clock-loss site hard-coded. */
+  /** THE ONE CONCLUSION PATH (plans/22 step 3, grade-at-the-buzzer). The
+   * order is judged HERE, at conclusion — the clock's death today, a serve
+   * tomorrow (step 7) — never on rows-met (the flip deleted that). Freeze
+   * the verdict (stampFlourish stamps the coda from the live ledger — a
+   * no-op unless the flourish rests met), own the status flip (an accepted
+   * buzzer verdict is a WIN — the clock set "lost", we upgrade so the shop
+   * gate + linger read "won"; anything else stays lost), record HOW it
+   * ended for the run container, broadcast the ending word, and pay
+   * (awardPay gates on accepted — a no-op on a loss). `endedWon = accepted`
+   * is the win/loss truth now: unlike the pre-flip clock death (always
+   * unmet, since a met order concluded instantly), a buzzer verdict on a
+   * finished cake CAN be accepted — that is the whole point of the redesign. */
   private concludeOrder(judgment: Judgment, checks: RequirementCheck[]): void {
     this.lingerVerdict = this.stampFlourish(judgment);
     this.endedWon = this.lingerVerdict.accepted;
+    this.flow.order = {
+      ...this.flow.order,
+      status: this.endedWon ? "won" : "lost",
+    };
     this.roster.broadcast({
       t: "order",
       order: this.flow.order,
@@ -661,10 +642,11 @@ export class Room {
         // honest, and so is one shoved off.
         this.concludeFinishWindow();
       } else if (event === "ended") {
-        // The clock died first: gate 1 fails — the patron goes hungry.
-        // (Wins never pass here — a met order concludes in the scoring
-        // phase; this transition is only ever the clock-death loss, so the
-        // frozen verdict is unaccepted and concludeOrder pays nothing.)
+        // THE BUZZER (plans/22 step 3): the clock died — judge the cake as
+        // it lies. This is now the SOLE conclusion (the instant win is
+        // gone): a finished cake that met the rows AND cleared gate 2 wins
+        // here, stars and all; anything less is refused or hungry.
+        // concludeOrder owns the verdict, the status flip, and the pay.
         this.concludeOrder(this.judgeNow(), this.currentChecks());
       } else if (
         this.run.orderConcluded(

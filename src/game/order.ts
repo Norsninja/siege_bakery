@@ -10,18 +10,19 @@
  * gets nothing. Wrong toppings land and lie there — mistakes execute, they
  * never block, they just don't count.
  *
- * End semantics (Step 2, both gates live): the moment every row is met,
- * THE JUDGMENT renders — gate 2 decides delighted (1–3 stars) vs REFUSED
- * (lost, the insulting kind: you did what was asked, badly). The clock
- * dying first is gate 1 failure — the patron goes hungry (lost, the sad
- * kind). Late shots after the verdict change nothing.
+ * End semantics (plans/22, grade-at-the-buzzer — supersedes plans/03's
+ * "the Judgment renders the moment every row is met"): the order runs to
+ * the CLOCK (or, later, a player serve) — meeting the rows no longer ends
+ * it. At the buzzer the Room renders the Judgment: rows unmet → hungry (the
+ * sad kind); rows met but gate 2 below → REFUSED (the insulting kind); met
+ * and good → delighted (1–3 stars). This module only ticks the clock and
+ * censuses the rows now — `evaluateOrder` is CHECK-ONLY; the Room judges at
+ * conclusion (see server/room.ts concludeOrder).
  */
 import type { DessertGeometry } from "../core/dessert";
 import type { FrostingField } from "../core/frosting";
 import {
   checkRequirements,
-  judge,
-  type Judgment,
   type Requirement,
   type RequirementCheck,
   type SettledTopping,
@@ -30,8 +31,9 @@ import { COVERAGE_EXCELLENT, COVERAGE_GOOD } from "./tuning";
 
 /** THE DESIRE (plans/13 §1, the flourish + finish-it amendments,
  * 2026-07-09): the patron's optional flourish — the fatality, style on a
- * decided outcome. NEVER a requirement row: the "all rows met = win"
- * invariant stays total. Its topping is TOPPERS-class (never orderable —
+ * decided outcome. NEVER a requirement row: it lives outside the checklist
+ * entirely — the flourish is a whole-order bonus, judged at the buzzer like
+ * everything else (plans/22 §2.9). Its topping is TOPPERS-class (never orderable —
  * validateDesires at Room boot); its placement is crown semantics (the
  * summit claimed — judgment's crown scan). Eligibility is PHYSICAL:
  * judged from the settled ledger at each conclusion, whenever the
@@ -114,35 +116,19 @@ export function tickOrder(state: OrderState): OrderState {
 }
 
 /**
- * Re-census the order against everything at rest. When every row is met
- * while running, the Judgment renders on the spot: accepted → won,
- * refused → lost (an empty order can't win — nothing was asked).
- * A finished order never un-finishes; late landings still show in checks.
- * THE FINISH IT GUARD (plans/13 §1, 2026-07-09): while the window is open
- * the outcome is already decided and its base verdict FROZEN in the Room —
- * a decided order never re-judges (style landings would drift the score
- * S-MED-1 froze); landings keep flowing through checks only.
+ * Re-census the order against everything at rest — CHECK-ONLY since the
+ * grade-at-the-buzzer flip (plans/22 step 3, supersedes plans/03). Meeting
+ * every row no longer renders a verdict or ends the order: this returns the
+ * live checklist for the HUD and the Room's gates, nothing more. The
+ * Judgment is the Room's, rendered at conclusion (clock-expiry or serve) —
+ * see server/room.ts concludeOrder. Late landings simply keep flowing
+ * through the checks until the buzzer reads the final state.
  */
 export function evaluateOrder(
   dessert: DessertGeometry,
   state: OrderState,
   settled: readonly SettledTopping[],
   frosting: FrostingField,
-  shotsFired: number,
-): { state: OrderState; checks: RequirementCheck[]; judgment?: Judgment } {
-  const checks = checkRequirements(dessert, state.requirements, settled, frosting);
-  if (
-    state.status === "running" &&
-    state.finishTicksLeft === 0 &&
-    checks.length > 0 &&
-    checks.every((c) => c.met)
-  ) {
-    const judgment = judge(dessert, state, settled, frosting, shotsFired);
-    return {
-      state: { ...state, status: judgment.accepted ? "won" : "lost" },
-      checks,
-      judgment,
-    };
-  }
-  return { state, checks };
+): RequirementCheck[] {
+  return checkRequirements(dessert, state.requirements, settled, frosting);
 }
