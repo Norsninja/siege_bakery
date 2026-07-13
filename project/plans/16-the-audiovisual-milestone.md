@@ -305,6 +305,21 @@ beats a sphere). The census/splat LAWS are untouched — this is
 materials and meshes over the same geometry contracts; the
 render-contract tests (scene.test.ts culture) guard the swap.
 
+TRIGGERED 2026-07-12 (visionary's note, twenty-second sitting): "the
+cakes need an overhaul and a dressing — they are just hard
+cylinders." Design shape of record is the FIFTEENTH session's: the
+playable cake is DATA (DessertSpec tiers) → a FLAVORS material table
++ procedural drip rim, flavor derived deterministically from
+broadcast state — FIXED-PER-RUNG RECOMMENDED, RULING STILL PENDING
+(the FLAVORS ruling in every standing open list is THIS). Because the
+geometry is data-driven per deal (seven spec rows + the practice
+plank), the cake body's dress must be PARAMETERIZED CLIENT GEOMETRY,
+not a static GLB — build-lane work behind the flavor ruling. The
+FLEET-ABLE rider that waits on no ruling: THE TOPPING MESH SET
+(cherry-with-stem, fudge chunk, lime wedge, sprinkle rod, frosting
+dollop — the slice's own words), authored as small props that later
+dress projectiles, settled solids, and pantry crates alike.
+
 ### Slice 5.5 — THE SEMANTIC AUDIT (strings are presentation)
 
 Added 2026-07-09 (visionary's sighting: "rung 1 awaits the crew" on
