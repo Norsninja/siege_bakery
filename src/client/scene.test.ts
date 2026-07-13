@@ -16,12 +16,13 @@ import {
   turnScrew,
 } from "../game/catapult";
 import type { TownMachine } from "../game/protocol";
-import { WALLS } from "../core/arena";
+import { CAKE_Z, TOWNS, WALLS } from "../core/arena";
 import {
   MachineRig,
   WALL_SEG_LEN,
   backdropTreatment,
   dressBackdrop,
+  stallPlacements,
   wallSegments,
 } from "./scene";
 
@@ -241,5 +242,33 @@ describe("backdropTreatment — the region's atmosphere rule", () => {
       expect(mat.fog).toBe(false);
     }
     expect((near.material as THREE.Material).type).toBe("MeshStandardMaterial");
+  });
+});
+
+/** THE STALL DRESS (prop_stall, the counter law): the model is authored
+ * with its counter block coinciding with core's SHOP_HALF collider and
+ * its origin at the counter's ground center — so the placement IS the
+ * shop anchor, and town 1's half-turn is the whole transform. Pure math
+ * pinned here (the wallSegments culture); the load path keeps the
+ * greybox on null (fallback law, verified live). */
+describe("stallPlacements — the dress lands on the shop anchors", () => {
+  const placements = stallPlacements(TOWNS);
+
+  it("one placement per town, at each town's shop anchor", () => {
+    expect(placements).toHaveLength(TOWNS.length);
+    for (let i = 0; i < TOWNS.length; i++) {
+      expect(placements[i]!.x).toBe(TOWNS[i]!.shop.x);
+      expect(placements[i]!.z).toBe(TOWNS[i]!.shop.z);
+    }
+  });
+
+  it("town 0 ships authored orientation; town 1 gets the fort half-turn", () => {
+    expect(placements[0]!.rotY).toBe(0);
+    expect(placements[1]!.rotY).toBe(Math.PI);
+  });
+
+  it("the pair mirrors about the cake axis (the fort rotation law)", () => {
+    expect(placements[1]!.x).toBeCloseTo(-placements[0]!.x, 10);
+    expect(placements[1]!.z).toBeCloseTo(2 * CAKE_Z - placements[0]!.z, 10);
   });
 });

@@ -23,6 +23,7 @@ import {
   PLINTH_HALF,
   READY_CIRCLE,
   SHOP_HALF,
+  type Town,
   type WallDef,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
@@ -152,6 +153,21 @@ export function backdropTreatment(name: string): BackdropTreatment {
 /** Apply the treatment to a loaded backdrop template in place: unlit
  * meshes swap to a fogless vertex-color basic material (their glTF
  * materials are placeholders — the .blend authors color in COLOR_0). */
+/** THE STALL DRESS placements (prop_stall, the counter law): the model is
+ * authored at the origin — base on the ground, counter block COINCIDING
+ * with core's SHOP_HALF collider box, local +x facing the walkway. The
+ * anchor is the counter's ground center; town 1's 180° turn points the
+ * awning back at ITS ferry leg (the fort rotation, plans/11 §3). */
+export function stallPlacements(
+  towns: readonly Town[],
+): Array<{ x: number; z: number; rotY: number }> {
+  return towns.map((t) => ({
+    x: t.shop.x,
+    z: t.shop.z,
+    rotY: t.facingDeg === 0 ? 0 : Math.PI,
+  }));
+}
+
 export function dressBackdrop(root: THREE.Object3D): void {
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
@@ -591,6 +607,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
     if (t) for (const rig of rigs) rig.dress(t);
   });
   const townInteractables: Array<Record<InteractableKind, THREE.Mesh[]>> = [];
+  const stallSlabs: THREE.Mesh[][] = [];
   for (let ti = 0; ti < TOWNS.length; ti++) {
     const t = TOWNS[ti]!;
     const rig = new MachineRig(scene, t.base, t.facingDeg);
@@ -624,6 +641,7 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
         t.shop.x, SHOP_HALF.y * 2 + 0.55, t.shop.z, scene),
       sphere(0.22, 0xd9a92a, t.shop.x, SHOP_HALF.y * 2 + 1.25, t.shop.z, scene),
     ];
+    stallSlabs.push(stall);
     townInteractables.push({
       wheel: [rig.wheelMesh],
       winch: [rig.drumMesh, rig.winchHandle],
@@ -638,6 +656,22 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
       shop: stall,
     });
   }
+
+  // THE STALL DRESS (prop_stall, the fleet's counter law): the model's
+  // counter block coincides with the SHOP_HALF collider, so the dressed
+  // stall IS the solid bakers lean on. The greybox retires by VISIBILITY,
+  // never disposal — the invisible proxies still catch the crosshair (the
+  // dish-proxy law above), and null from the seam keeps them forever.
+  void loadModel("stall").then((t) => {
+    if (!t) return;
+    for (const p of stallPlacements(TOWNS)) {
+      const m = t.clone();
+      m.position.set(p.x, 0, p.z);
+      m.rotation.y = p.rotY;
+      scene.add(m);
+    }
+    for (const meshes of stallSlabs) for (const m of meshes) m.visible = false;
+  });
 
   // The gate panels — the greybox portcullis. Hidden while a gate stands
   // open; main.ts shows each exactly while its fence is shut.
