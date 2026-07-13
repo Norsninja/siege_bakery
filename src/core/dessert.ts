@@ -27,7 +27,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { CAKE_Z } from "./arena";
 import type { Vec3 } from "./ballistics";
-import { buildCensus, type FrostSample } from "./frosting";
+import { buildCensus, SAMPLE_SPACING, type FrostSample } from "./frosting";
 
 export interface CakeTier {
   /** x/z radius (tiers are cylinders, concentric on CAKE_Z). */
@@ -120,16 +120,38 @@ export const CAKE_6: DessertSpec = {
  * both worlds, the frosting field, the verdict oracle) as a spec row,
  * but it is deliberately NOT in DESSERT_SPECS: RUNGS never deals it and
  * it never rides the wire — game/campaign.dessertSpecFor derives it
- * from the run PHASE on every replica. Dims are PROVISIONAL (ruled: the
- * sim pins them, the visionary's plank model dresses them — model fits
- * spec, the drive-nodes pattern): one cylinder tight to the plank's
- * half-width (the forcefield rule — a fat collider around a flat board
- * would bonk honest near-misses), tall enough that the board's face is
- * a friendly training butt in cake-1's footprint neighborhood. */
+ * from the run PHASE on every replica. The tier row is NOMINAL — a
+ * bounding cylinder for generic readers only; the practice branch of
+ * dessertGeometry() builds its real shape from PRACTICE_STAND below
+ * (re-ruled 2026-07-12: the collider FITS THE STAND — the interim fat
+ * cylinder around a flat board bonked honest near-misses, the exact
+ * forcefield failure its own comment warned about). */
 export const PRACTICE_TARGET: DessertSpec = {
   id: "practice",
-  tiers: [{ radius: 3, bottom: 0, top: 5 }],
+  tiers: [{ radius: 2.9, bottom: 0, top: 5.4 }],
 };
+
+/** THE PRACTICE STAND (the re-ruling's shape): authored boxes from the
+ * measured model — the visionary's wood_target_lg.blend (band
+ * histogram 2026-07-12; blend spans w 1.900 × h 1.804 × t 0.218, feet
+ * at z −0.903, painted face −Y → game +z, toward town 0 — the lobby
+ * seats everyone in town 0, so one face is the whole audience).
+ * RULED SCALE 3: board face w 5.31 spanning y 1.13–5.41 — the greybox
+ * plank's presence, kept. The client dresses the GLB with `scale` and
+ * `lift`; the sim builds these boxes — one measurement, both worlds.
+ * Regenerate by re-measuring the blend, never by eye. */
+export const PRACTICE_STAND = {
+  /** Model multiplier (client dress) — blend units → game meters. */
+  scale: 3,
+  /** Y offset planting the model's feet on the plate (0.903 × scale). */
+  lift: 2.71,
+  /** The framed board, the paintable target face. */
+  board: { halfW: 2.66, halfT: 0.33, bottom: 1.13, top: 5.41 },
+  /** The two legs under the board's outer thirds. */
+  legs: { x: 1.95, halfW: 0.3, halfT: 0.2, bottom: 0.46, top: 1.13 },
+  /** The foot rail on the plate. */
+  rail: { halfW: 2.85, halfT: 0.28, bottom: 0, top: 0.46 },
+} as const;
 
 /** Every authored row, by wire id — the research tools' lookup and (from
  * slice 4) the RUNGS table's referent. A row in this table is NOT a row
@@ -278,6 +300,209 @@ function cakeSurface(
 }
 
 // ---------------------------------------------------------------------------
+// THE PRACTICE STAND's geometry (item 25 as re-ruled) — box math instead
+// of tier math, PRIVATE for the same reason: dessertGeometry(spec) stays
+// THE ONE PUBLIC FORM, and the branch below is the only fork. Same
+// determinism discipline as the cylinders: abs/max/sqrt/mul/add only.
+// ---------------------------------------------------------------------------
+
+interface StandBox {
+  cx: number;
+  cy: number;
+  cz: number;
+  hx: number;
+  hy: number;
+  hz: number;
+}
+
+/** The stand as axis-aligned boxes at the cake mark (it faces town 0
+ * square-on; no rotation exists to handle). */
+const STAND_BOXES: readonly StandBox[] = (() => {
+  const { board, legs, rail } = PRACTICE_STAND;
+  const box = (
+    cx: number,
+    b: { halfW: number; halfT: number; bottom: number; top: number },
+    hx = b.halfW,
+  ): StandBox => ({
+    cx,
+    cy: (b.bottom + b.top) / 2,
+    cz: CAKE_Z,
+    hx,
+    hy: (b.top - b.bottom) / 2,
+    hz: b.halfT,
+  });
+  return [
+    box(0, board),
+    box(-legs.x, legs, legs.halfW),
+    box(legs.x, legs, legs.halfW),
+    box(0, rail),
+  ];
+})();
+
+/** Distance from a point to one box's skin (0 inside). */
+function boxDistance(b: StandBox, pos: Vec3): number {
+  const dx = Math.max(Math.abs(pos.x - b.cx) - b.hx, 0);
+  const dy = Math.max(Math.abs(pos.y - b.cy) - b.hy, 0);
+  const dz = Math.max(Math.abs(pos.z - b.cz) - b.hz, 0);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+/** Nearest point ON one box's skin with its outward normal — the box
+ * twin of the cylinder cakeSurface: outside clamps to the skin, inside
+ * projects to the shallowest face (never a downward normal for a point
+ * over the top: the top face wins ties the same way). */
+function boxSurface(b: StandBox, pos: Vec3): { point: Vec3; normal: Vec3 } {
+  const lx = pos.x - b.cx;
+  const ly = pos.y - b.cy;
+  const lz = pos.z - b.cz;
+  const inside =
+    Math.abs(lx) <= b.hx && Math.abs(ly) <= b.hy && Math.abs(lz) <= b.hz;
+  if (!inside) {
+    const px = Math.min(Math.max(lx, -b.hx), b.hx);
+    const py = Math.min(Math.max(ly, -b.hy), b.hy);
+    const pz = Math.min(Math.max(lz, -b.hz), b.hz);
+    const point: Vec3 = { x: b.cx + px, y: b.cy + py, z: b.cz + pz };
+    const dx = pos.x - point.x;
+    const dy = pos.y - point.y;
+    const dz = pos.z - point.z;
+    const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    return {
+      point,
+      normal:
+        d > 0
+          ? { x: dx / d, y: dy / d, z: dz / d }
+          : { x: 0, y: 1, z: 0 },
+    };
+  }
+  // Inside: shallowest penetration axis, top-face bias on the y tie.
+  const penX = b.hx - Math.abs(lx);
+  const penY = b.hy - Math.abs(ly);
+  const penZ = b.hz - Math.abs(lz);
+  if (penY <= penX && penY <= penZ) {
+    const s = ly >= 0 ? 1 : -1;
+    return {
+      point: { x: pos.x, y: b.cy + s * b.hy, z: pos.z },
+      normal: { x: 0, y: s, z: 0 },
+    };
+  }
+  if (penZ <= penX) {
+    const s = lz >= 0 ? 1 : -1;
+    return {
+      point: { x: pos.x, y: pos.y, z: b.cz + s * b.hz },
+      normal: { x: 0, y: 0, z: s },
+    };
+  }
+  const s = lx >= 0 ? 1 : -1;
+  return {
+    point: { x: b.cx + s * b.hx, y: pos.y, z: pos.z },
+    normal: { x: s, y: 0, z: 0 },
+  };
+}
+
+/** Rest position ON the stand — the box twin of tierOf's wedge-slack
+ * law: the board's top edge and the foot rail hold a topping the way
+ * tier tops do. One tier: the stand is all "tier 0". */
+function standTierOf(pos: Vec3): number | null {
+  const { board, rail } = PRACTICE_STAND;
+  const dz = pos.z - CAKE_Z;
+  if (
+    Math.abs(pos.x) <= board.halfW &&
+    Math.abs(dz) <= board.halfT &&
+    pos.y > board.top - 0.1
+  )
+    return 0;
+  if (
+    Math.abs(pos.x) <= rail.halfW &&
+    Math.abs(dz) <= rail.halfT &&
+    pos.y > rail.top - 0.1
+  )
+    return 0;
+  return null;
+}
+
+/** The stand's census: a grid over the board's PAINTED FACE (game +z —
+ * the face that greets town 0; the lobby seats everyone there, so one
+ * face is the whole audience). Paint finally sits ON the board — the
+ * interim cylinder's samples floated in the air beside it. Plus the
+ * stand's UPWARD skin, area-honest like tier tops: the board's top
+ * edge (a lob grazing over the top IS a hit) and the foot rail (a
+ * short shot frosting the stand's foot — the cake-wall-base ruling's
+ * spirit). Same spacing as the cake skin (~120 samples). */
+function practiceCensus(): FrostSample[] {
+  const { board, rail } = PRACTICE_STAND;
+  const z = CAKE_Z + board.halfT;
+  const face: Vec3 = { x: 0, y: 0, z: 1 };
+  const up: Vec3 = { x: 0, y: 1, z: 0 };
+  const pts: FrostSample[] = [];
+  for (let y = board.bottom + 0.3; y <= board.top - 0.2; y += SAMPLE_SPACING)
+    for (
+      let x = -(board.halfW - 0.25);
+      x <= board.halfW - 0.25;
+      x += SAMPLE_SPACING
+    )
+      pts.push({ pos: { x, y, z }, normal: face });
+  for (
+    let x = -(board.halfW - 0.25);
+    x <= board.halfW - 0.25;
+    x += SAMPLE_SPACING
+  )
+    pts.push({ pos: { x, y: board.top, z: CAKE_Z }, normal: up });
+  for (
+    let x = -(rail.halfW - 0.25);
+    x <= rail.halfW - 0.25;
+    x += SAMPLE_SPACING
+  )
+    pts.push({ pos: { x, y: rail.top, z: CAKE_Z }, normal: up });
+  return pts;
+}
+
+/** Bind the practice spec — the one fork off the cylinder road. */
+function practiceGeometry(spec: DessertSpec): DessertGeometry {
+  return {
+    spec,
+    topTier: 0,
+    samples: practiceCensus(),
+    tierOf: standTierOf,
+    isOnCake: (pos) => standTierOf(pos) !== null,
+    isInZone: (zone, pos) => {
+      const tier = standTierOf(pos);
+      if (tier === null) return false;
+      return zone === "cake" || tier === zone;
+    },
+    distanceToCake: (pos) => {
+      let best = Infinity;
+      for (const b of STAND_BOXES) {
+        const d = boxDistance(b, pos);
+        if (d < best) best = d;
+      }
+      return best;
+    },
+    cakeSurface: (pos) => {
+      let best = STAND_BOXES[0]!;
+      let bestD = Infinity;
+      for (const b of STAND_BOXES) {
+        const d = boxDistance(b, pos);
+        if (d < bestD) {
+          bestD = d;
+          best = b;
+        }
+      }
+      return boxSurface(best, pos);
+    },
+    buildColliders: (world) =>
+      STAND_BOXES.map((b) =>
+        world.createCollider(
+          RAPIER.ColliderDesc.cuboid(b.hx, b.hy, b.hz).setTranslation(
+            b.cx,
+            b.cy,
+            b.cz,
+          ),
+        ),
+      ),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // The bound form — what everything downstream actually holds.
 // ---------------------------------------------------------------------------
 
@@ -304,8 +529,11 @@ export interface DessertGeometry {
 }
 
 /** Bind a spec into its geometry — once per deal (the samples are the
- * expensive part; the oracles are cheap closures over the rows). */
+ * expensive part; the oracles are cheap closures over the rows). The
+ * practice target forks here to its authored box shape (PRACTICE_STAND);
+ * every dessert row rides the cylinder road unchanged. */
 export function dessertGeometry(spec: DessertSpec): DessertGeometry {
+  if (spec.id === PRACTICE_TARGET.id) return practiceGeometry(spec);
   const tiers = spec.tiers;
   return {
     spec,

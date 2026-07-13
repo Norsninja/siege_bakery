@@ -27,7 +27,7 @@ import {
   type WallDef,
 } from "../core/arena";
 import type { Vec3 } from "../core/ballistics";
-import type { DessertSpec } from "../core/dessert";
+import { PRACTICE_STAND, type DessertSpec } from "../core/dessert";
 import {
   CRANK_TICKS_PER_CLICK,
   TENSION_MAX_CLICKS,
@@ -552,26 +552,49 @@ export function buildGameScene(canvas: HTMLCanvasElement): GameScene {
   // module-level CAKE_TIERS), sponge paling toward the summit so the climb
   // is READABLE from the catapult. Rebuilt by setDessert at every rebind;
   // main seeds it from the placeholder view before the first frame.
-  // THE PRACTICE TARGET (plans/15 item 25) renders a wooden plank over
-  // its cylinder spec — GREYBOX until the visionary's cupcake-painted
-  // plank model arrives (abort-to-greybox culture; the model will dress
-  // the SPEC's dims, drive-nodes pattern, never the other way).
+  // THE PRACTICE TARGET (plans/15 item 25 as re-ruled): the visionary's
+  // wood_target_lg model dresses PRACTICE_STAND's authored boxes — the
+  // SAME rows the sim builds colliders from, so what you see is what
+  // bounces. Greybox stands until the GLB lands and forever when it
+  // can't (abort-to-greybox law); the swap is VISIBILITY, stall-dress
+  // culture — the model loads once and toggles with the phase.
   let cakeMeshes: THREE.Mesh[] = [];
+  let targetModel: THREE.Group | null = null;
+  let practiceBound = false;
+  void loadModel("target").then((t) => {
+    if (!t) return; // the greybox stand carries — a normal Tuesday
+    targetModel = t;
+    t.scale.setScalar(PRACTICE_STAND.scale);
+    // Feet to the plate; the painted face already looks +z (town 0).
+    t.position.set(0, PRACTICE_STAND.lift, CAKE_Z);
+    t.visible = practiceBound;
+    scene.add(t);
+    // A practice greybox may be standing right now — retire it.
+    if (practiceBound) for (const m of cakeMeshes) m.visible = false;
+  });
   const setDessert = (spec: DessertSpec): void => {
     for (const m of cakeMeshes) removeAndDispose(m);
-    if (spec.id === "practice") {
-      const t = spec.tiers[0]!; // one modest tier, pinned in tests
-      const w = t.radius * 2 - 0.6; // board tight INSIDE the collider
-      const legX = t.radius - 0.9;
+    cakeMeshes = [];
+    practiceBound = spec.id === "practice";
+    if (targetModel) targetModel.visible = practiceBound;
+    if (practiceBound) {
+      if (targetModel) return; // the model IS the stand
+      const { board, legs, rail } = PRACTICE_STAND;
+      const boardY = (board.bottom + board.top) / 2;
       cakeMeshes = [
-        // The board — faces both towns (a plank has two faces).
-        box(w, t.top - 1.2, 0.4, 0x9a7648, 0, (t.top + 1.2) / 2, CAKE_Z, scene),
-        // The painted "cupcake" — a pale disc the greybox aims at.
-        box(w * 0.55, w * 0.55, 0.06, 0xefd7b8, 0, (t.top + 1.2) / 2, CAKE_Z + 0.24, scene),
-        // Legs + foot braces: it STANDS on the plate.
-        box(0.35, 1.4, 0.35, 0x6f5230, -legX, 0.7, CAKE_Z, scene),
-        box(0.35, 1.4, 0.35, 0x6f5230, legX, 0.7, CAKE_Z, scene),
-        box(w, 0.3, 0.7, 0x6f5230, 0, 0.15, CAKE_Z, scene),
+        // The framed board — its painted face greets town 0 (+z).
+        box(board.halfW * 2, board.top - board.bottom, board.halfT * 2,
+          0x9a7648, 0, boardY, CAKE_Z, scene),
+        // The painted "cupcake" — a pale square the greybox aims at.
+        box(board.halfW * 1.1, board.halfW * 1.1, 0.06, 0xefd7b8,
+          0, boardY, CAKE_Z + board.halfT + 0.03, scene),
+        // Legs + foot rail: it STANDS on the plate.
+        box(legs.halfW * 2, legs.top - legs.bottom, legs.halfT * 2,
+          0x6f5230, -legs.x, (legs.bottom + legs.top) / 2, CAKE_Z, scene),
+        box(legs.halfW * 2, legs.top - legs.bottom, legs.halfT * 2,
+          0x6f5230, legs.x, (legs.bottom + legs.top) / 2, CAKE_Z, scene),
+        box(rail.halfW * 2, rail.top - rail.bottom, rail.halfT * 2,
+          0x6f5230, 0, (rail.bottom + rail.top) / 2, CAKE_Z, scene),
       ];
       return;
     }

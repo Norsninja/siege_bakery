@@ -6,17 +6,22 @@
  * the anchor row — moved verbatim from arena.test.ts with the refactor
  * (the zero-drift proof: same inputs, same numbers, new door).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import RAPIER from "@dimforge/rapier3d-compat";
 import { CAKE_Z } from "./arena";
+import { FIXED_DT, GRAVITY } from "./constants";
 import {
   CAKE_1,
   CAKE_2,
   CAKE_3,
   DESSERT_SPECS,
   dessertGeometry,
+  PRACTICE_STAND,
+  PRACTICE_TARGET,
   specById,
   tierLabel,
 } from "./dessert";
+import { ProjectileManager } from "./projectiles";
 
 const g = dessertGeometry(CAKE_3);
 const R1 = CAKE_3.tiers[0]!.radius; // 4
@@ -178,5 +183,90 @@ describe("DESSERT_SPECS (the authored rows)", () => {
         geom.topTier,
       );
     }
+  });
+});
+
+describe("THE PRACTICE STAND (item 25 as re-ruled): the collider fits the target", () => {
+  const pg = dessertGeometry(PRACTICE_TARGET);
+  const { board, rail } = PRACTICE_STAND;
+
+  beforeAll(async () => {
+    await RAPIER.init();
+  });
+
+  it("forks off the cylinder road: four CUBOIDS, not tier cylinders", () => {
+    const world = new RAPIER.World(GRAVITY);
+    const built = pg.buildColliders(world);
+    expect(built).toHaveLength(4); // board, two legs, the foot rail
+    for (const c of built) expect(c.shape.type).toBe(RAPIER.ShapeType.Cuboid);
+    // The board stands centered on the mark.
+    const b = built[0]!.translation();
+    expect(b.x).toBe(0);
+    expect(b.z).toBe(CAKE_Z);
+    expect(b.y).toBeCloseTo((board.bottom + board.top) / 2);
+  });
+
+  it("THE FORCEFIELD FIX: a near-miss beside the board is honestly AIR", () => {
+    // Inside the interim r3 cylinder this point 'touched' the target;
+    // against the real stand it is 1.7 m of daylight.
+    const nearMiss = { x: 0, y: 3, z: CAKE_Z + 2 };
+    expect(pg.distanceToCake(nearMiss)).toBeGreaterThan(1.5);
+    expect(pg.isOnCake(nearMiss)).toBe(false);
+    // Touching the painted face reads zero, same as a cake wall.
+    expect(pg.distanceToCake({ x: 0, y: 3, z: CAKE_Z + board.halfT })).toBe(0);
+  });
+
+  it("the census lives ON the stand: the painted face plus the upward skin", () => {
+    expect(pg.samples.length).toBeGreaterThan(50);
+    const faceSamples = pg.samples.filter((s) => s.normal.z === 1);
+    const upSamples = pg.samples.filter((s) => s.normal.y === 1);
+    expect(faceSamples.length + upSamples.length).toBe(pg.samples.length);
+    // The face grid — on the +z plane (town 0's side), inside the board.
+    expect(faceSamples.length).toBeGreaterThan(50);
+    for (const s of faceSamples) {
+      expect(s.pos.z).toBeCloseTo(CAKE_Z + board.halfT);
+      expect(Math.abs(s.pos.x)).toBeLessThanOrEqual(board.halfW);
+      expect(s.pos.y).toBeGreaterThanOrEqual(board.bottom);
+      expect(s.pos.y).toBeLessThanOrEqual(board.top);
+    }
+    // The upward skin: board top edge (a graze over the top is a hit)
+    // and the foot rail (the cake-wall-base ruling's spirit).
+    expect(upSamples.length).toBeGreaterThan(10);
+    for (const s of upSamples) {
+      expect(s.pos.z).toBeCloseTo(CAKE_Z);
+      expect([board.top, rail.top]).toContain(s.pos.y);
+    }
+  });
+
+  it("rest oracles: the rail and the board's top edge hold, the air does not", () => {
+    expect(pg.tierOf({ x: 1, y: rail.top + 0.2, z: CAKE_Z })).toBe(0);
+    expect(pg.tierOf({ x: 0, y: board.top + 0.2, z: CAKE_Z })).toBe(0);
+    expect(pg.tierOf({ x: 0, y: 3, z: CAKE_Z + 2 })).toBeNull();
+    expect(pg.isInZone("cake", { x: 1, y: rail.top + 0.2, z: CAKE_Z })).toBe(true);
+    // The grip oracle points a face-front grain back out the face.
+    const s = pg.cakeSurface({ x: 0, y: 3, z: CAKE_Z + 1 });
+    expect(s.point.z).toBeCloseTo(CAKE_Z + board.halfT);
+    expect(s.normal).toEqual({ x: 0, y: 0, z: 1 });
+  });
+
+  it("the bounce is real: a drop onto the mark impacts the STAND, not the floor", () => {
+    const world = new RAPIER.World(GRAVITY);
+    world.timestep = FIXED_DT;
+    world.createCollider(
+      RAPIER.ColliderDesc.cuboid(400, 0.1, 400).setTranslation(0, -0.1, 0),
+    );
+    pg.buildColliders(world);
+    const shots = new ProjectileManager();
+    shots.spawn(
+      world,
+      { x: 0, y: 20, z: CAKE_Z },
+      { x: 0, y: 0, z: 0 },
+      "cherry",
+    );
+    const impacts = [];
+    for (let i = 0; i < 240; i++) impacts.push(...shots.step(world, pg).impacts);
+    expect(impacts.length).toBeGreaterThan(0);
+    // First contact at the board's top edge height — it hit the target.
+    expect(impacts[0]!.pos.y).toBeGreaterThan(board.top - 1);
   });
 });

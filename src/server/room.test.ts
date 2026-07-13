@@ -446,8 +446,15 @@ describe("Room: the match, headless over protocol", () => {
     // close enough to raise coats also buries): grip, then grow the field AT
     // the grip point WITHOUT the shot pipeline, so the burial filter never runs
     // and the record survives.
+    // ANCHORED ON RUNG 3 since the stand re-ruling (2026-07-12): the
+    // lobby's practice target is a thin BOARD now — the 6-click arc
+    // that used to smack the interim cylinder falls short of it. The
+    // property under test is phase-agnostic; the sibling test above
+    // proves this exact recipe grips on the anchor cake.
     const room = new Room();
     const a = connect(room, "alice");
+    readyUp(room, a);
+    jumpToRung(room, 3);
     const fire = (topping: string): void => {
       room.onMessage(a.id, { t: "load", topping });
       room.onMessage(a.id, { t: "op", turn: 0, screw: 0, crank: 1 });
