@@ -838,12 +838,55 @@ natural neighbor of item 19 (weather) or the species session;
 whichever seats it first should also decide whether the eat beat's
 later "cake LIFT dress pass" (plans/16 slice 7) is the same machinery.
 
-## 25. THE TRAINING LOBBY + THE OPENING PARADE — RULED, UNCLAIMED
+## 25. THE TRAINING LOBBY + THE OPENING PARADE — BUILT
 
-**Status: shape RULED 2026-07-12 (eighteenth session, third
-discussion, born of repeated playtests): no cake in the lobby — a
-PRACTICE CAKE target; horizon-only crowd plus the BENCH OGRE; the
-WALK-UP PARADE at run start.**
+**Status: BUILT 2026-07-12 (twenty-first session, path entry 5;
+re-ruled same day by the visionary: the practice target is a CUPCAKE
+PAINTED ON A WOODEN PLANK standing on the plate — he provides the
+model himself; the session ships GREYBOX and pins the spec's dims,
+model-fits-spec, the drive-nodes pattern). THE WOODEN-SKIN SHAPE
+(planning review, endorsed): the target rides the WHOLE dessert
+institution as a spec row — core/dessert.ts PRACTICE_TARGET (id
+"practice", ONE tier r3/top5, radius tight to the plank per the
+forcefield rule, never in DESSERT_SPECS, never dealt by RUNGS) +
+game/campaign.dessertSpecFor(phase, rung), the ONE derivation both
+worlds resolve the standing geometry through (running/runover → the
+rung's spec; lobby/countdown → the plank). Colliders in both worlds,
+the frosting field, the painted-count verdict oracle, and item 1's
+lobby rings all fell out FREE. The Room redeals at the runover→lobby
+edge (same one redeal path); clients reconcile by derived spec id on
+the run word (poll-by-compare, never an edge). patronAtMark's interim
+branch RAZED — lobby/countdown return null, the empty-table truth.
+TEACHING SCOPE NARROWED (ruling): the plank teaches RANGE + TRAVERSE
+dial-in (it stands at the cake mark, so aim transfers to every rung);
+tier-zones/ledge/crown lessons wait for real rungs — that's what
+rungs are for. THE BENCH OGRE: patron-table stands rung 1's patron at
+the rest stop (game 155,−10, the s15 bench site) holding the LEAN
+pose — the cheap-lean audition shipped as the first form; the
+pose-baked sit awaits the visionary's eye. THE PARADE: at ALL-IN the
+bench body becomes the arrival and walks bench→table at PARADE_SPEED
+(walk.ts, 0.22 ≈ 13 m/s — EAGER, ruled: he waited all lobby and the
+bakery just opened; ~10.5 s while the crew sprints for ammo); the
+line strides in from the haze in column formation (LINE_PARADE_FRAMES
+1000 over 150 m ≈ 9 m/s, brisk-but-behind — he's the hungry one);
+templates STREAM during the lobby and a template landing mid-parade
+spawns IN COLUMN out on the road (loading-as-fiction — holes fill as
+assets land). MIRROR RESIDUE ACCEPTED (ruled): the deal stands the
+capsules at the mark while the parade still walks him up — a warmup
+straggler can bonk on an empty mark for ~10 s; the exact mirror of
+the departing-giant residue, same rare window. Live-smoked the full
+cycle: plank + bench + empty mark + horizon-only line in the lobby,
+tension-6 frosting PAINTS the plank (18 samples — the green verdict's
+own oracle), ALL-IN swaps cake-1 in and parades (walker caught
+mid-road at 13–14 m/s, line column marched home), quick loss →
+runover holds the final cake → lobby restores plank/bench/empty mark.
+494 tests. PENDING HIS EYE: the plank greybox look, the lean, parade
+pacing (dials named above), and his plank MODEL when ready.**
+
+Original ruling (eighteenth session, third discussion, born of
+repeated playtests): no cake in the lobby — a practice target;
+horizon-only crowd plus the BENCH OGRE; the WALK-UP PARADE at run
+start.
 
 The rulings:
 - **NO CAKE BEFORE THE ORDER.** The dessert arrives WITH the first
@@ -902,6 +945,8 @@ is patronAtMark's final `return speciesForRung(1)` lines (isolated
 there on purpose — one place, one line), replaced by whatever this
 item's empty-table truth is; the practice cake's own collider takes
 the lobby's physics from there.
+[CLOSED 2026-07-12, entry 5: the branch is deleted exactly as named —
+lobby/countdown return null; the plank's collider owns the lobby.]
 
 ## 26. THE CLOCK RELIEF — the solo clock is tuned past human — BUILT
 

@@ -97,16 +97,21 @@ the lobby collider extension is INTERIM until entry 5 removes the
 lobby giant; the RINGS RECOLOR (color = verdict channel everywhere,
 energy keeps word + size) awaits the visionary's explicit yes.
 
-**5. THE TRAINING LOBBY + THE OPENING PARADE — plans/15 item 25**:
+**5. ~~THE TRAINING LOBBY + THE OPENING PARADE — plans/15 item 25~~
+DONE 2026-07-12 (twenty-first session: the plank re-ruling landed
+same day — a cupcake painted on a wooden plank, the visionary's own
+model, greybox shipped meanwhile; the wooden-skin shape rode the
+whole dessert institution as a spec row + dessertSpecFor, so the
+verdict/rings/field fell out free; patronAtMark's interim branch
+razed as the entry-4 cross-note named; bench lean + eager parade
+live-smoked; item 25 carries the record)**:
 no lobby cake — the practice-cake target (run-boundary collider),
 the horizon crowd + the bench ogre at the rest stop, the walk-up
 parade at ALL-IN (loading-as-fiction: templates stream during the
 lobby, holes in the parade fill as assets land). Placed here because
 the target wants item 15's verdict to exist (entry 4) and the
 loading follow-on (plans/20 §2's critical list shrinks) pairs with
-entry 3's fresh look at what ships when. The practice-cake MODEL and
-the ogre resting-pose variant are fleet-dispatchable AHEAD of this
-session (fleet lane).
+entry 3's fresh look at what ships when.
 
 **6. PATRON MOTION, tiers (a) and (b) — plans/15 item 22**: fidgets
 + species pose tables (tier a can also ride ANY earlier session as a
@@ -142,12 +147,16 @@ design lane's rulings will have changed the board.
   culture, drive nodes, abort-to-greybox.
 - **The cloudgiant far impostor re-read** (s17 eye note: chunky) —
   voxel-remesh recipe, one agent.
-- **The practice cake** (item 25) — carved wooden dummy cake,
-  painted tier rings, authored to CAKE_3's exact tier dimensions
-  (aim must transfer); low-poly, vertex color or one small texture.
-- **The ogre resting pose** (item 25's bench ogre) — a pose-baked
-  seated/leaning variant for the rest-stop bench; audition the cheap
-  lean first (no leg bones — a true sit is mesh work).
+- ~~**The practice cake** (item 25)~~ CANCELLED 2026-07-12 (the
+  visionary's re-ruling: the target is a cupcake painted on a wooden
+  PLANK, and he provides the model HIMSELF — entry 5 shipped greybox
+  and pinned the spec dims in core/dessert.ts PRACTICE_TARGET; his
+  model dresses those dims when it arrives, model-fits-spec).
+- **The ogre resting pose** (item 25's bench ogre) — HOLD: the cheap
+  LEAN shipped with entry 5 (existing bones, patron-body's lean pose
+  held at the bench); dispatch a pose-baked seated variant ONLY if
+  the visionary's eye rules the lean short (no leg bones — a true
+  sit is mesh work).
 - The lighting pass (item 17) is NOT fleet work — it's a build
   session (scene.ts + perf gate) — but fleet props should be
   authored knowing shadows are coming.
