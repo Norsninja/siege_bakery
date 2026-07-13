@@ -7,7 +7,7 @@
  * hud.ts read it.
  */
 import { dessertGeometry, type DessertGeometry } from "../core/dessert";
-import { RUNGS, specForRung } from "../game/campaign";
+import { RUNGS, dessertSpecFor } from "../game/campaign";
 import { createCatapult } from "../game/catapult";
 import type { Judgment, RequirementCheck } from "../game/judgment";
 import { createOrder, type OrderState } from "../game/order";
@@ -102,7 +102,9 @@ export function createMatchView(): MatchView {
     order: createOrder([], 90 * 60), // rows arrive with `welcome`
     checks: [],
     run: { phase: "lobby", rung: 0 }, // truth arrives with `welcome`
-    dessert: dessertGeometry(specForRung(1)), // rebound by `welcome`
+    // The placeholder mark matches the placeholder phase (lobby → the
+    // practice target, item 25); the welcome rebinds either way.
+    dessert: dessertGeometry(dessertSpecFor("lobby", 1)),
     verdict: null,
     lastPatron: null,
     myId: null,

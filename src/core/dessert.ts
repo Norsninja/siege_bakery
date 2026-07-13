@@ -114,6 +114,23 @@ export const CAKE_6: DessertSpec = {
   tiers: [...CAKE_3.tiers, TIER_4, TIER_5, TIER_6],
 };
 
+/** THE PRACTICE TARGET (plans/15 item 25, the training lobby): a
+ * cupcake painted on a wooden plank, standing on the plate — a TARGET,
+ * not a dessert. It rides the whole dessert institution (colliders in
+ * both worlds, the frosting field, the verdict oracle) as a spec row,
+ * but it is deliberately NOT in DESSERT_SPECS: RUNGS never deals it and
+ * it never rides the wire — game/campaign.dessertSpecFor derives it
+ * from the run PHASE on every replica. Dims are PROVISIONAL (ruled: the
+ * sim pins them, the visionary's plank model dresses them — model fits
+ * spec, the drive-nodes pattern): one cylinder tight to the plank's
+ * half-width (the forcefield rule — a fat collider around a flat board
+ * would bonk honest near-misses), tall enough that the board's face is
+ * a friendly training butt in cake-1's footprint neighborhood. */
+export const PRACTICE_TARGET: DessertSpec = {
+  id: "practice",
+  tiers: [{ radius: 3, bottom: 0, top: 5 }],
+};
+
 /** Every authored row, by wire id — the research tools' lookup and (from
  * slice 4) the RUNGS table's referent. A row in this table is NOT a row
  * in the ladder; RUNGS decides what deals. */

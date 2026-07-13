@@ -43,6 +43,19 @@ export const ARRIVE_SPEED = 0.1;
  * is the linger's end at 1080, and it fires at 460. */
 export const ADVANCE_FRAMES = 330;
 
+/** THE OPENING PARADE (plans/15 item 25): the bench ogre's walk-up at
+ * ALL-IN. He waited on the bench all lobby and the bakery just opened —
+ * EAGER, not amble (ruled 2026-07-12: start the dial at eager; a 36 m
+ * biped at 13 m/s is characterful, not cheated): 0.22 m/frame ≈ 13 m/s
+ * covers the ~135 m bench→table in ~10.5 s while the crew sprints for
+ * its first ammo. Eye-pass dial. */
+export const PARADE_SPEED = 0.22;
+/** The line's stride-in behind him: the queue marches from the haze at
+ * a brisk-but-behind pace (he's the hungry one) — 150 m over 1000
+ * frames ≈ 9 m/s, settling into slots ~17 s after ALL-IN. */
+export const PARADE_DISTANCE_M = 150;
+export const LINE_PARADE_FRAMES = 1000;
+
 /** One stride's pose ingredients at a given phase — the shared
  * grammar both walkers apply (bob rides |sin|, rock rides sin). */
 export const walkSway = (phase: number): { bob: number; rock: number } => {

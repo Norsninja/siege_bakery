@@ -52,8 +52,8 @@ import {
 } from "../game/judgment";
 import {
   RUNGS,
+  dessertSpecFor,
   rungRow,
-  specForRung,
   validateRungs,
   type Rung,
 } from "../game/campaign";
@@ -202,9 +202,11 @@ export class Room {
     this.world = new RAPIER.World(GRAVITY);
     this.world.timestep = FIXED_DT;
     buildArenaColliders(this.world);
-    // The boot dessert: the dormant order is the next run's rung 1
-    // (plans/13 — the lobby is a sandbox over a real cake).
-    this.dessert = dessertGeometry(specForRung(1));
+    // THE TRAINING LOBBY (plans/15 item 25): no cake before the order —
+    // the boot mark holds the PRACTICE TARGET (the plank); the dormant
+    // order still deals internally as the next run's rung 1, but the
+    // dessert arrives WITH the first deal (startRun's redeal).
+    this.dessert = dessertGeometry(dessertSpecFor(this.run.phase, 1));
     this.dessertColliders = this.dessert.buildColliders(this.world);
     this.frosting = new FrostingField(this.dessert.samples);
     // The conversion law's paint oracle (plans/10 §8): grains grip where
@@ -389,7 +391,10 @@ export class Room {
   private redealDessert(): void {
     this.shots.clearCakeSolids(this.world, this.dessert);
     for (const c of this.dessertColliders) this.world.removeCollider(c, false);
-    this.dessert = dessertGeometry(specForRung(Math.max(1, this.run.rung)));
+    // Phase-aware since entry 5 (the training lobby): a live run deals
+    // the rung's spec; outside it the practice target takes the mark
+    // (both replicas derive the same answer — dessertSpecFor).
+    this.dessert = dessertGeometry(dessertSpecFor(this.run.phase, this.run.rung));
     this.dessertColliders = this.dessert.buildColliders(this.world);
     this.frosting = new FrostingField(this.dessert.samples);
     this.settled = [];
@@ -606,6 +611,11 @@ export class Room {
     if (this.run.phase === "runover") {
       if (this.run.tickRunover() === "lobby") {
         this.lastReadyKey = ""; // re-speak the census on lobby entry
+        // THE TARGET RETURNS (item 25): the report's final cake wheels
+        // off and the practice plank takes the mark for the next crew.
+        // Same redeal path as every boundary; clients mirror it off the
+        // run word's phase (net-handlers' spec reconcile).
+        this.redealDessert();
         this.broadcastRun();
       }
       return;

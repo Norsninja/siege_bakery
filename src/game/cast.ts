@@ -87,23 +87,20 @@ export function speciesForRung(rung: number): string {
  *   plays. Residue accepted (ruled): a shot passes through the
  *   visibly departing giant; order's over, nothing scores.
  * - runover: OFF — he walked, the report holds the stage.
- * - lobby/countdown: rung 1's patron. INTERIM RULE (2026-07-12):
- *   warmup lobbing at a visible ogre must bounce (the inverted
- *   forcefield, in exactly the mode people shoot him for fun). Item
- *   25's training lobby EMPTIES the table (bench ogre + practice
- *   cake own the lobby) — entry 5's claimer deletes this branch with
- *   the lobby giant; the deletion is these two lines. Known residue
- *   until then: after a LOST run the client's table visibly holds
- *   the next-up species (a frozen arrival — the verdict never nulls
- *   before the next deal) while both worlds agree on rung 1's
- *   shape; coarse comedy capsules absorb it, and entry 5 razes it.
+ * - lobby/countdown: OFF — THE TRAINING LOBBY (item 25, entry 5
+ *   razed the interim rule that stood rung 1's patron here): the
+ *   table is EMPTY before the run; the founding patron waits on the
+ *   bench up the road (client theatre) and the practice target owns
+ *   the lobby's physics. Residue accepted (ruled, the mirror of the
+ *   departure's): at ALL-IN the deal stands the capsules at the mark
+ *   while the parade theatre still walks him up — a warmup straggler
+ *   can bonk on an empty mark for ~10 s; order's live, he's coming.
  */
 export function patronAtMark(
   phase: RunPhase,
   rung: number,
   verdictPending: boolean,
 ): string | null {
-  if (phase === "runover") return null;
-  if (phase === "running") return verdictPending ? null : speciesForRung(rung);
-  return speciesForRung(1); // lobby/countdown — the interim rule (item 25 razes)
+  if (phase !== "running") return null; // lobby/countdown/runover — empty table
+  return verdictPending ? null : speciesForRung(rung);
 }

@@ -21,6 +21,7 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CakeTier } from "../core/dessert";
 import type { Judgment } from "../game/judgment";
+import type { RunPhase } from "../game/run-flow";
 import { loadModel } from "./assets";
 import { lineSlots, tablePatron, TABLE_POS, TABLE_YAW } from "./cast";
 import { EatTheatre, eatAction } from "./eat-beat";
@@ -29,6 +30,7 @@ import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
 import {
   ARRIVE_SPEED,
   DEPART_SPEED,
+  PARADE_SPEED,
   WALK_PHASE_PER_FRAME,
   walkSway,
 } from "./walk";
@@ -48,11 +50,23 @@ const DEPART_LANE_Z = -52;
 const DESPAWN_X = 380; // deep in the fog band (fog full at 280)
 // Stride dials live in walk.ts (plans/15 item 20) — ONE home.
 
+/** THE BENCH (item 25): the GIANT REST STOP the region carries (s15
+ * fleet — bench, table-with-bun, lantern; region.blend site center
+ * blender (155, 10) → game (155, −10)). The founding patron waits here
+ * all lobby — rung 1 is ALWAYS the ogre (the opening pin), so the
+ * giant on the bench IS the first customer. He faces down the road
+ * toward the bakery. Placement is an eye-pass dial. */
+export const BENCH_POS = { x: 155, z: -10 } as const;
+const BENCH_YAW = -Math.PI / 2; // looking down the road, −x
+
 interface TableBody {
   group: THREE.Group;
   body: PatronBody;
   species: string;
   walkPhase: number;
+  /** Walk-in speed override (the parade's eager stride); the linger's
+   * normal arrival leaves it unset and reads ARRIVE_SPEED. */
+  speed?: number;
 }
 
 /** THE SCOLD (item 16's rider — the first PATRON VOICE in the game):
@@ -91,6 +105,13 @@ export class PatronTable {
   private seated: TableBody | null = null;
   private departing: TableBody | null = null;
   private arriving: TableBody | null = null;
+  /** THE BENCH OGRE (item 25): the founding patron waiting at the rest
+   * stop, pre-run only. At ALL-IN he becomes `arriving` — THE OPENING
+   * PARADE — and walks the road at the eager stride. */
+  private bench: TableBody | null = null;
+  /** An async bench spawn is in flight (absent models must not
+   * re-request every frame — the requestTemplates discipline). */
+  private benchRequested = false;
   /** The rung whose patron is (or is walking to be) at the table. */
   private shownRung = -1;
   private lastVerdict: Judgment | null = null;
@@ -209,6 +230,41 @@ export class PatronTable {
     };
   }
 
+  /** THE EMPTY TABLE (item 25): clear every table body and beat — the
+   * pre-run truth. The bench is NOT touched (it's the lobby's one
+   * resident); splats leave with the bodies they rode. */
+  private snapEmpty(): void {
+    for (const b of [this.seated, this.departing, this.arriving])
+      if (b) b.group.removeFromParent(); // shared-clone law: no dispose
+    while (this.splats.length > 0) this.dropSplat(0);
+    this.seated = this.departing = this.arriving = null;
+    this.shownRung = -1;
+    this.lingerFrames = 0;
+    this.eat?.dispose();
+    this.eat = null;
+    this.gen++;
+  }
+
+  /** Stand the founding patron at the rest stop (pre-run). Species is
+   * rung 1's — the opening pin makes the bench giant THE first
+   * customer; assetless boots leave the bench empty (a normal
+   * Tuesday). */
+  private ensureBench(): void {
+    if (this.bench || this.benchRequested) return;
+    this.benchRequested = true;
+    const gen = this.gen;
+    void this.spawn(1).then((b) => {
+      if (!b) return;
+      if (gen !== this.gen || this.bench || !this.benchRequested) {
+        b.group.removeFromParent();
+        return;
+      }
+      b.group.position.set(BENCH_POS.x, 0, BENCH_POS.z);
+      b.group.rotation.y = BENCH_YAW;
+      this.bench = b;
+    });
+  }
+
   /** Instant, theatre-free placement of rung's patron (boot, late
    * join, seam jumps, any mismatch recovery). */
   private snapTo(rung: number): void {
@@ -253,17 +309,43 @@ export class PatronTable {
     return d <= speed; // arrived (this step covered the remainder)
   }
 
-  /** Per render frame, fed from view (the polling seam). `tiers` is
-   * the CURRENT deal's dessert rows (view.dessert.spec.tiers) — the
-   * eat beat captures them on the verdict edge, so the proxy eaten is
-   * the cake that was JUDGED even if a redeal rebinds mid-beat. */
+  /** Per render frame, fed from view (the polling seam). `phase` is
+   * the run container's word (item 25: pre-run the table is EMPTY and
+   * the founding patron waits on the bench). `tiers` is the CURRENT
+   * deal's dessert rows (view.dessert.spec.tiers) — the eat beat
+   * captures them on the verdict edge, so the proxy eaten is the cake
+   * that was JUDGED even if a redeal rebinds mid-beat. */
   update(
+    phase: RunPhase,
     rung: number,
     patronSeq: number | null,
     verdict: Judgment | null,
     tiers: readonly CakeTier[] = [],
   ): void {
     const wantRung = Math.max(1, rung);
+
+    // THE TRAINING LOBBY (item 25): pre-run the table stands empty —
+    // the practice plank owns the mark; the founding patron waits on
+    // the bench, leaning (the cheap-lean audition, existing bones).
+    // lastVerdict stays synced so a stale post-loss verdict can never
+    // fire an edge into the fresh run's opening frames.
+    if (phase === "lobby" || phase === "countdown") {
+      if (
+        this.seated ||
+        this.arriving ||
+        this.departing ||
+        this.eat ||
+        this.lingerFrames > 0
+      )
+        this.snapEmpty();
+      this.lastVerdict = verdict;
+      this.ensureBench();
+      if (this.bench) {
+        this.bench.body.holdLean();
+        this.bench.body.update(null, null);
+      }
+      return;
+    }
 
     // Verdict edges drive the theatre; anything else out of step snaps.
     if (verdict !== this.lastVerdict) {
@@ -285,6 +367,30 @@ export class PatronTable {
         this.arriving.group.rotation.set(0, TABLE_YAW, 0);
         this.seated = this.arriving;
         this.arriving = null;
+      }
+    }
+
+    // THE OPENING PARADE (item 25): the run began with the founding
+    // patron still on his bench — he rises and walks the road to the
+    // table at the eager stride while the crew scrambles for ammo.
+    // Placed AFTER the verdict edges (a stale post-loss edge must
+    // never teleport him) and BEFORE the snap (he IS the recovery).
+    // A seam jump past rung 1 retires him quietly — wrong species.
+    this.benchRequested = false; // an in-flight bench fetch is stale now
+    if (this.bench) {
+      const b = this.bench;
+      this.bench = null;
+      this.benchRequested = false;
+      if (
+        !this.seated &&
+        !this.arriving &&
+        tablePatron(wantRung).species === b.species
+      ) {
+        b.speed = PARADE_SPEED;
+        this.arriving = b;
+        this.shownRung = wantRung;
+      } else {
+        b.group.removeFromParent();
       }
     }
 
@@ -347,10 +453,23 @@ export class PatronTable {
       }
     }
     if (this.arriving) {
-      const done = this.walk(this.arriving, TABLE_POS.x, TABLE_POS.z, ARRIVE_SPEED);
+      const done = this.walk(
+        this.arriving,
+        TABLE_POS.x,
+        TABLE_POS.z,
+        this.arriving.speed ?? ARRIVE_SPEED,
+      );
       if (done) {
         this.arriving.group.position.y = 0;
         this.arriving.group.rotation.set(0, TABLE_YAW, 0);
+        // No verdict pending → he takes his seat on arrival (the
+        // parade's path: there is no verdict-null edge to seat him).
+        // Mid-linger arrivals keep waiting for the fresh deal's edge —
+        // exactly the old behavior.
+        if (!verdict) {
+          this.seated = this.arriving;
+          this.arriving = null;
+        }
       }
     }
 

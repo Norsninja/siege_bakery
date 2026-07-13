@@ -15,11 +15,18 @@
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { Judgment } from "../game/judgment";
+import type { RunPhase } from "../game/run-flow";
 import { loadModel } from "./assets";
 import { CAST, lineSlots, type LineSlot } from "./cast";
 import { PatronBody, POSES, SPECIES_POSES } from "./patron-body";
 import { DEPART_AT_FRAMES } from "./patron-table";
-import { ADVANCE_FRAMES, WALK_PHASE_PER_FRAME, walkSway } from "./walk";
+import {
+  ADVANCE_FRAMES,
+  LINE_PARADE_FRAMES,
+  PARADE_DISTANCE_M,
+  WALK_PHASE_PER_FRAME,
+  walkSway,
+} from "./walk";
 
 // Stride dials live in walk.ts (plans/15 item 20) — ONE home.
 /** Instanced-crowd capacity per species (the far tier is 4 slots;
@@ -40,6 +47,19 @@ export class LineManager {
   private renderedRung = -1;
   private lastVerdict: Judgment | null = null;
   private animFrames = 0;
+  /** The current walk's full length in frames — the advance's 330 or
+   * the opening parade's longer march (item 25). */
+  private animTotal = ADVANCE_FRAMES;
+  /** Extra +x for bodies born MID-anim: during the parade a template
+   * that lands late spawns in column formation out on the road (item
+   * 25's loading-as-fiction — "still downloading" and "hasn't arrived
+   * yet" are the same sentence) instead of popping at its slot. */
+  private spawnFromX = 0;
+  /** THE TRAINING LOBBY (item 25): pre-run the road carries the
+   * horizon crowd ONLY — near giants arrive as the opening parade.
+   * null = no frame seen yet (a late joiner's first frame must adopt
+   * its mode without theatre). */
+  private lobbyShown: boolean | null = null;
   /** Counts up from the verdict edge; the advance fires on the same
    * beat the table's departure does (the handoff frame). */
   private lingerFrames = 0;
@@ -61,7 +81,10 @@ export class LineManager {
       void loadModel(member.species).then((m) => {
         if (gen !== this.gen) return;
         this.templates.set(member.species, m);
-        if (m) this.rebuild(this.renderedRung); // dress newly-available slots
+        // Dress newly-available slots. Never snap mid-anim: a template
+        // landing during the parade (or an advance) must not teleport
+        // the marching column to its slots.
+        if (m) this.rebuild(this.renderedRung, this.animFrames === 0);
       });
     }
     void loadModel("giants_far").then((far) => {
@@ -93,7 +116,12 @@ export class LineManager {
    * passes false and lets the walk animation carry them. */
   private rebuild(rung: number, snap = true): void {
     if (rung < 1) return;
-    const slots = lineSlots(rung);
+    // Pre-run the lobby ships the horizon only (item 25): near tiers
+    // are simply absent from the want-map, so entering the lobby razes
+    // them and the far crowd stands untouched.
+    const slots = lineSlots(rung).filter(
+      (s) => !this.lobbyShown || s.tier === "impostor",
+    );
     const want = new Map(slots.map((s) => [s.queueIndex, s]));
     for (const [q, g] of this.giants) {
       if (!want.has(q)) {
@@ -157,7 +185,12 @@ export class LineManager {
       // the ORIGIN (the town!) regardless of its group transform.
       const group = cloneSkinned(template) as THREE.Group;
       group.scale.setScalar(slot.visualScale);
-      group.position.set(slot.x, 0, slot.z);
+      // Born mid-anim: join the column where it currently marches
+      // (spawnFromX carries the parade's start offset), not at the
+      // slot — the lerp brings him in with everyone else.
+      const fromX =
+        this.animFrames > 0 ? slot.x + this.spawnFromX : slot.x;
+      group.position.set(fromX, 0, slot.z);
       group.rotation.y = slot.yaw;
       this.scene.add(group);
       this.giants.set(slot.queueIndex, {
@@ -171,7 +204,7 @@ export class LineManager {
                 slot.queueIndex,
               )
             : null,
-        from: { x: slot.x, z: slot.z },
+        from: { x: fromX, z: slot.z },
         walkPhase: 0,
       });
     }
@@ -194,7 +227,7 @@ export class LineManager {
       const i = counts.get(g.slot.species) ?? 0;
       if (i >= CROWD_CAP) continue;
       counts.set(g.slot.species, i + 1);
-      const t = this.animFrames > 0 ? 1 - this.animFrames / ADVANCE_FRAMES : 1;
+      const t = this.animFrames > 0 ? 1 - this.animFrames / this.animTotal : 1;
       const x = g.from.x + (g.slot.x - g.from.x) * t;
       const z = g.from.z + (g.slot.z - g.from.z) * t;
       q.setFromAxisAngle(up, g.slot.yaw);
@@ -206,9 +239,57 @@ export class LineManager {
   }
 
   /** Per render frame, fed from view (the polling seam). */
-  update(rung: number, verdict: Judgment | null): void {
+  update(phase: RunPhase, rung: number, verdict: Judgment | null): void {
     const wantRung = Math.max(1, rung);
+    // Templates stream DURING the lobby (item 25's loading-as-fiction):
+    // the request fires here whatever the phase; only the near BODIES
+    // wait for the parade.
     this.requestTemplates();
+
+    // THE MODE EDGES (item 25). First frame adopts silently (a late
+    // joiner snaps, never parades); lobby entry razes the near tiers
+    // (the rebuild filter); ALL-IN marches them in from the haze.
+    const preRun = phase === "lobby" || phase === "countdown";
+    if (this.lobbyShown === null) {
+      this.lobbyShown = preRun;
+    } else if (preRun !== this.lobbyShown) {
+      this.lobbyShown = preRun;
+      this.lastVerdict = verdict; // a stale post-loss edge never fires here
+      this.lingerFrames = 0;
+      if (preRun) {
+        // Back to the bakery: the horizon crowd holds, near giants go.
+        this.renderedRung = wantRung;
+        this.animFrames = 0;
+        this.rebuild(wantRung);
+      } else {
+        // THE OPENING PARADE: the line strides in from the horizon,
+        // staggered behind the founding patron (patron-table walks
+        // him bench→table on this same edge). Column formation: every
+        // near giant starts PARADE_DISTANCE_M up the road and the
+        // lerp brings the whole queue in together.
+        this.renderedRung = wantRung;
+        this.spawnFromX = PARADE_DISTANCE_M;
+        this.animTotal = LINE_PARADE_FRAMES;
+        this.animFrames = LINE_PARADE_FRAMES;
+        this.rebuild(wantRung, false);
+        for (const g of this.giants.values()) {
+          if (g.slot.tier === "impostor") continue; // already home
+          g.from = { x: g.slot.x + PARADE_DISTANCE_M, z: g.slot.z };
+          g.group?.position.set(g.from.x, 0, g.from.z);
+        }
+      }
+    }
+    // Pre-run there is no line theatre: the crowd stands, nothing
+    // advances (the verdict edge below belongs to live runs).
+    if (preRun) {
+      this.lastVerdict = verdict;
+      if (this.renderedRung !== wantRung) {
+        this.renderedRung = wantRung;
+        this.animFrames = 0;
+        this.rebuild(wantRung);
+      }
+      return;
+    }
 
     // The advance is armed by the verdict edge (order ended) but
     // FIRES on the departure beat — the table patron finishes his
@@ -223,6 +304,8 @@ export class LineManager {
       if (this.renderedRung === wantRung) {
         this.renderedRung = wantRung + 1;
         this.rebuild(this.renderedRung, false); // the walk carries them
+        this.spawnFromX = 0; // latecomer templates pop at slot, as ever
+        this.animTotal = ADVANCE_FRAMES;
         this.animFrames = ADVANCE_FRAMES;
       }
     }
@@ -243,10 +326,10 @@ export class LineManager {
       this.rebuild(wantRung);
     }
 
-    // The shuffle-forward.
+    // The shuffle-forward (and the parade — same lerp, longer march).
     if (this.animFrames > 0) {
       this.animFrames--;
-      const t = 1 - this.animFrames / ADVANCE_FRAMES;
+      const t = 1 - this.animFrames / this.animTotal;
       for (const g of this.giants.values()) {
         if (!g.group) continue;
         const x = g.from.x + (g.slot.x - g.from.x) * t;

@@ -94,7 +94,8 @@
  *
  * game/ law: imports core/ only, like tuning.ts.
  */
-import { specById, type DessertSpec } from "../core/dessert";
+import { PRACTICE_TARGET, specById, type DessertSpec } from "../core/dessert";
+import type { RunPhase } from "./run-flow";
 
 export interface Rung {
   /** DessertSpec id (the wire name — the deal carries the RUNG NUMBER
@@ -177,6 +178,21 @@ export function rungRow(rung: number): Rung {
  * honest because validateRungs() runs at Room boot. */
 export function specForRung(rung: number): DessertSpec {
   return specById(rungRow(rung).spec)!;
+}
+
+/** THE STANDING GEOMETRY at any moment of the match (plans/15 item 25,
+ * THE TRAINING LOBBY): outside a live run the cake mark holds the
+ * PRACTICE TARGET — no cake before the order; the dessert arrives WITH
+ * the first deal. Running and runover read the rung's spec (the final
+ * cake stays on display under the run report). One pure derivation,
+ * both replicas: the Room's redeal boundaries and every client rebind
+ * resolve through here, so the two worlds can never disagree about
+ * what stands at the mark (the patronAtMark discipline, applied to
+ * the plate). */
+export function dessertSpecFor(phase: RunPhase, rung: number): DessertSpec {
+  if (phase === "running" || phase === "runover")
+    return specForRung(Math.max(1, rung));
+  return PRACTICE_TARGET; // lobby/countdown — the training ground
 }
 
 /** Every RUNGS row must name a real spec row — authoring tripwire,

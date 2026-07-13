@@ -239,6 +239,18 @@ export class PatronBody {
     this.flinchLeft = FLINCH_FRAMES;
   }
 
+  /** THE BENCH REST (plans/15 item 25): hold the lean as long as the
+   * owner keeps calling — the founding patron waits leaning at the
+   * rest stop all lobby. Called BEFORE update() each frame; the hold
+   * outlives one decrement and decays naturally the frame the owner
+   * stops (the parade calls him and the walk takes over). A bench body
+   * never hears a verdict, so this can't yank a pose. */
+  holdLean(): void {
+    if (!this.rigged) return;
+    this.mode = "lean";
+    this.holdFrames = 2;
+  }
+
   /** THE MOUTH ANCHOR (plans/16 slice 7 — the eat beat's arc target):
    * the head bone's WORLD position. The skinned-clone law applies —
    * group transforms lie for skinned meshes, so the bone is the only

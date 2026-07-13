@@ -6,7 +6,7 @@
  * line — which stay where the scene lives.
  */
 import { dessertGeometry, type DessertGeometry } from "../core/dessert";
-import { specForRung } from "../game/campaign";
+import { dessertSpecFor, specForRung } from "../game/campaign";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
 import type { RequirementCheck } from "../game/judgment";
 import type {
@@ -92,7 +92,11 @@ export function applyServerMsg(
       // from it — resting toppings need its colliders under them, and the
       // frosting snapshot must land on a field sized to its census
       // (frosting-view's length guard is the tripwire if this slips).
-      view.dessert = dessertGeometry(specForRung(msg.run.rung));
+      // Phase-aware since entry 5 (the training lobby): a lobby joiner
+      // binds the practice target; a mid-run joiner binds the rung's cake.
+      view.dessert = dessertGeometry(
+        dessertSpecFor(msg.run.phase, msg.run.rung),
+      );
       fx.bindDessert(view.dessert);
       // Joined mid-banner: adopt the verdict, or the banner words gate-1
       // hunger over a WON order (audit 2026-07-03).
@@ -227,6 +231,22 @@ export function applyServerMsg(
         fx.flash(`PATRON ${msg.rung} steps up to the table!`, 5000);
       else if (msg.phase === "lobby" && prev.phase === "runover")
         fx.flash("back to the bakery — gather in the circle to bake again", 6000);
+      // THE STANDING-GEOMETRY RECONCILE (item 25): outside a run the mark
+      // holds the practice target — the Room redealt at this same phase
+      // edge (runover→lobby), and the fresh-deal path already covers the
+      // way IN to a run. Reconcile by derived spec id, never by edge:
+      // any run word that changes what should stand rebinds, the rest
+      // are a string compare (the patronAtMark discipline, on the plate).
+      const want = dessertSpecFor(view.run.phase, view.run.rung);
+      if (want.id !== view.dessert.spec.id) {
+        // The redeal ordering (plans/13 §3): clear with the OUTGOING
+        // geometry, then bind the incoming — same as the fresh path.
+        fx.clearCakeSolids();
+        view.dessert = dessertGeometry(want);
+        fx.bindDessert(view.dessert);
+        fx.clearStuck();
+        fx.clearLandingRings();
+      }
       break;
     }
   }

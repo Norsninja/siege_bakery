@@ -962,12 +962,12 @@ describe("Room: the match, headless over protocol", () => {
     const w = carol.last("welcome");
     expect(w?.toppings).toHaveLength(1);
     expect(w?.toppings[0]?.topping).toBe("cherry");
-    // Resting on the LOBBY cake's base top: the dormant dessert is the
-    // next run's rung 1 — cake-1 since the ladder went live (plans/13
-    // slice 4) — so the old 6-click tier-2 arc now settles on the single
-    // tier at y ≈ 2.3 (above its y-2 top, below where tier 2 would be).
-    expect(w?.toppings[0]?.y).toBeGreaterThan(2.2);
-    expect(w?.toppings[0]?.y).toBeLessThan(3.4);
+    // The LOBBY holds the PRACTICE TARGET now (item 25, entry 5): the
+    // old 6-click cake-1 arc glances the narrower plank column and
+    // rests on the floor beside it (y ≈ 0.3) — the welcome still
+    // carries the topping exactly where it lies, which is the pin.
+    expect(w?.toppings[0]?.y).toBeGreaterThanOrEqual(0);
+    expect(w?.toppings[0]?.y).toBeLessThan(1);
   });
 
   it("a frosting glob scores at IMPACT and paints the welcome snapshot (plans/07)", () => {
@@ -1750,13 +1750,14 @@ describe("Room: the match, headless over protocol", () => {
     const rig = (room: Room): { species: string | null } =>
       (room as unknown as { patronRig: { species: string | null } }).patronRig;
 
-    it("lobby (interim rule) and the live order stand him up; the verdict clears him; the next lobby stands him again", () => {
+    it("the lobby's mark is EMPTY (entry 5); the live order stands him up; the verdict clears him; the next lobby empties again", () => {
       const room = new Room();
       const a = connect(room, "alice");
-      // The lobby sandbox: warmup lobbing at a visible ogre must bounce
-      // (item 25's training lobby razes this branch with the lobby giant).
+      // THE TRAINING LOBBY (item 25, entry 5 razed the interim rule):
+      // the table is empty pre-run — the practice target owns the
+      // lobby's physics; the founding patron waits on the bench.
       run(room, 2);
-      expect(rig(room).species).toBe("ogre");
+      expect(rig(room).species).toBeNull();
       // A live rung 1: the founding patron stands his order.
       readyUp(room, a);
       expect(rig(room).species).toBe("ogre");
@@ -1776,11 +1777,10 @@ describe("Room: the match, headless over protocol", () => {
       expect(rig(room).species).toBeNull();
       run(room, 60); // deep in the linger: still down
       expect(rig(room).species).toBeNull();
-      // Runover holds the empty mark; the lobby stands rung 1's ogre back
-      // up (both worlds agree — the client mirrors this exactly). Poll for
-      // a FRESH lobby word (the boot lobby's own broadcasts are already in
-      // the inbox); the crew's standing poses may auto-restart the run
-      // after it — rung 1's ogre stands through all of that too.
+      // Runover holds the empty mark; the NEXT lobby holds it empty too
+      // (entry 5 — both worlds agree; the client mirrors this exactly).
+      // Poll for a FRESH lobby word (the boot lobby's own broadcasts are
+      // already in the inbox).
       const lobbiesBefore = a.all("run").filter((m) => m.phase === "lobby").length;
       guard = 0;
       while (
@@ -1792,7 +1792,41 @@ describe("Room: the match, headless over protocol", () => {
         a.all("run").filter((m) => m.phase === "lobby").length,
       ).toBeGreaterThan(lobbiesBefore);
       run(room, 2);
-      expect(rig(room).species).toBe("ogre");
+      expect(rig(room).species).toBeNull();
+    });
+  });
+
+  describe("THE TRAINING LOBBY (plans/15 item 25): the practice target rides the run boundary", () => {
+    const spec = (room: Room): string =>
+      (room as unknown as { dessert: { spec: { id: string } } }).dessert.spec
+        .id;
+
+    it("boot stands the plank; the first deal swaps in rung 1's cake; the next lobby restores the plank", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      // No cake before the order — the boot mark holds the target.
+      expect(spec(room)).toBe("practice");
+      // ALL-IN: the dessert arrives WITH the first deal (startRun).
+      readyUp(room, a);
+      expect(spec(room)).toBe("cake-1");
+      // The run dies (untended rung 1 burns out), the report plays, and
+      // the lobby's fresh word rides the SAME tick the target returns.
+      const lobbiesBefore = a.all("run").filter((m) => m.phase === "lobby").length;
+      let guard = 0;
+      while (
+        a.all("run").filter((m) => m.phase === "lobby").length <= lobbiesBefore &&
+        guard++ < (rungRow(1).clockSeconds + 120) * 60
+      ) {
+        room.tick();
+        // Runover keeps the FINAL cake on display under the report.
+        const phase = (room as unknown as { run: { phase: string } }).run
+          .phase;
+        if (phase === "runover") expect(spec(room)).toBe("cake-1");
+      }
+      expect(
+        a.all("run").filter((m) => m.phase === "lobby").length,
+      ).toBeGreaterThan(lobbiesBefore);
+      expect(spec(room)).toBe("practice");
     });
   });
 });

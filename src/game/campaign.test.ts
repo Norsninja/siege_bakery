@@ -7,8 +7,14 @@
  * yardstick, and the flip itself (specForRung deals THIS table).
  */
 import { describe, it, expect } from "vitest";
-import { specById } from "../core/dessert";
-import { RUNGS, rungRow, specForRung, validateRungs } from "./campaign";
+import { DESSERT_SPECS, PRACTICE_TARGET, specById } from "../core/dessert";
+import {
+  RUNGS,
+  dessertSpecFor,
+  rungRow,
+  specForRung,
+  validateRungs,
+} from "./campaign";
 import {
   FROST_FRAC,
   ORDER_PAR_SHOTS,
@@ -84,5 +90,31 @@ describe("RUNGS (the authored ladder)", () => {
       expect(specForRung(i + 1)).toBe(specById(r.spec));
     expect(specForRung(0)).toBe(specById("cake-1")); // the lobby's dormant rung 1
     expect(specForRung(99)).toBe(specById("cake-6")); // past the top: the top
+  });
+});
+
+describe("dessertSpecFor (the training lobby, plans/15 item 25)", () => {
+  it("no cake before the order: lobby and countdown stand the practice target", () => {
+    expect(dessertSpecFor("lobby", 0)).toBe(PRACTICE_TARGET);
+    expect(dessertSpecFor("countdown", 0)).toBe(PRACTICE_TARGET);
+    // Whatever rung the container left behind — the phase decides.
+    expect(dessertSpecFor("lobby", 5)).toBe(PRACTICE_TARGET);
+  });
+
+  it("a live run deals the rung's spec; runover keeps the final cake on display", () => {
+    expect(dessertSpecFor("running", 1)).toBe(specById("cake-1"));
+    expect(dessertSpecFor("running", 3)).toBe(specById("cake-3"));
+    expect(dessertSpecFor("runover", 4)).toBe(specById("cupcake"));
+    expect(dessertSpecFor("running", 0)).toBe(specById("cake-1")); // defensive clamp
+  });
+
+  it("the practice target is a TARGET, not a dessert: never dealable", () => {
+    // Not in DESSERT_SPECS (no wire id lookup, no RUNGS referent) and no
+    // RUNGS row may name it — the plank never rides the ladder.
+    expect(specById("practice")).toBeUndefined();
+    expect(DESSERT_SPECS).not.toContain(PRACTICE_TARGET);
+    for (const r of RUNGS) expect(r.spec).not.toBe("practice");
+    // One modest tier, collider tight to the plank (the forcefield rule).
+    expect(PRACTICE_TARGET.tiers).toHaveLength(1);
   });
 });

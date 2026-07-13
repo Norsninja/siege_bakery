@@ -134,6 +134,52 @@ describe("applyServerMsg", () => {
     expect(h.frosting).toEqual(["clear-cake", "bind:cake-2", "clear-stuck", "clear-rings"]);
   });
 
+  it("THE TRAINING LOBBY (item 25): a lobby welcome binds the practice target", () => {
+    const h = harness();
+    applyServerMsg(
+      h.view,
+      {
+        t: "welcome",
+        id: 3,
+        machines: [
+          { machine: myMachine(h.view).machine, crankTicks: 0, screwTicks: 0 },
+        ],
+        yourTown: 0,
+        order: createOrder([], 42),
+        checks: [],
+        poses: [],
+        toppings: [],
+        frosting: [],
+        stuck: [],
+        run: { phase: "lobby", rung: 0 },
+      },
+      h.fx,
+    );
+    // No cake before the order: the lobby joiner's mark holds the plank.
+    expect(h.view.dessert.spec.id).toBe("practice");
+    expect(h.frosting).toEqual(["bind:practice", "restore:0", "stuck:0"]);
+  });
+
+  it("THE TARGET RETURNS (item 25): the runover→lobby run word rebinds the plank, full redeal ordering", () => {
+    const h = harness();
+    // Stand mid-run on rung 1's cake, then end it: runover keeps the
+    // final cake (no rebind); the lobby word wheels the plank back in.
+    applyServerMsg(h.view, orderMsg({ fresh: true, rung: 1 }), h.fx);
+    h.view.run = { phase: "running", rung: 1 };
+    h.frosting.length = 0;
+    applyServerMsg(h.view, { t: "run", phase: "runover", rung: 1 }, h.fx);
+    expect(h.view.dessert.spec.id).toBe("cake-1"); // on display under the report
+    expect(h.frosting).toEqual([]);
+    applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0 }, h.fx);
+    expect(h.view.dessert.spec.id).toBe("practice");
+    // The same redeal ordering as a fresh deal (plans/13 §3): clear with
+    // the OUTGOING geometry, bind the incoming, rings and stuck ride.
+    expect(h.frosting).toEqual(["clear-cake", "bind:practice", "clear-stuck", "clear-rings"]);
+    // A quiet lobby word (ready census) is a string compare, no rebind.
+    applyServerMsg(h.view, { t: "run", phase: "lobby", rung: 0, readyIn: 1, readyOf: 1 }, h.fx);
+    expect(h.frosting).toEqual(["clear-cake", "bind:practice", "clear-stuck", "clear-rings"]);
+  });
+
   it("shot spawns the deterministic local lob and announces it", () => {
     const h = harness();
     applyServerMsg(

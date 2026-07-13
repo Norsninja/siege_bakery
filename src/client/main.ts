@@ -91,7 +91,7 @@ async function main(): Promise<void> {
   const canvas = document.getElementById("app") as HTMLCanvasElement;
   const gs = buildGameScene(canvas);
   const { renderer, scene, camera, heldMesh } = gs;
-  gs.setDessert(view.dessert.spec.tiers); // the placeholder cake, pre-welcome
+  gs.setDessert(view.dessert.spec); // the placeholder mark, pre-welcome
   const shotsView = new ShotsView(physics, scene);
   const frostingView = new FrostingView(scene, view.dessert.samples);
   const sprinklesView = new SprinklesView(scene);
@@ -237,7 +237,7 @@ async function main(): Promise<void> {
       // clearCakeSolids (which read the OUTGOING view.dessert).
       for (const c of dessertColliders) physics.removeCollider(c, false);
       dessertColliders = dessert.buildColliders(physics);
-      gs.setDessert(dessert.spec.tiers);
+      gs.setDessert(dessert.spec);
       frostingView.bindDessert(dessert.samples);
       snapshot.aimAt(dessert.spec.tiers);
       shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
@@ -604,12 +604,13 @@ async function main(): Promise<void> {
     // The choreography polls view state (async load + mid-banner joiners
     // recover; NetFx events would miss both — patron-body.ts header).
     patronTable.update(
+      view.run.phase,
       view.run.rung,
       view.lastPatron?.seq ?? null,
       view.verdict,
       view.dessert.spec.tiers,
     );
-    line.update(view.run.rung, view.verdict);
+    line.update(view.run.phase, view.run.rung, view.verdict);
     shotsView.sync(camera);
     // The portcullis panel shows exactly while its fence is shut — the
     // fence must never be an invisible wall.

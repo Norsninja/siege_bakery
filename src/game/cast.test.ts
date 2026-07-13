@@ -98,13 +98,15 @@ describe("patronAtMark (item 16's deal-boundary gating, one home)", () => {
     expect(patronAtMark("runover", 3, true)).toBeNull();
   });
 
-  it("INTERIM (item 25 razes): lobby and countdown stand rung 1's patron", () => {
-    // The verdict flag is deliberately ignored here: after a lost run
-    // the stale verdict survives into the lobby (cleared only by the
-    // next deal), and the lobby's visible giant must still bounce.
-    expect(patronAtMark("lobby", 0, false)).toBe("ogre");
-    expect(patronAtMark("lobby", 0, true)).toBe("ogre");
-    expect(patronAtMark("countdown", 0, false)).toBe("ogre");
+  it("THE TRAINING LOBBY (item 25, entry 5): lobby and countdown clear the mark", () => {
+    // Entry 5 razed the interim rule: the table is EMPTY before the
+    // run — the founding patron waits on the bench (client theatre,
+    // no capsules) and the practice target owns the lobby's physics.
+    // The verdict flag is irrelevant with nobody at the mark.
+    expect(patronAtMark("lobby", 0, false)).toBeNull();
+    expect(patronAtMark("lobby", 0, true)).toBeNull();
+    expect(patronAtMark("countdown", 0, false)).toBeNull();
+    expect(patronAtMark("countdown", 5, true)).toBeNull();
   });
 
   it("is pure — both worlds asking the same question get the same shape", () => {
