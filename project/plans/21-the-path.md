@@ -142,8 +142,13 @@ design lane's rulings will have changed the board.
   Dragon's wings excluded via the rig's own vertex groups, neck arc =
   three vertical capsules stepping forward; treefolk canopy/root flare
   excluded per the forcefield rule).
-- **The bakery + pantry + stall** (item 18) — turnarounds on disk,
-  research/18 contract, winding audit law.
+- **~~The bakery + stall~~ + THE PANTRY** (item 18) — bakery + stall
+  DONE 2026-07-12 (fourth fleet, 7618b24/1e9274c/bddda03: near_bakery
+  on the dessert-service axis, prop_stall to the counter law, wired at
+  both anchors). THE PANTRY is the item's open half — the stall's
+  precedent (counter-law coincidence, placements helper, invisible
+  proxies) is the recipe; the crates ride ON it, so the dress must
+  keep crateY honest.
 - ~~The catapult dress~~ CANCELLED 2026-07-12 (visionary's ruling,
   twenty-second sitting): the machine was HAND-BUILT (the s13 hand
   road — catapult.glb with its drive nodes) because meshy couldn't do
