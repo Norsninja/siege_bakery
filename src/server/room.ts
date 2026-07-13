@@ -513,22 +513,39 @@ export class Room {
     }
     if (r.judgment) {
       // The instant conclusion — every non-qualifying win/refusal renders
-      // exactly as it always has, coda stamped from the live ledger (a
-      // PRE-MET desire skips the window straight to verdict + flourish).
-      this.lingerVerdict = this.stampFlourish(r.judgment);
-      // The met-order Judgment is how WINS conclude (a won order never
-      // transitions through tickClock, so the "ended" event never fires
-      // for it) — capture the run container's answer here (plans/13).
-      // A REFUSED order (gate 2) concluded lost, same as clock death.
-      this.endedWon = r.judgment.accepted;
-      this.roster.broadcast({
-        t: "order",
-        order: this.flow.order,
-        checks: r.checks,
-        judgment: this.lingerVerdict,
-      });
-      this.awardPay(this.lingerVerdict);
+      // exactly as it always has (coda stamped from the live ledger; a
+      // PRE-MET desire skips the window straight to verdict + flourish; a
+      // REFUSED order concludes lost, same as clock death). THE ONE
+      // CONCLUSION PATH (plans/22 step 2): the shared tail is concludeOrder.
+      this.concludeOrder(r.judgment, r.checks);
     }
+  }
+
+  /** THE ONE CONCLUSION PATH (plans/22 step 2, the safety refactor). Every
+   * order ending funnels its shared tail through here: freeze the verdict
+   * (stampFlourish stamps the coda from the live ledger — a no-op on a
+   * loss, whose desire never met), record HOW it ended for the run
+   * container, broadcast the ending word, and pay (awardPay gates on
+   * accepted — a no-op on a loss). The two callers still differ only in the
+   * HEAD — how the verdict is obtained: a met-rows win via evaluateOrder, a
+   * clock death via judgeNow — and that divergence stays at each site until
+   * the flip (step 3) deletes the instant win and serve (step 7) joins
+   * clock-expiry, at which point both heads read judgeNow()+currentChecks()
+   * and this can take a `reason` instead. `endedWon = accepted` is
+   * behaviour-preserving today: a clock death can only reach here with rows
+   * unmet (a met/refused order concluded in the scoring phase a tick
+   * earlier and tickOrder early-returned), so its verdict is never accepted
+   * — matching the `endedWon = false` the clock-loss site hard-coded. */
+  private concludeOrder(judgment: Judgment, checks: RequirementCheck[]): void {
+    this.lingerVerdict = this.stampFlourish(judgment);
+    this.endedWon = this.lingerVerdict.accepted;
+    this.roster.broadcast({
+      t: "order",
+      order: this.flow.order,
+      checks,
+      judgment: this.lingerVerdict,
+    });
+    this.awardPay(this.lingerVerdict);
   }
 
   /** THE PAY (plans/13 §5 as amended 2026-07-09): each PASSED order
@@ -646,16 +663,9 @@ export class Room {
       } else if (event === "ended") {
         // The clock died first: gate 1 fails — the patron goes hungry.
         // (Wins never pass here — a met order concludes in the scoring
-        // phase, which captured endedWon there; this transition is the
-        // clock-death loss.)
-        this.endedWon = false;
-        this.lingerVerdict = this.judgeNow(); // frozen at this tick
-        this.roster.broadcast({
-          t: "order",
-          order: this.flow.order,
-          checks: this.currentChecks(),
-          judgment: this.lingerVerdict,
-        });
+        // phase; this transition is only ever the clock-death loss, so the
+        // frozen verdict is unaccepted and concludeOrder pays nothing.)
+        this.concludeOrder(this.judgeNow(), this.currentChecks());
       } else if (
         this.run.orderConcluded(
           this.endedWon,
