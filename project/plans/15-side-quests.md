@@ -1141,3 +1141,29 @@ from the photo for free. The eat beat derives from the verdict edge
 and must NOT move (the giant's reaction is to the WIN, not the
 photo); only the polaroid slides. Scope: client-only, patron-table's
 beat sheet + the snapshot call site.
+
+## 29. THE RACE CLOCK — the timer belongs top-center and BIG — AESTHETICS PASS
+
+**Status: recorded 2026-07-13 (twenty-fifth session, the plans/22 step-6
+discussion). No build yet; the visionary flagged it deferrable to the
+aesthetics pass or its own side-quest while ruling the earned-time HUD.**
+
+The read (his words, ruling on plans/22 §2.5's "earned time must be
+VISIBLE"): the clock should feel like a RACING GAME's — the order timer
+lives TOP-CENTER of the screen and is MUCH BIGGER than today's corner
+line, so it is immediately apparent the player is being timed. The
+pressure should be felt, not hunted for in a HUD corner.
+
+The distinction that matters at claim time: the **earned-time pop-up**
+(a "+Ns" that floats up off a fresh-coverage shot, styled like the
+plans/15 item 13 comic-word splats — GREEN, positive, the racing-game
+"time extended" beat) is built IN plans/22 step 6 as the mechanic's
+feedback; it may already exist when this item is claimed. THIS item is
+the sibling AESTHETIC: relocating and enlarging the persistent clock
+readout itself (corner → top-center hero element). One depends on the
+other reading well together — claim them as a pair if step 6's pop-up
+hasn't landed yet.
+
+Scope: client-only (hud.ts layout — the clock's home + scale, and the
+pop-up's anchor if it rides here). No sim/economy change; the number
+is the same broadcast ticksLeft, shown louder.
