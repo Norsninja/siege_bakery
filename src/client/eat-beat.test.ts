@@ -31,7 +31,6 @@ const judgment = (met: boolean, accepted: boolean): Judgment => ({
   stars: 1,
   checks: [],
   coverage: 0.5,
-  effectiveCoverage: 0.5,
   neatness: 1,
   integrity: 1,
   mess: 0,

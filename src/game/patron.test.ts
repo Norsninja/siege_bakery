@@ -117,23 +117,24 @@ describe("The Giant", () => {
   it("THE REVEAL (slice 4b): coverage turns GREAT → he names his desire, once, as a gift", () => {
     const g = createGiant();
     const order = createOrder(
-      [{ kind: "frost-coverage", frac: 0.5, potential: 0.42 }],
+      [{ kind: "frost-coverage", floorCoverage: 0.08 }],
       5400,
       { desire: { topping: "cherry", revealed: false, met: false } },
     );
-    // Below goodFrac: no reveal, however many looks.
-    const quiet = g.act(ctx(order, [0.6], { look: 1 }));
+    // Below the 2★ tier (star2Coverage default 0.18): no reveal, however
+    // many looks.
+    const quiet = g.act(ctx(order, [0.1], { look: 1 }));
     expect(quiet.utterance).not.toContain("VERY TOP");
     expect(order.desire?.revealed).toBe(false);
-    // The bar crossed (frost current IS effectiveCoverage): the offer —
+    // The bar crossed (frost current IS absolute coverage now): the offer —
     // the flag flips IN PLACE (the 2D mutation law) and patience is
     // untouched (the offer invites style; it must not shorten the room).
-    const offer = g.act(ctx(order, [0.72], { look: 2 }));
+    const offer = g.act(ctx(order, [0.25], { look: 2 }));
     expect(offer.utterance).toContain("A CHERRY. ON THE VERY TOP.");
     expect(offer.patienceDeltaSeconds).toBe(0);
     expect(order.desire?.revealed).toBe(true);
     // Revealed once: the next look moves on down the tree.
-    const after = g.act(ctx(order, [0.72], { look: 3 }));
+    const after = g.act(ctx(order, [0.25], { look: 3 }));
     expect(after.utterance).not.toContain("VERY TOP");
     // And it NEVER touches the requirements — the condemned rule 3
     // appended a row; the desire is a separate field, forever.
@@ -143,7 +144,7 @@ describe("The Giant", () => {
   it("no desire on the order (rungs 1–2) → the reveal rule never fires", () => {
     const g = createGiant();
     const order = createOrder(
-      [{ kind: "frost-coverage", frac: 0.4, potential: 0.42 }],
+      [{ kind: "frost-coverage", floorCoverage: 0.08 }],
       5400,
     );
     const act = g.act(ctx(order, [0.95], { look: 2 }));

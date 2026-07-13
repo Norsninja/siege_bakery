@@ -112,10 +112,11 @@ export function createGiant(): Patron {
       //    never gates the win; it upgrades the verdict (the fatality).
       //    No patience burn: the offer invites style — it must not
       //    shorten the room to attempt it. The frost row's `current` IS
-      //    effectiveCoverage (judgment.ts), so goodFrac reads directly.
+      //    absolute coverage now (plans/22 step 4), so the 2★ tier reads
+      //    directly — he offers the flourish when the cake turns GREAT.
       if (ctx.order.desire && !ctx.order.desire.revealed) {
         const frost = ctx.checks.find((c) => c.req.kind === "frost-coverage");
-        if (frost && frost.current >= ctx.order.goodFrac) {
+        if (frost && frost.current >= ctx.order.star2Coverage) {
           ctx.order.desire.revealed = true;
           return {
             utterance: `it looks... GOOD. hm. GOOD IS NOT PERFECT. one more thing: A ${ctx.order.desire.topping.toUpperCase()}. ON THE VERY TOP.`,

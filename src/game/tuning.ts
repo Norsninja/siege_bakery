@@ -5,25 +5,24 @@
  * re-pinned, this is the diff; the relationships below are the math the
  * numbers play against. game/ law: imports core/ only.
  *
- * ── Potential coverage (the towns law, plans/08 + plans/11 §6) ────────
- * The cake is ROUND and a town only ever paints its near hemisphere:
- * more towns raise the reach ceiling; nothing else does. Every coverage
- * ask and tier below is a fraction OF POTENTIAL — "frost half of what
- * your firing line can reach" — and the Patron grades harder the more
- * towns are at the table ("that's pretty good for one town").
- *
- * TWO TABLES since the towns slice (Option B, 2026-07-07). The clicks→10
- * bump (game/catapult.ts) is TOLL GEOMETRY, not a reach reward — but it
- * really does grow what a line can paint (click 9 reaches the far
- * hemisphere), so measurement and demand split:
- *   - TOWN_POTENTIAL — the MEASURED reference table, what a firing line
- *     can physically reach. Honesty only; NEVER handed to orders.
- *   - TOWN_ASK_POTENTIAL — the AUTHORED table, what the standing order
- *     actually demands. The rung/difficulty knob of the future plugs in
- *     here (plans/09 §4: potential is rung-authored, never runtime-
- *     measured); today it is one number per active-town count.
- * Both pinned a hair UNDER measurement because no real crew aims like a
- * set-cover solver: the top tier must be asymptotic, not imaginary.
+ * ── Absolute coverage (plans/22 step 4 — SUPERSEDES the towns/potential
+ *    law, plans/08 + plans/11 §6) ───────────────────────────────────────
+ * Coverage is graded ABSOLUTE now: how much of the WHOLE cake you frosted,
+ * one number, universal thresholds. The old "of-potential" denominator
+ * (TOWN_ASK_POTENTIAL × CREW_LABOR) is RETIRED — it scaled 5.1× solo→duo
+ * while throughput scaled only 2.85×, so adding a friend made stars
+ * HARDER, not easier (plans/22 §1). The measured truth (research/21): one
+ * town reaches only ~50–67% of the cake and covers ~10–20% in an honest
+ * clock — the vacuum 0.9 was a myth. So the floor + star tiers are flat
+ * absolute numbers (FLOOR_COVERAGE / STAR2_COVERAGE / STAR3_COVERAGE
+ * below), and GEOMETRY scales the difficulty for free: the same fraction
+ * is harder on a bigger cake, so the ladder earns its progression with no
+ * per-rung coverage knob (the cupcake is the ONE authored exception — a
+ * tiny fully-reachable target, bespoke tiers on its RUNGS row). Crew
+ * advantage is a GRADIENT now: a duo reaches higher STARS by throughput
+ * (two towns, opposite hemispheres), never a lower bar. Every number here
+ * is PROVISIONAL — tune against a real run (the star thresholds and the
+ * earned-time/clock re-derivation land through plans/22 steps 4/6).
  *
  * ── The effective clock ───────────────────────────────────────────────
  * The order NOMINALLY runs ORDER_SECONDS, but patience IS the clock: the
@@ -38,32 +37,24 @@
  * CLICK · clicks, game/catapult.ts) + aim + flight — RE-MEASURED 23.5s
  * (the visionary's live run, 2026-07-09, minimal aiming): near the
  * MECHANICAL FLOOR post-gun-crew-posts (ferry ≈8s sprint round trip +
- * crank 4.5–7.5s + post transitions). The old 12–18s pin (2026-07-03)
- * predated the posts and is retired. One small splat paints ~7–12 census
+ * crank 4.5–7.5s + post transitions). One small splat paints ~7–12 census
  * samples ≈ 1.3% of the cake (core/frosting.ts constants against the
- * 661-sample census, pinned as WIRE FORMAT in frosting.test.ts). The
- * FULL-LABOR pass ask (FROST_FRAC of the AUTHORED ask) ≈ 0.50 · 0.42 ·
- * 661 ≈ 139 samples ≈ 11–14 idealized shots (research/06 greedy), ~18–22
- * with human aim — but the effective clock buys ONE pair of hands only
- * ~4–5 cycles at 23.5s: the authored clocks price a PIPELINING DUO, and
- * unscaled solo is impossible at any skill, not hard. Hence THE LONE
- * HERO AMENDMENT (plans/13 §5, 2026-07-09): the dealt ask is REACH
- * (TOWN_ASK_POTENTIAL) × LABOR (CREW_LABOR below) — solo's 0.35 sizes
- * the pass so the MEASURED best solo line (six band shots, ~6.7%
- * absolute — saturation math at the table below) passes on its last
- * shot; crew 2+ is today's numbers verbatim. Solo stays hard mode ON
- * PURPOSE — the ladder still outruns one dwarf mid-climb; that is the
- * fiction. 2★/3★ (COVERAGE_GOOD/_EXCELLENT of potential) climb toward
- * the ceiling's asymptote: rare by design — the dessert report's
- * screenshot is the trophy either way.
+ * 661-sample census, pinned as WIRE FORMAT in frosting.test.ts). Under
+ * absolute coverage (plans/22 step 4) the pass FLOOR is FLOOR_COVERAGE of
+ * the WHOLE cake (~8% ≈ 6 splats' worth on the anchor) — no reach/labor
+ * denominator; a solo line clears it and a bigger cake makes it harder for
+ * free. The old FROST_FRAC × TOWN_ASK_POTENTIAL × census workload (~139
+ * samples, a pipelining-DUO ask) is retired with those constants; solo's
+ * relief is now the clock + earned time, not a shrunken ask (plans/22
+ * §2.8). Until step 6 re-derives, the shipped clocks (campaign.ts) run
+ * unchanged.
  *
- * ── The re-pin law (plans/07 + plans/08, standing) ────────────────────
- * Splat-constant or census changes REQUIRE re-running research/04 §3 AND
- * research/06 (the ceiling study), then re-pinning FROST_FRAC /
- * TOWN_POTENTIAL / ORDER_PAR_SHOTS / ORDER_SECONDS together — and the
- * census count pin (661) moves only on purpose. TOWN_ASK_POTENTIAL is
- * exempt from mechanical re-pinning: it is AUTHORED — it moves only by
- * design decision, and any move must restate the workload math above.
+ * ── The re-pin law (plans/07 + plans/08, NARROWED by plans/22 step 4) ──
+ * Splat-constant or census changes still move the census pin (661) only on
+ * purpose. The coverage side re-pins the ABSOLUTE tiers now (FLOOR_COVERAGE
+ * / STAR2_COVERAGE / STAR3_COVERAGE) against research/21's measured curve,
+ * never the retired FROST_FRAC / TOWN_POTENTIAL; ORDER_PAR_SHOTS /
+ * ORDER_SECONDS re-derive in step 6 (earned time + the reliable clock).
  */
 import { FIXED_DT } from "../core/constants";
 
@@ -121,59 +112,24 @@ export const READY_COUNTDOWN_TICKS = Math.round(3 / FIXED_DT); // 3s
  * filthy floor in frame) before the bakery returns to the lobby. */
 export const RUNOVER_TICKS = Math.round(12 / FIXED_DT); // 12s
 
-/** MEASURED: what fraction of the census each firing line can EVER paint,
- * by town count (pinned a hair under — header note). Index by towns; [0]
- * is a guard (no towns, no reach). RE-MEASURED 2026-07-08 under the
- * elevation vernier (research/11 re-run, tilt ladder riding
- * TILT_MAX_NOTCH, at the SHIPPED ≤10-click envelope): fine tilt BRIDGES
- * THE MOAT — the old permanent gap (ledge slots, mid-wall moats, ±x side
- * slivers) is paintable, one line reaches 90.3%, and two towns reach
- * EVERYTHING (union 100.0% at ≤8 clicks already). [3]/[4] are 1.0 by
- * SUPERSET (any extra town's reach contains the two-town union), not by
- * measurement. NEVER handed to orders — that is TOWN_ASK_POTENTIAL's
- * job below. LADDER NOTE (plans/13 slice 3, 2026-07-08): measured
- * per-spec across all seven authored rows (research/11, spec-
- * parameterized, clamped ladder) — solo reach 89.4–92.1% on every cake
- * row and union 100.0% on EVERY row, so these pins generalize to the
- * whole ladder unchanged (no per-spec table needed). One outlier: the
- * cupcake measures 97.1% solo, served by the same 0.9 — a hair more
- * under than usual, honest direction. */
-export const TOWN_POTENTIAL: readonly number[] = [0, 0.9, 1.0, 1.0, 1.0];
+// TOWN_POTENTIAL (the measured 0.9 reach) and TOWN_ASK_POTENTIAL (the
+// authored of-potential denominator) are RETIRED (plans/22 step 4):
+// coverage is absolute now, so nothing divides by "reach". research/21
+// measured one-town reach at ~50–67% (not 0.9) and time-bounded solo
+// coverage at ~10–20% — the vacuum numbers described no real envelope.
+// The star floor + tiers below are absolute; geometry scales difficulty.
 
-/** AUTHORED: the potential the standing order actually hands its frost
- * row, by ACTIVE town count — the deliberate difficulty knob (Option B,
- * 2026-07-07; plans/11 §6 as amended). [1] HELD at 0.42, today's absolute
- * solo workload (~139 samples): the clicks→10 bump must not silently make
- * the live game 31% harder — a crew exploiting click 9 earns slack, which
- * play may later claw back HERE, one number. [2] starts at 0.75, the
- * bottom of the sanctioned 0.75–0.84 band: two crews ask ~44% of their
- * measured reach vs solo's ~38% — a mild, deliberate ratio rise at
- * purchase, defensible on doubled throughput; a playtest hypothesis like
- * every number in this file (plans/08). */
-export const TOWN_ASK_POTENTIAL: readonly number[] = [0, 0.42, 0.75];
-
-/** THE LONE HERO AMENDMENT (plans/13 §5, 2026-07-09): the ask is REACH ×
- * LABOR — reach is TOWN_ASK_POTENTIAL above (towns, unchanged); labor is
- * this table, indexed by CONNECTED CREW at deal time (the towns law
- * verbatim: joiners/leavers never retro-change a ticket). It scales the
- * frost row's potential AND the sprinkle grain count (ceil) — ruled in
- * the build discussion (2026-07-09): the 23.5s cycle prices HANDS,
- * whatever the payload; leaving grains absolute would rebuild at rung 2
- * the wall this table tears down at rung 1. [1] RE-PINNED 0.5 → 0.35
- * (2026-07-09, the visionary's rung-1 feel run REPLICATED in-harness):
- * the optimized solo line — power 6 held, traverse swept +8°→−8°, six
- * shots, his fastest cycle ever BECAUSE it never re-cranks — SATURATES:
- * fresh splats paint ~1.4% absolute but band overlap decays shots 4–6
- * to ~0.9%, plateauing at 6.7% absolute. The 0.5 ask (8.4%) is beyond
- * his best line at any skill; 0.4 (6.72%) fails that exact line by
- * 0.02%. At 0.35 the ask is 5.88% — the measured best passes ON the
- * sixth shot with ~14% headroom: earned, not gifted. 2★/3★ sit past
- * the band's plateau (≥10%), demanding power variation — rare as
- * designed. [2+] = 1.0: the friend test inherits ZERO drift.
- * [0] is a guard, never indexed (requirementsFor clamps crew to ≥1 — an
- * empty room prices solo; labor 0 would deal a born-met ask). Clocks and
- * pay are UNTOUCHED — the realm pays its hero in full. A feel-pass
- * hypothesis like every number in this file. */
+/** THE LONE HERO AMENDMENT (plans/13 §5), NARROWED by the absolute-coverage
+ * flip (plans/22 step 4 §3): its frost-coverage MECHANISM is gone — the
+ * floor is flat + absolute now (FLOOR_COVERAGE), the same for one pair of
+ * hands or two; solo's coverage relief moves to the clock + earned time
+ * (plans/22 §2.8, step 6). CREW_LABOR survives ONLY as the SPRINKLE-grain
+ * scaler (requirementsFor ceils the grain ask by it — solo asks fewer
+ * grains): a pass-floor knob, not a coverage denominator (the one survival
+ * §3 sanctions). Indexed by CONNECTED CREW at deal time (towns law verbatim).
+ * [1] = 0.35 held from the old frost derivation — PROVISIONAL for grains
+ * now; step 6 re-derives solo relief whole. [2+] = 1.0 (duo zero-drift).
+ * [0] is a guard, never indexed (requirementsFor clamps crew to ≥1). */
 export const CREW_LABOR: readonly number[] = [0, 0.35, 1.0, 1.0, 1.0];
 
 /** THE CLOCK RELIEF (plans/15 item 26, 2026-07-12): the clock was the
@@ -195,17 +151,26 @@ export const CREW_LABOR: readonly number[] = [0, 0.35, 1.0, 1.0, 1.0];
  * cannot say "rung 1 only," and a live scalar beside a per-rung column
  * is exactly the drift this project guards against. */
 
-/** The frost PASS ask, as a fraction of potential (plans/08 — "50% is
- * just passing"; the 2D game asked 50 too, of a cake it could fully
- * reach). ANCHOR REFERENCE (slice 4): the live game deals each rung's
- * asks.frostFrac from RUNGS; this is rung 3's, pinned equal there. */
-export const FROST_FRAC = 0.5;
-/** The star tiers, fractions of potential (plans/08: stars come from
- * coverage tiers, not score arithmetic — "encourage 70 and 90"). Gate 2
- * (score ≥ passScore) still decides ACCEPTANCE, so sloppy work can sink
- * an order at any coverage. */
-export const COVERAGE_GOOD = 0.7;
-export const COVERAGE_EXCELLENT = 0.9;
+/** THE ABSOLUTE COVERAGE TIERS (plans/22 step 4, priced by research/21).
+ * Fractions of the WHOLE cake — flat across the CAKE ladder, geometry
+ * scaling the difficulty (a bigger cake makes the same fraction harder).
+ * The cupcake overrides all three on its RUNGS row (a tiny, fully
+ * reachable target — a different game). PROVISIONAL, tune against a real
+ * run; the confirmation + earned-time bridge land in step 6.
+ *
+ *   FLOOR_COVERAGE — the pass floor (Gate 1's frost row). Deliberately low
+ *     so a real first-timer clears the tutorial (optimal rung-1 @108s ≈
+ *     15.7%, human ~0.6× ≈ 9.4%); rung 1's extra mercy is CLOCK, not a
+ *     softer bar (plans/22 §2.8, the tutorial-floor ruling).
+ *   STAR2_COVERAGE — 2★: a strong solo line / an easy duo.
+ *   STAR3_COVERAGE — 3★: solo can touch it on the SMALL cakes (optimal
+ *     ceiling 38–51% > 35%), genuinely cannot on the giants (ceiling
+ *     ~32–34% < 35%) — the star ceiling self-tightens with cake size
+ *     (research/21 finding 3; §2.4). The score's coverage axis saturates
+ *     here (judge()). */
+export const FLOOR_COVERAGE = 0.08;
+export const STAR2_COVERAGE = 0.18;
+export const STAR3_COVERAGE = 0.35;
 /** The standing order's sprinkle row, IN GRAINS since the projectile pass
  * (plans/10: sprinkles burst into 40 payload capsules; the ask re-pins to
  * grain counts). MEASURED (room.test WIN line, 2026-07-06, under the

@@ -27,7 +27,7 @@ import {
   type RequirementCheck,
   type SettledTopping,
 } from "./judgment";
-import { COVERAGE_EXCELLENT, COVERAGE_GOOD } from "./tuning";
+import { STAR2_COVERAGE, STAR3_COVERAGE } from "./tuning";
 
 /** THE DESIRE (plans/13 §1, the flourish + finish-it amendments,
  * 2026-07-09): the patron's optional flourish — the fatality, style on a
@@ -42,7 +42,8 @@ import { COVERAGE_EXCELLENT, COVERAGE_GOOD } from "./tuning";
 export interface Desire {
   /** What the patron wants on the very top (the Giant: a cherry). */
   topping: string;
-  /** The offer fired — a patron look found coverage ≥ goodFrac. */
+  /** The offer fired — a patron look found coverage ≥ star2Coverage (the
+   * 2★ tier, absolute — plans/22 step 4). */
   revealed: boolean;
   /** Ledger truth as of the last census — the HUD's golden checkmark.
    * The verdict never trusts this; it re-reads the ledger. */
@@ -73,10 +74,10 @@ export interface OrderState {
   parShots: number;
   /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
   passScore: number;
-  /** Star tiers, fractions of potential coverage (plans/08; on the wire —
-   * the HUD prints what each star takes). */
-  goodFrac: number;
-  excellentFrac: number;
+  /** Star tiers, ABSOLUTE coverage fractions (plans/22 step 4; on the wire
+   * — the HUD prints what each star takes). */
+  star2Coverage: number;
+  star3Coverage: number;
   ticksLeft: number;
   status: "running" | "won" | "lost";
 }
@@ -87,8 +88,8 @@ export function createOrder(
   opts?: {
     parShots?: number;
     passScore?: number;
-    goodFrac?: number;
-    excellentFrac?: number;
+    star2Coverage?: number;
+    star3Coverage?: number;
     desire?: Desire;
     hands?: number;
   },
@@ -100,8 +101,8 @@ export function createOrder(
     finishTicksLeft: 0,
     parShots: opts?.parShots ?? 6,
     passScore: opts?.passScore ?? 50,
-    goodFrac: opts?.goodFrac ?? COVERAGE_GOOD,
-    excellentFrac: opts?.excellentFrac ?? COVERAGE_EXCELLENT,
+    star2Coverage: opts?.star2Coverage ?? STAR2_COVERAGE,
+    star3Coverage: opts?.star3Coverage ?? STAR3_COVERAGE,
     ticksLeft: ticks,
     status: "running",
   };

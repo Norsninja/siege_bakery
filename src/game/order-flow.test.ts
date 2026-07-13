@@ -16,20 +16,19 @@ import {
 import {
   CREW_LABOR,
   FINISH_WINDOW_TICKS,
-  FROST_FRAC,
+  FLOOR_COVERAGE,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   SPRINKLES_NEEDED,
-  TOWN_ASK_POTENTIAL,
 } from "./tuning";
 
 describe("requirementsFor (the per-rung ticket, slice 4)", () => {
   it("rung 3 IS today's standing order — the anchor, verbatim", () => {
     expect(requirementsFor(rungRow(3))).toEqual([
-      // The AUTHORED ask, never the measured ceiling (Option B, 2026-07-07):
-      // 0.42 held — the clicks→10 bump must not raise the live solo order.
-      { kind: "frost-coverage", frac: FROST_FRAC, potential: TOWN_ASK_POTENTIAL[1] },
+      // The frost FLOOR is absolute + flat now (plans/22 step 4): a share of
+      // the WHOLE cake, no towns/labor denominator (geometry scales it).
+      { kind: "frost-coverage", floorCoverage: FLOOR_COVERAGE },
       { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
     ]);
     // standardRequirements survives as exactly this — the anchor alias
@@ -42,7 +41,7 @@ describe("requirementsFor (the per-rung ticket, slice 4)", () => {
   it("a zero sprinkle ask deals NO row (rung 1) — a zero-target row is born met", () => {
     const rows = requirementsFor(rungRow(1));
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ kind: "frost-coverage", frac: 0.4 });
+    expect(rows[0]).toMatchObject({ kind: "frost-coverage", floorCoverage: FLOOR_COVERAGE });
   });
 
   it("NO crown row deals on any rung — the flourish amendment (slice 4 ships crown-shelved)", () => {
@@ -51,70 +50,38 @@ describe("requirementsFor (the per-rung ticket, slice 4)", () => {
         false,
       );
   });
-
-  it("DECISION PIN (Option B, 2026-07-07): the solo ask HELD at 0.42", () => {
-    // The clicks→10 bump grew measured reach to ~0.55 but the live order's
-    // workload must not silently rise ~31% with it. Moving this number is
-    // a design decision — restate the tuning.ts workload math when you do.
-    expect(TOWN_ASK_POTENTIAL[1]).toBe(0.42);
-  });
-
-  it("the ask is priced by ACTIVE town count — one town's number forever unless you buy (plans/11 §6)", () => {
-    const one = requirementsFor(rungRow(3), 1);
-    const two = requirementsFor(rungRow(3), 2);
-    expect(one[0]).toMatchObject({ kind: "frost-coverage", potential: 0.42 });
-    expect(two[0]).toMatchObject({ kind: "frost-coverage", potential: 0.75 });
-    // The default is the one-town game, exactly (callers that don't know
-    // about towns keep dealing today's order).
-    expect(requirementsFor(rungRow(3))).toEqual(one);
-    // A town count past the authored table clamps to its top instead of
-    // dealing `potential: undefined` — fails loud here when fort 3 lands.
-    expect(requirementsFor(rungRow(3), 7)[0]).toMatchObject({ potential: 0.75 });
-  });
 });
 
-describe("THE LONE HERO AMENDMENT (plans/13 §5) — ask = REACH × LABOR", () => {
-  it("DECISION PIN (2026-07-09, re-pinned same day): labor [—, 0.35, 1, 1, 1] — never zero, never a bonus", () => {
-    // 0.5 was the hypothesis; 0.35 is MEASURED — the visionary's best
-    // rung-1 line (power 6, ±8° sweep, 6 shots) was replicated in-harness
-    // and plateaus at 6.7% absolute: band overlap decays late shots to
-    // ~0.9%. At 0.35 that line passes on its sixth shot with ~14%
-    // headroom; at 0.5 it can never pass. Moving [1] is a design
-    // decision — restate the tuning.ts saturation math when you do.
+describe("THE LONE HERO AMENDMENT (plans/13 §5) — labor scales the GRAINS now", () => {
+  it("DECISION PIN: labor [—, 0.35, 1, 1, 1] — never zero, never a bonus", () => {
+    // NARROWED by the absolute flip (plans/22 step 4): CREW_LABOR no longer
+    // scales coverage (the frost floor is flat + absolute) — it survives
+    // ONLY as the sprinkle-grain scaler. [1] = 0.35 held from the old frost
+    // derivation, PROVISIONAL for grains; step 6 re-derives solo relief.
     expect(CREW_LABOR).toEqual([0, 0.35, 1.0, 1.0, 1.0]);
   });
 
-  it("one pair of hands scales the ask by labor — the potential AND the grains (ceil)", () => {
-    const solo = requirementsFor(rungRow(3), 1, 1);
-    expect(solo[0]).toMatchObject({
-      kind: "frost-coverage",
-      frac: FROST_FRAC,
-      potential: TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.147
-    });
-    // Grains scale too (ruled 2026-07-09: the shot cycle prices hands,
-    // whatever the payload) — 60 → 21, ceiled so a row never asks 0.
+  it("one pair of hands scales ONLY the grains by labor — the frost floor is flat", () => {
+    const solo = requirementsFor(rungRow(3), 1); // crew 1
+    // The frost floor is town/labor-independent now (plans/22 step 4).
+    expect(solo[0]).toMatchObject({ kind: "frost-coverage", floorCoverage: FLOOR_COVERAGE });
+    // Grains still scale by labor — 60 → 21, ceiled so a row never asks 0.
     expect(solo[1]).toMatchObject({
       topping: "sprinkles",
       needed: Math.ceil(SPRINKLES_NEEDED * CREW_LABOR[1]!), // 21
     });
   });
 
-  it("crew 2+ deals today's numbers VERBATIM — the friend test inherits zero drift", () => {
-    expect(requirementsFor(rungRow(3), 1, 2)).toEqual(requirementsFor(rungRow(3)));
-    expect(requirementsFor(rungRow(3), 1, 4)).toEqual(requirementsFor(rungRow(3)));
+  it("crew 2+ deals today's grains VERBATIM — the friend test inherits zero drift", () => {
+    expect(requirementsFor(rungRow(3), 2)).toEqual(requirementsFor(rungRow(3)));
+    expect(requirementsFor(rungRow(3), 4)).toEqual(requirementsFor(rungRow(3)));
   });
 
   it("crew clamps BOTH ways: an empty room prices solo, a mob prices full labor", () => {
     // CREW_LABOR[0] is a guard, never indexed — labor 0 would deal a
-    // born-met ask, and the Giant does not order cakes from nobody.
-    expect(requirementsFor(rungRow(3), 1, 0)).toEqual(requirementsFor(rungRow(3), 1, 1));
-    expect(requirementsFor(rungRow(3), 1, 9)).toEqual(requirementsFor(rungRow(3), 1, 2));
-  });
-
-  it("labor multiplies REACH — two towns × one dwarf compose", () => {
-    expect(requirementsFor(rungRow(3), 2, 1)[0]).toMatchObject({
-      potential: TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!, // 0.2625
-    });
+    // born-met grain ask.
+    expect(requirementsFor(rungRow(3), 0)).toEqual(requirementsFor(rungRow(3), 1));
+    expect(requirementsFor(rungRow(3), 9)).toEqual(requirementsFor(rungRow(3), 2));
   });
 });
 
@@ -184,7 +151,12 @@ describe("OrderFlow", () => {
     flow.activeTowns = 2;
     flow.dealFresh(rungRow(3));
     expect(flow.order.parShots).toBe(rungRow(3).parShots.duo);
-    expect(flow.order.requirements[0]).toMatchObject({ potential: 0.75 });
+    // The frost floor is town-independent now (plans/22 step 4): the second
+    // town buys par workload + reach, never a higher coverage bar.
+    expect(flow.order.requirements[0]).toMatchObject({
+      kind: "frost-coverage",
+      floorCoverage: FLOOR_COVERAGE,
+    });
   });
 
   it("the deal prices activeCrew and stamps the ticket — the RUNNING order keeps its labor", () => {
@@ -194,12 +166,12 @@ describe("OrderFlow", () => {
     flow.activeCrew = 1;
     flow.dealFresh(rungRow(3));
     expect(flow.order.hands).toBe(1);
-    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1, 1));
+    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1));
     // A joiner mid-order never retro-changes the ticket (towns law
     // verbatim): the ask follows at the NEXT deal.
     flow.activeCrew = 2;
     expect(flow.order.hands).toBe(1);
-    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1, 1));
+    expect(flow.order.requirements).toEqual(requirementsFor(rungRow(3), 1));
     flow.dealFresh(rungRow(3));
     expect(flow.order.hands).toBe(2);
     expect(flow.order.requirements).toEqual(standardRequirements());

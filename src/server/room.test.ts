@@ -9,6 +9,7 @@ import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
   CREW_LABOR,
+  FLOOR_COVERAGE,
   FLOURISH_BONUS_COINS,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
@@ -16,7 +17,6 @@ import {
   READY_COUNTDOWN_TICKS,
   RUNOVER_TICKS,
   TOWN2_PRICE,
-  TOWN_ASK_POTENTIAL,
 } from "../game/tuning";
 import {
   createCatapult,
@@ -124,11 +124,12 @@ interface RoomSeams {
 }
 const seams = (room: Room): RoomSeams => room as unknown as RoomSeams;
 
-/** Paint the deal's cake to `frac` of the SOLO ask potential. */
-function seamPaint(room: Room, frac: number): void {
+/** Paint the deal's cake to `coverage` — ABSOLUTE fraction of the WHOLE
+ * cake (plans/22 step 4; the star tiers grade absolute coverage now). */
+function seamPaint(room: Room, coverage: number): void {
   const s = seams(room);
   for (const sample of s.dessert.samples) {
-    if (s.frosting.coverage() / TOWN_ASK_POTENTIAL[1]! >= frac) return;
+    if (s.frosting.coverage() >= coverage) return;
     s.frosting.paint(sample.pos, 20);
   }
 }
@@ -186,13 +187,13 @@ function seamBuzzer(room: Room): void {
   while (s.flow.order.status === "running" && guard++ < 2000) room.tick();
 }
 
-/** Seam-win the LIVE rung: paint past `frac` of the solo ask potential,
- * rest the sprinkle row (+slack covers a nag), land one real lime (a
- * genuine landing keeps the ledger honest), then ring the buzzer — the
- * order is graded at the clock now (plans/22), never on rows-met. */
-function seamWin(room: Room, c: FakeClient, frac = 0.95): void {
+/** Seam-win the LIVE rung: paint to `coverage` (absolute — 0.4 clears the
+ * 3★ tier, plans/22 step 4), rest the sprinkle row (+slack covers a nag),
+ * land one real lime (a genuine landing keeps the ledger honest), then ring
+ * the buzzer — the order is graded at the clock now, never on rows-met. */
+function seamWin(room: Room, c: FakeClient, coverage = 0.4): void {
   const s = seams(room);
-  seamPaint(room, frac);
+  seamPaint(room, coverage);
   const grains = rungRow(s.run.rung).asks.sprinkles;
   if (grains > 0) seamSprinkles(room, grains + 10);
   fireLime(room, c);
@@ -599,8 +600,10 @@ describe("Room: the match, headless over protocol", () => {
     expect(A.w?.run.purse).toBe(60 - TOWN2_PRICE);
     const frost = A.w?.order.requirements.find(
       (r) => r.kind === "frost-coverage",
-    ) as { potential?: number } | undefined;
-    expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[2]! * CREW_LABOR[1]!); // two towns × one dwarf
+    ) as { floorCoverage?: number } | undefined;
+    // The frost floor is flat + absolute now (plans/22 step 4): the second
+    // town buys par + reach, never a higher coverage bar.
+    expect(frost?.floorCoverage).toBe(FLOOR_COVERAGE);
     expect(A.w?.order.hands).toBe(1); // the ticket wears its pricing
     expect(A.w?.frosting.some((c) => c > 0)).toBe(true);
   });
@@ -656,7 +659,7 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       jumpToRung(room, 3);
-      seamPaint(room, 0.75); // 2★ (good, not excellent)
+      seamPaint(room, 0.25); // 2★ (0.18 ≤ cov < 0.35)
       seamSprinkles(room, 70);
       fireLime(room, a); // a real landing keeps the ledger honest
       seamBuzzer(room); // the clock renders the verdict now (plans/22)
@@ -670,7 +673,7 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       jumpToRung(room, 3);
-      seamPaint(room, 0.75);
+      seamPaint(room, 0.25);
       seamSprinkles(room, 70);
       seamCherry(room); // the cherry rests → coda stamped at the buzzer
       fireLime(room, a);
@@ -720,36 +723,36 @@ describe("Room: the match, headless over protocol", () => {
       expect(a.all("town").pop()?.town).toBe(0);
       const frost = w?.order.requirements.find(
         (r) => r.kind === "frost-coverage",
-      ) as { potential?: number } | undefined;
-      expect(frost?.potential).toBe(TOWN_ASK_POTENTIAL[1]); // priced solo again
+      ) as { floorCoverage?: number } | undefined;
+      expect(frost?.floorCoverage).toBe(FLOOR_COVERAGE); // flat + absolute now
     });
   });
 
   describe("THE LONE HERO (plans/13 §5 amendment): every deal prices its labor from the roster", () => {
     const frostOf = (o: {
-      requirements: Array<{ kind: string; potential?: number }>;
-    }): { potential?: number } | undefined =>
+      requirements: Array<{ kind: string; floorCoverage?: number }>;
+    }): { floorCoverage?: number } | undefined =>
       o.requirements.find((r) => r.kind === "frost-coverage");
 
-    it("a lone baker's run deals half-labor tickets, stamped hands: 1", () => {
+    it("a lone baker's run stamps hands: 1; the frost floor stays FLAT (relief is grains + clock now)", () => {
       const room = new Room();
       const a = connect(room, "alice");
       readyUp(room, a);
       const order = a.all("order").find((m) => m.fresh);
       expect(order?.order.hands).toBe(1);
-      expect(frostOf(order!.order)?.potential).toBe(
-        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!, // 0.147
-      );
+      // The frost floor is town/labor-independent now (plans/22 step 4) —
+      // solo relief lives in the grain ask + the clock (step 6), not here.
+      expect(frostOf(order!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
     });
 
-    it("a duo's run deals today's numbers VERBATIM, stamped hands: 2 — zero drift for the friend test", () => {
+    it("a duo's run deals the same FLAT floor, stamped hands: 2 — zero drift for the friend test", () => {
       const room = new Room();
       const a = connect(room, "alice");
       const b = connect(room, "bob");
       readyUp(room, a, b);
       const order = b.all("order").find((m) => m.fresh);
       expect(order?.order.hands).toBe(2);
-      expect(frostOf(order!.order)?.potential).toBe(TOWN_ASK_POTENTIAL[1]);
+      expect(frostOf(order!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
     });
 
     it("a mid-order joiner never retro-prices the ticket; the NEXT deal reads the grown crew", () => {
@@ -760,9 +763,7 @@ describe("Room: the match, headless over protocol", () => {
       // was dealt (towns law verbatim — a joiner waits for the next deal).
       const b = connect(room, "bob");
       expect(b.last("welcome")?.order.hands).toBe(1);
-      expect(frostOf(b.last("welcome")!.order)?.potential).toBe(
-        TOWN_ASK_POTENTIAL[1]! * CREW_LABOR[1]!,
-      );
+      expect(frostOf(b.last("welcome")!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
       // Win the rung; the climb's fresh deal prices the duo at the table.
       seamWin(room, a);
       run(room, ORDER_RESET_TICKS + 10);
@@ -771,7 +772,7 @@ describe("Room: the match, headless over protocol", () => {
         .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
         .find((m) => m.order.status === "running");
       expect(fresh?.order.hands).toBe(2);
-      expect(frostOf(fresh!.order)?.potential).toBe(TOWN_ASK_POTENTIAL[1]);
+      expect(frostOf(fresh!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
     });
 
     it("grains scale with labor too: the lone rung-2 ticket asks half the sprinkles (ceil)", () => {
@@ -931,33 +932,34 @@ describe("Room: the match, headless over protocol", () => {
     expect(cherry!.pos.z).toBeLessThan(-30); // beyond the cake axis
   });
 
-  it("scoring rises to the two-town ask at the NEXT deal, never mid-order (plans/11 §6)", () => {
+  it("PAR rises to the two-town workload at the NEXT deal, never mid-order (plans/11 §6)", () => {
+    // Coverage is town-INDEPENDENT now (plans/22 step 4): the second town
+    // buys par + reach, never a higher coverage bar — so PAR is what watches
+    // the deal boundary (the of-potential 0.42→0.75 rise is retired).
     const room = new Room();
     const a = connect(room, "alice");
-    // A duo keeps this test TOWNS-pure (full labor): the lone hero would
-    // halve every number here — his composition has its own pins.
     const b = connect(room, "bob");
     readyUp(room, a, b);
-    // Activate MID-ORDER (seam — the honest purchase can't even happen
-    // here, THE STALL suite pins that): the running order keeps the rows
-    // it was dealt.
+    // Activate MID-ORDER (seam): the running order keeps the ticket it was
+    // dealt — the ask follows at the NEXT deal.
     seamTown2(room);
     run(room, 60); // a clock correction carries the (unchanged) order
     const running = a.last("order") ?? a.last("welcome");
-    const frostRow = (o: { requirements: Array<{ kind: string; potential?: number }> }) =>
+    const frostRow = (o: { requirements: Array<{ kind: string; floorCoverage?: number }> }) =>
       o.requirements.find((r) => r.kind === "frost-coverage");
-    expect(frostRow(running!.order)?.potential).toBe(0.42);
-    // WIN the order (slice 5: a loss ends the run and the re-lock would
-    // price the restart solo — the climb is where the next deal lives)
-    // and ride the linger to rung 2's fresh cake.
+    // The floor is flat, running and fresh alike; PAR is the town dial.
+    expect(frostRow(running!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
+    expect(running!.order.parShots).toBe(rungRow(1).parShots.solo);
+    // WIN the order and ride the linger to rung 2's fresh cake.
     seamWin(room, a);
     run(room, ORDER_RESET_TICKS + 10);
     const msgs = a.all("order");
     const fresh = msgs
       .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
       .find((m) => m.order.status === "running");
-    // The fresh cake is priced for two towns — you bought reach AND ask.
-    expect(frostRow(fresh!.order)?.potential).toBe(0.75);
+    // The fresh deal is priced for two towns — par jumps to the duo column.
+    expect(frostRow(fresh!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
+    expect(fresh!.order.parShots).toBe(rungRow(2).parShots.duo);
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
@@ -1178,11 +1180,10 @@ describe("Room: the match, headless over protocol", () => {
     // the only Room-level ending pinned before this was loss-by-clock.
     // RE-ANCHORED TO RUNG 3 (slice 4): the ladder deals cake-1 at rung 1
     // now, and this script's 13 arcs are the anchor's greedy pick list.
-    // THE FLIP'S ZERO-DRIFT PROOF rides here: rung 3 dealt through RUNGS
-    // must play EXACTLY today's standing order — same rows, same clock,
-    // same physics, same verdict. (The crown beats left with the
-    // flourish amendment: no demand, no crown shot — the order ends the
-    // moment the dealt rows are met.)
+    // Same PHYSICS as today's standing order — but graded under ABSOLUTE
+    // coverage now (plans/22 step 4): these 13 arcs land a 2★ (~24% of the
+    // whole cake), and the order runs to the BUZZER (no crown shot; the
+    // flourish is a whole-order bonus, judged at conclusion).
     const room = new Room();
     const a = connect(room, "alice");
     readyUp(room, a);
@@ -1306,14 +1307,15 @@ describe("Room: the match, headless over protocol", () => {
     const end = a.all("order").find((m) => m.order.status === "won");
     expect(end).toBeDefined();
     expect(end?.judgment?.accepted).toBe(true);
-    // Stars come from the coverage tiers now (plans/08): meeting the ask
-    // is a PASS — one star. The upper tiers are the ceiling's asymptote.
-    expect(end?.judgment?.stars).toBe(1);
-    expect(end?.judgment?.effectiveCoverage).toBeGreaterThanOrEqual(0.5);
-    // ZERO-DRIFT GUARD: this win never saw the greatness bar (effective
-    // ~0.566 < goodFrac 0.7), so the desire stayed the Giant's secret — no
-    // reveal, no coda. The anchor plays beat for beat, judged at the buzzer.
-    expect(end?.order.desire).toMatchObject({ revealed: false, met: false });
+    // Stars from the ABSOLUTE coverage tiers (plans/22 step 4): these 13
+    // arcs cover ~24% of the WHOLE cake — past the 2★ floor (0.18), shy of
+    // 3★ (0.35). The old of-potential 0.566 → 1★ is retired.
+    expect(end?.judgment?.stars).toBe(2);
+    expect(end?.judgment?.coverage).toBeGreaterThanOrEqual(0.18);
+    expect(end?.judgment?.coverage).toBeLessThan(0.35);
+    // The greatness bar (2★) WAS crossed, so the Giant revealed his desire
+    // mid-run — but the cherry never landed, so no coda.
+    expect(end?.order.desire).toMatchObject({ revealed: true, met: false });
     expect(end?.judgment?.flourish).toBeUndefined();
     // The linger passes; the fresh deal starts honestly unmet — and the
     // WON order climbs the ladder: the same run, rung 4 — THE CUPCAKE
@@ -1666,7 +1668,7 @@ describe("Room: the match, headless over protocol", () => {
       readyUp(room, a);
       jumpToRung(room, 3);
       // Coverage past the greatness bar → the Giant's next look REVEALS.
-      seamPaint(room, 0.75);
+      seamPaint(room, 0.25); // 2★ — past the greatness bar (star2 0.18)
       run(room, 3 * PATRON_LOOK_EVERY + 5);
       expect(
         a.all("patron").some((m) => m.text.includes("A CHERRY. ON THE VERY TOP.")),
@@ -1697,7 +1699,7 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       jumpToRung(room, 3);
-      seamPaint(room, 0.75);
+      seamPaint(room, 0.25); // 2★ — past the greatness bar (star2 0.18)
       run(room, 3 * PATRON_LOOK_EVERY + 5); // the reveal fires
       seamSprinkles(room, 70);
       seamCherry(room); // the crown rests → crownedWith true at the buzzer
@@ -1713,9 +1715,9 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       jumpToRung(room, 3);
-      // Sub-GOOD coverage: the reveal never fires — but the cherry is
-      // already resting on the summit when the buzzer rings.
-      seamPaint(room, 0.55);
+      // Below the 2★ tier: the reveal never fires (cov < star2 0.18) — but
+      // the cherry is already resting on the summit when the buzzer rings.
+      seamPaint(room, 0.12);
       seamCherry(room);
       seamSprinkles(room, 70);
       seamBuzzer(room);
@@ -1731,7 +1733,7 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       jumpToRung(room, 7); // cake-6 — the summit no shipped combo reaches
-      seamPaint(room, 0.75); // past cake-6's 0.7 ask
+      seamPaint(room, 0.25); // past the pass floor (rung 7, flat 0.08)
       seamCherry(room); // …but the seam rests the impossible cherry
       seamSprinkles(room, 90);
       seamBuzzer(room);

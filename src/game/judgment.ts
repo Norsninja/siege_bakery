@@ -28,15 +28,12 @@ export type Requirement =
    * Paint never crowns and never usurps (plans/07): a splash cannot be
    * picked back up, so letting it void the crown would be unrecoverable. */
   | { kind: "crown"; topping: string }
-  /** Frost this fraction of the firing line's POTENTIAL coverage — the
-   * one fractional row. A round cake only shows each town its near
-   * hemisphere, so `potential` is the AUTHORED ask ceiling the deal hands
-   * this row (game/tuning.ts TOWN_ASK_POTENTIAL — Option B, 2026-07-07;
-   * TOWN_POTENTIAL is the MEASURED reference and is never dealt), and
-   * `frac` is the ask as a share of that: the Patron grades against what
-   * was asked — "that's pretty good for one town" (plans/08). current is
-   * the live covered-fraction-of-potential. */
-  | { kind: "frost-coverage"; frac: number; potential: number }
+  /** Frost this ABSOLUTE fraction of the WHOLE cake (plans/22 step 4 —
+   * supersedes the of-potential ask). `floorCoverage` is the pass floor
+   * (Gate 1); the check's `current` is the live absolute covered fraction.
+   * No reach or labor denominator — geometry scales the difficulty (a
+   * bigger cake makes the same fraction harder to reach). */
+  | { kind: "frost-coverage"; floorCoverage: number }
   /** Solids that count only where frosting already is — the 2D support-
    * chain rule ("sprinkles sit ON frosting"), re-bodied as a census lookup.
    * Live recompute like every row: frost applied UNDER a waiting sprinkle
@@ -141,9 +138,14 @@ export function checkRequirements(
       return { req, current: met ? 1 : 0, target: 1, met };
     }
     if (req.kind === "frost-coverage") {
-      // Of-reach, clamped: beating the measured ceiling reads "all of it".
-      const current = Math.min(1, frosting.coverage() / req.potential);
-      return { req, current, target: req.frac, met: current >= req.frac };
+      // ABSOLUTE (plans/22 step 4): how much of the WHOLE cake is painted.
+      const current = frosting.coverage();
+      return {
+        req,
+        current,
+        target: req.floorCoverage,
+        met: current >= req.floorCoverage,
+      };
     }
     let current = 0;
     for (const s of settled) {
@@ -169,11 +171,11 @@ export interface JudgedOrder {
   parShots: number;
   /** Gate 2: minimum assembly score the Patron will accept. */
   passScore: number;
-  /** The star tiers, fractions of potential coverage (plans/08): 2★ at
-   * goodFrac, 3★ at excellentFrac. Defaults from game/tuning.ts land in
-   * createOrder; per-patron tiers are the orders-as-data future. */
-  goodFrac: number;
-  excellentFrac: number;
+  /** The star tiers, ABSOLUTE coverage fractions (plans/22 step 4): 2★ at
+   * star2Coverage, 3★ at star3Coverage. Per-rung (campaign.ts) — flat on
+   * the cake ladder, bespoke on the cupcake; defaults in createOrder. */
+  star2Coverage: number;
+  star3Coverage: number;
 }
 
 export interface Judgment {
@@ -185,12 +187,10 @@ export interface Judgment {
   stars: 0 | 1 | 2 | 3;
   checks: RequirementCheck[];
   // The score axes, exposed for the HUD breakdown (all 0..1):
+  /** ABSOLUTE coverage of the whole cake (plans/22 step 4) — the dessert
+   * report reads it ("you frosted 31% of the cake"), and the star tiers +
+   * the score's coverage axis grade it directly (no of-potential denom). */
   coverage: number;
-  /** Coverage as a fraction of the firing line's potential (plans/08) —
-   * what the tiers and the score axis actually grade. `coverage` above
-   * stays ABSOLUTE for the dessert report ("you frosted 31% of the cake");
-   * this is "you frosted 74% of what you could reach". */
-  effectiveCoverage: number;
   neatness: number;
   integrity: number;
   mess: number;
@@ -206,19 +206,18 @@ export interface Judgment {
 /**
  * Render the verdict — the 2D judge(), weights HOME (plans/07): 0.35
  * coverage + 0.15 neatness + 0.25 integrity + 0.15 (1-mess) + 0.10 waste.
- * The coverage axis is color-blind, of-POTENTIAL, and normalized against
- * the EXCELLENCE tier (plans/08) — overshooting the ask keeps earning
- * score all the way to the ceiling; gate 1 asks "did you do what was
- * asked", gate 2 asks "is it good". STARS come from the coverage tiers,
- * not score arithmetic (plans/08: "50 is just passing, encourage 70 and
- * 90; 3★ is meant to be rare"): accepted = 1★, goodFrac of potential =
- * 2★, excellentFrac = 3★ — legible percent goals the HUD can print. An
- * order with no frost row grades as potential 1 over the raw census, so
- * its upper stars are honestly out of reach — every real order frosts
+ * The coverage axis is color-blind and ABSOLUTE now (plans/22 step 4) —
+ * how much of the WHOLE cake is frosted, saturating at the 3★ tier; gate 1
+ * asks "did you do what was asked", gate 2 asks "is it good". STARS come
+ * from the coverage tiers, not score arithmetic (plans/08 in spirit, the
+ * thresholds absolute now): accepted = 1★, star2Coverage = 2★,
+ * star3Coverage = 3★ — legible whole-cake percent goals the HUD prints,
+ * and a bigger cake makes each harder for free. An order with no frost row
+ * grades on raw census coverage (still absolute) — every real order frosts
  * first. INTEGRITY is constant 1 until the Bite exists — honest: the cake
- * is undamaged, full credit, and the axis is wired for the carve slice.
- * MESS counts every settled delivery off-cake — floor frosting stings
- * exactly like floor limes.
+ * is undamaged, full credit, the axis wired for the carve slice. MESS
+ * counts every settled delivery off-cake — floor frosting stings exactly
+ * like floor limes.
  */
 export function judge(
   dessert: DessertGeometry,
@@ -231,8 +230,6 @@ export function judge(
   const met = checks.length > 0 && checks.every((c) => c.met);
 
   const coverage = frosting.coverage();
-  const frostReq = order.requirements.find((r) => r.kind === "frost-coverage");
-  const effectiveCoverage = Math.min(1, coverage / (frostReq?.potential ?? 1));
   const neatness = frosting.neatness();
   const integrity = 1; // the Bite's axis, waiting for its slice
 
@@ -240,11 +237,13 @@ export function judge(
   const waste =
     shotsFired <= order.parShots ? 1 : order.parShots / Math.max(1, shotsFired);
 
+  // The coverage axis is ABSOLUTE now (plans/22 step 4), saturating at the
+  // 3★ tier: frosting the 3★ amount maxes the coverage contribution.
   const score = Math.max(
     0,
     Math.round(
       100 *
-        (0.35 * Math.min(1, effectiveCoverage / order.excellentFrac) +
+        (0.35 * Math.min(1, coverage / order.star3Coverage) +
           0.15 * neatness +
           0.25 * integrity +
           0.15 * (1 - mess) +
@@ -255,9 +254,9 @@ export function judge(
   let stars: 0 | 1 | 2 | 3 = 0;
   if (accepted) {
     stars =
-      effectiveCoverage >= order.excellentFrac
+      coverage >= order.star3Coverage
         ? 3
-        : effectiveCoverage >= order.goodFrac
+        : coverage >= order.star2Coverage
           ? 2
           : 1;
   }
@@ -268,7 +267,6 @@ export function judge(
     stars,
     checks,
     coverage,
-    effectiveCoverage,
     neatness,
     integrity,
     mess,
@@ -283,10 +281,9 @@ export function judge(
  * MIDDLE/TOP reproduce cake-3's names exactly). */
 export function describeRequirement(req: Requirement, topTier: number): string {
   if (req.kind === "crown") return `1 × ${req.topping} AS THE CROWN`;
-  // "YOUR SIDE": one town reaches its near hemisphere (plans/08) — the ask
-  // reads as a number the table can actually hit, whatever the town count.
+  // Absolute now (plans/22 step 4): the ask is a share of the WHOLE cake.
   if (req.kind === "frost-coverage")
-    return `FROST ${Math.round(req.frac * 100)}% OF YOUR SIDE`;
+    return `FROST ${Math.round(req.floorCoverage * 100)}% OF THE CAKE`;
   if (req.kind === "on-frosting")
     return `${req.needed} × ${req.topping} ON THE FROSTING`;
   const where =

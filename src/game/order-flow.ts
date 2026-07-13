@@ -30,7 +30,6 @@ import {
   FINISH_WINDOW_TICKS,
   ORDER_RESET_TICKS,
   PATRON_LOOK_EVERY,
-  TOWN_ASK_POTENTIAL,
 } from "./tuning";
 
 /** THE HONEST ORDER (plans/07 phase O), per-rung since the ladder went
@@ -43,38 +42,30 @@ import {
  * the rung's RUNGS row now (game/campaign.ts — the ladder dashboard;
  * tuning.ts keeps the anchor references); the row SHAPES live here.
  * NO CROWN ROW deals — the crown is an optional FLOURISH since the §1
- * amendment, shelved until slice 4b builds it. Fresh rows every deal —
- * orders are mutable, never share row objects. */
+ * amendment. Fresh rows every deal — orders are mutable, never share row
+ * objects. COVERAGE IS ABSOLUTE (plans/22 step 4): the frost floor is a
+ * flat share of the whole cake, priced by neither towns nor labor —
+ * geometry scales the difficulty. */
 export function requirementsFor(
   row: Rung,
-  activeTowns = 1,
-  /** Connected crew at deal time (THE LONE HERO AMENDMENT, plans/13 §5).
-   * Defaults to 2 — full labor — so anchor tickets and pre-amendment
-   * callers price today's numbers verbatim; the live game always passes
-   * the roster's truth. */
+  /** Connected crew at deal time (THE LONE HERO AMENDMENT, plans/13 §5),
+   * NARROWED by the absolute flip (plans/22 §3): it no longer prices
+   * coverage — only the sprinkle-grain count still scales by labor.
+   * Defaults to 2 (full labor) so anchor/pre-amendment callers price
+   * today's grains verbatim; the live game passes the roster's truth. */
   crew = 2,
 ): Requirement[] {
-  // The frost ask is AUTHORED (plans/09 §4, Option B 2026-07-07): the
-  // order says what the Patron expects — the ask table at the ACTIVE
-  // town count, never the measured ceiling. "Scoring rises to the
-  // two-town ask ONLY on purchase" (§1) is exactly this lookup: one
-  // town asks one town's number, forever. Clamped to the table's top
-  // so a future third fort fails loud in a test, not undefined here.
-  const reach =
-    TOWN_ASK_POTENTIAL[Math.min(activeTowns, TOWN_ASK_POTENTIAL.length - 1)]!;
-  // REACH × LABOR (the lone hero amendment): one pair of hands is asked
-  // for what one pair of hands can reach. Clamped BOTH ways — the top so
-  // a five-baker room prices full labor, the bottom so an empty room
-  // prices solo (CREW_LABOR[0] is a guard: labor 0 would deal a born-met
-  // ask, and the Giant does not order cakes from nobody).
   const labor = CREW_LABOR[Math.max(1, Math.min(crew, CREW_LABOR.length - 1))]!;
+  // The frost floor is ABSOLUTE and flat (plans/22 step 4): a share of the
+  // WHOLE cake straight off the rung's row — no reach × labor denominator.
   const rows: Requirement[] = [
-    { kind: "frost-coverage", frac: row.asks.frostFrac, potential: reach * labor },
+    { kind: "frost-coverage", floorCoverage: row.asks.floorCoverage },
   ];
   // A zero ask deals NO row (rung 1): a zero-target row is born met and
-  // the Giant's nag could tighten a thing that was never asked.
-  // Grains scale by labor too (ruled 2026-07-09: the shot cycle prices
-  // hands, whatever the payload) — ceil, so a scaled row never asks 0.
+  // the Giant's nag could tighten a thing that was never asked. Grains
+  // still scale by labor (the one CREW_LABOR survival — a pass-floor knob,
+  // not coverage; solo relief re-derives whole in step 6) — ceil, so a
+  // scaled row never asks 0.
   if (row.asks.sprinkles > 0)
     rows.push({
       kind: "on-frosting",
@@ -87,8 +78,8 @@ export function requirementsFor(
 /** The ANCHOR's ticket (rung 3 = today's standing order, verbatim) —
  * kept for scripts/studies that predate the ladder; the live game deals
  * requirementsFor(the run's rung). */
-export function standardRequirements(activeTowns = 1): Requirement[] {
-  return requirementsFor(rungRow(3), activeTowns);
+export function standardRequirements(): Requirement[] {
+  return requirementsFor(rungRow(3));
 }
 
 /** THE TOPPERS LAW's tripwire (plans/13 §1 finish-it amendment,
@@ -102,13 +93,11 @@ export function validateDesires(): void {
   const desire = createGiant().desire;
   if (!desire) return;
   for (const row of RUNGS) {
-    for (const towns of [1, 2]) {
-      for (const req of requirementsFor(row, towns)) {
-        if ("topping" in req && req.topping === desire.topping)
-          throw new Error(
-            `desire topping "${desire.topping}" appears in an orderable row (spec ${row.spec}) — the toppers law`,
-          );
-      }
+    for (const req of requirementsFor(row)) {
+      if ("topping" in req && req.topping === desire.topping)
+        throw new Error(
+          `desire topping "${desire.topping}" appears in an orderable row (spec ${row.spec}) — the toppers law`,
+        );
     }
   }
 }
@@ -172,7 +161,7 @@ export class OrderFlow {
    * slice 4b) — per-patron data, never a requirement row. */
   private freshOrder(row: Rung): OrderState {
     return createOrder(
-      requirementsFor(row, this.activeTowns, this.activeCrew),
+      requirementsFor(row, this.activeCrew),
       // THE CLOCK RELIEF (plans/15 item 26 + addendum): the clock prices
       // HANDS at the deal — the rows stay verbatim (anchor law). Solo
       // reads the row's PER-RUNG relief (soloClock — went per-rung when
@@ -190,6 +179,10 @@ export class OrderFlow {
         // tag reads the stamp, never the live headcount).
         hands: this.activeCrew,
         parShots: this.activeTowns >= 2 ? row.parShots.duo : row.parShots.solo,
+        // The absolute star tiers ride the rung's row (plans/22 step 4 —
+        // flat on the cake ladder, bespoke on the cupcake).
+        star2Coverage: row.stars.two,
+        star3Coverage: row.stars.three,
         ...(row.asks.crown && this.patron.desire
           ? {
               desire: {

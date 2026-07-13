@@ -16,10 +16,12 @@ import {
   validateRungs,
 } from "./campaign";
 import {
-  FROST_FRAC,
+  FLOOR_COVERAGE,
   ORDER_PAR_SHOTS,
   ORDER_SECONDS,
   SPRINKLES_NEEDED,
+  STAR2_COVERAGE,
+  STAR3_COVERAGE,
 } from "./tuning";
 
 describe("RUNGS (the authored ladder)", () => {
@@ -32,7 +34,11 @@ describe("RUNGS (the authored ladder)", () => {
     const anchor = rungRow(3);
     expect(anchor.spec).toBe("cake-3");
     expect(anchor.clockSeconds).toBe(ORDER_SECONDS);
-    expect(anchor.asks.frostFrac).toBe(FROST_FRAC);
+    // Coverage re-based to absolute (plans/22 step 4): the anchor shares the
+    // flat cake-ladder floor + tiers now, no longer the of-potential 0.5.
+    expect(anchor.asks.floorCoverage).toBe(FLOOR_COVERAGE);
+    expect(anchor.stars.two).toBe(STAR2_COVERAGE);
+    expect(anchor.stars.three).toBe(STAR3_COVERAGE);
     expect(anchor.asks.sprinkles).toBe(SPRINKLES_NEEDED);
     expect(anchor.asks.crown).toBe(true);
     expect(anchor.parShots.solo).toBe(ORDER_PAR_SHOTS); // 24, the anchor's par
@@ -57,8 +63,12 @@ describe("RUNGS (the authored ladder)", () => {
   it("rows are sane: fractions in (0,1], grains ≥ 0, clocks > 0, pay climbs", () => {
     let prevBase = 0;
     for (const r of RUNGS) {
-      expect(r.asks.frostFrac).toBeGreaterThan(0);
-      expect(r.asks.frostFrac).toBeLessThanOrEqual(1);
+      // Absolute coverage tiers (plans/22 step 4), strictly ascending:
+      // floor < 2★ < 3★ ≤ 1 — the honest ladder of a single order.
+      expect(r.asks.floorCoverage).toBeGreaterThan(0);
+      expect(r.stars.two).toBeGreaterThan(r.asks.floorCoverage);
+      expect(r.stars.three).toBeGreaterThan(r.stars.two);
+      expect(r.stars.three).toBeLessThanOrEqual(1);
       expect(r.asks.sprinkles).toBeGreaterThanOrEqual(0);
       expect(r.clockSeconds).toBeGreaterThan(0);
       expect(r.pay.base).toBeGreaterThan(prevBase);

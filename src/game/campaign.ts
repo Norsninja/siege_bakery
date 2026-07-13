@@ -51,12 +51,14 @@
  * feel pass: if crowns skid off in play, the cupcake's clock or
  * position moves before its ask does.
  *
- * Ask math yardstick (tuning.ts header, generalized): pass samples =
- * frostFrac × TOWN_ASK_POTENTIAL[towns] × census; ~16 samples per
- * idealized shot (research/06 greedy: 139 ≈ 8–9). The §4 sanity
- * anchor holds for every row: pass ask in idealized shots sits below
- * the four-friends 80% heroic curve (48 solo / 39 two-town), margin
- * shrinking as rungs climb.
+ * Ask math yardstick — SUPERSEDED for coverage by plans/22 step 4: the
+ * frost ask is ABSOLUTE now (asks.floorCoverage of the whole cake, no
+ * frostFrac × TOWN_ASK_POTENTIAL denominator; the star tiers are absolute
+ * too). The sprinkle/par yardstick below still holds. HISTORICAL (the old
+ * of-potential derivation): pass samples = frostFrac × TOWN_ASK_POTENTIAL
+ * [towns] × census; ~16 samples per idealized shot (research/06 greedy:
+ * 139 ≈ 8–9); the §4 sanity anchor sat below the four-friends 80% heroic
+ * curve (48 solo / 39 two-town), margin shrinking as rungs climb.
  *
  * THE FLOURISH AMENDMENT (plans/13 §1, 2026-07-08 fifth session —
  * amends the impossible tragedy): the crown is an OPTIONAL FLOURISH
@@ -114,19 +116,26 @@ export interface Rung {
    * of this; only crew === 1 applies it. */
   soloClock: number;
   asks: {
-    /** The pass-tier fraction of the ask potential ("50% is just
-     * passing" — the per-rung difficulty knob of that spirit). */
-    frostFrac: number;
+    /** THE FROST FLOOR — the ABSOLUTE share of the WHOLE cake that passes
+     * Gate 1 (plans/22 step 4; was frostFrac of potential). Flat on the
+     * cake ladder (FLOOR_COVERAGE), bespoke on the cupcake. */
+    floorCoverage: number;
     /** Sprinkle ask, in grains (bursts are 40; see SPRINKLES_NEEDED). */
     sprinkles: number;
     /** THE FLOURISH FLAG (§1 amendment — header): does this rung's
      * patron offer his desire when coverage turns great? NEVER a
-     * requirement (slice 4b builds the flourish; slice 4 ships
-     * crown-shelved). cake-6's summit takes zero shipped combos — its
+     * requirement. cake-6's summit takes zero shipped combos — its
      * flourish is the ULTRA ask, impossible until the economy sells
      * the key; every other flourish row is measured reachable. */
     crown: boolean;
   };
+  /** THE ABSOLUTE STAR TIERS (plans/22 step 4): 2★/3★ coverage of the
+   * WHOLE cake. Flat across the CAKE ladder (STAR2_COVERAGE/STAR3_COVERAGE
+   * — geometry scales the difficulty); the CUPCAKE overrides with its own
+   * bespoke tiers (a tiny, fully-reachable target — a different game).
+   * PROVISIONAL — tune against a real run (step 6 confirms + adds the
+   * earned-time bridge). */
+  stars: { two: number; three: number };
   /** Shots for full waste credit, authored per rung (header formula):
    * the deal picks solo (1 town) or duo (2+). Rung 3 solo = 24, the
    * anchor verbatim. */
@@ -151,29 +160,34 @@ export const RUNGS: readonly Rung[] = [
   // 2+'s job. NOT the anchor (rung 3 is); the row edit is legal.
   // soloClock 1.25 — THE TUTORIAL RELIEF (item 26 addendum): rung 1
   // alone gets the clock stretch; a first-timer learns the winch here.
-  { spec: "cake-1", clockSeconds: 180, soloClock: 1.25, asks: { frostFrac: 0.4, sprinkles: 0, crown: false }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
+  { spec: "cake-1", clockSeconds: 180, soloClock: 1.25, asks: { floorCoverage: 0.08, sprinkles: 0, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 11, duo: 20 }, pay: { base: 10, perStar: 5 } },
   // 2 — teaches the ledge and the burst; still no flourish. soloClock
   // 1.0: the honest row (the flat 1.25 over-relieved this by ~a minute,
   // measured — item 26 addendum; pressure is rung 2+'s job).
-  { spec: "cake-2", clockSeconds: 210, soloClock: 1.0, asks: { frostFrac: 0.5, sprinkles: 40, crown: false }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
-  // 3 — THE ANCHOR: today's live numbers verbatim (300s, FROST_FRAC
-  // 0.5, SPRINKLES_NEEDED 60, solo par 24). Never rebalanced from here.
-  { spec: "cake-3", clockSeconds: 300, soloClock: 1.0, asks: { frostFrac: 0.5, sprinkles: 60, crown: true }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
+  { spec: "cake-2", clockSeconds: 210, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 40, crown: false }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 19, duo: 32 }, pay: { base: 20, perStar: 5 } },
+  // 3 — THE ANCHOR: clock/par/sprinkles/pay verbatim (300s, 60 grains,
+  // solo par 24). COVERAGE re-based to absolute (plans/22 step 4 supersedes
+  // the anchor-verbatim law for coverage): the flat 8% floor + 18/35 tiers,
+  // no longer the of-potential 0.5/0.7/0.9.
+  { spec: "cake-3", clockSeconds: 300, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 24, duo: 39 }, pay: { base: 30, perStar: 5 } },
   // 4 — THE CUPCAKE: tiny census (68), so the frost ask is samples-few
   // but every miss is floor waste; sprinkles must land on a 1.2m disc;
   // the flourish's 8 windows all arrive hot (header finding). Short
   // clock: a precision beat, not a marathon. Par carries the authored
   // miss allowance (header — the formula's 5/7 prices zero misses).
-  { spec: "cupcake", clockSeconds: 150, soloClock: 1.0, asks: { frostFrac: 0.6, sprinkles: 30, crown: true }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
+  // BESPOKE coverage tiers (plans/22 step 4): the cupcake is tiny and
+  // fully reachable (solo covers 75–91%, research/21) — an absolute-flat
+  // floor would gift 3★, so its floor + tiers ride high (55/70/85).
+  { spec: "cupcake", clockSeconds: 150, soloClock: 1.0, asks: { floorCoverage: 0.55, sprinkles: 30, crown: true }, stars: { two: 0.70, three: 0.85 }, parShots: { solo: 8, duo: 10 }, pay: { base: 40, perStar: 5 } },
   // 5 — the climb begins: 701 census, 7 flourish windows.
-  { spec: "cake-4", clockSeconds: 300, soloClock: 1.0, asks: { frostFrac: 0.55, sprinkles: 60, crown: true }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
+  { spec: "cake-4", clockSeconds: 300, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 27, duo: 45 }, pay: { base: 50, perStar: 5 } },
   // 6 — the heroic flourish: FOUR windows (three PLACE at c8n1–3), the
   // last rung the flourish can honestly be offered on.
-  { spec: "cake-5", clockSeconds: 330, soloClock: 1.0, asks: { frostFrac: 0.6, sprinkles: 80, crown: true }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
+  { spec: "cake-5", clockSeconds: 330, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 32, duo: 53 }, pay: { base: 60, perStar: 5 } },
   // 7 — the top of the ladder. Winnable by WORKLOAD (barely): MASTER
   // BAKER. The flourish stands over a summit no shipped combo reaches —
   // the ULTRA ask, sold by the future economy (§1 amendment).
-  { spec: "cake-6", clockSeconds: 360, soloClock: 1.0, asks: { frostFrac: 0.7, sprinkles: 80, crown: true }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
+  { spec: "cake-6", clockSeconds: 360, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, parShots: { solo: 37, duo: 61 }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1
