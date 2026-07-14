@@ -1142,11 +1142,59 @@ and must NOT move (the giant's reaction is to the WIN, not the
 photo); only the polaroid slides. Scope: client-only, patron-table's
 beat sheet + the snapshot call site.
 
-## 29. THE RACE CLOCK — the timer belongs top-center and BIG — AESTHETICS PASS
+## 29. THE RACE CLOCK — the timer belongs top-center and BIG — BUILT
 
-**Status: recorded 2026-07-13 (twenty-fifth session, the plans/22 step-6
-discussion). No build yet; the visionary flagged it deferrable to the
-aesthetics pass or its own side-quest while ruling the earned-time HUD.**
+**BUILT 2026-07-14 (twenty-eighth session) — PROMOTED from aesthetics to
+load-bearing by a playtest finding. THE FINDING (visionary, live rung 1):
+the loop TURNS YOU AWAY from the cake — you fire and you're already
+sprinting for ammo, so the item-31 world pops (over the cake) only land if
+you stop and look, which the clock won't let you do. World-space juice
+serves the aim-and-watch moments; the RUN needs feedback where the eye
+already lives — the clock. So the race clock became the persistent feedback
+surface, not just a bigger number.
+
+THE BUILD (`src/client/race-clock.ts` + index.html #race-clock + CSS,
+main-wired beside postHud): a dedicated overlay (the post-hud precedent),
+top-center and BIG (clamp 46–92px), painted each frame. TWO live signals:
+- THE GREEN GAIN: driven off the clock's OWN visible rise (clockGainSecs —
+  pure, unit-pinned). The clock IS ticksLeft, and earned time (the ONE force
+  on the reliable clock, step 6) makes it jump UP — so a green pulse + a
+  "+Ns" floating off the clock is the AUTHORITATIVE number rewarding you,
+  and it catches all three earn axes (paint/garnish/topper) at once, no
+  twin routing. GREEN-ONLY BY RULING (visionary): nothing subtracts time as
+  a penalty (patience left the clock in step 6), so there is no red event —
+  the one-force clock answered the momentum/red fork for us. The ≥1s floor
+  filters the prediction-vs-1Hz-correction jitter (a real earn is ≥2s).
+- THE GOLD DRIP: the shared purse beside the clock, flashing gold each time
+  it rises (a dripped coin, item 31's silent twin made loud).
+SEED-ON-SHOW guards the false flash: visible only on a live order (the
+Room's two gates); the first shown frame seeds the baselines so a fresh
+deal's full clock and the run-start empty purse don't read as gains. The
+between-rung linger hides it, re-seeding on the next deal.
+
+RELOCATION (not duplication): the clock LEFT the corner header (hud.ts) and
+the running-block purse line moved up too — the corner header is patron +
+hands identity now, the timer and wallet live top-center where the eye is.
+The LINGER keeps its slim corner purse line (the race clock hides once the
+order isn't running). Plops STAY on the cake (they serve the aim moments);
+this ADDS the HUD surface, it doesn't replace the world one.
+
+Tests (521 → 524): race-clock.test.ts (clockGainSecs — real earn flashes,
+countdown silent, sub-second jitter filtered); hud.test.ts updated (header
+no longer carries the clock; the running-corner purse moved to the race
+clock; the linger line still carries it). Live-verified in the client:
+top-center (cx = viewport center), big (61px @1280), the green-pulse +
+float + gold-purse styles all resolve; the real-time self-drive couldn't be
+watched only because the preview pane was backgrounded (rAF frozen — the
+documented hidden-pane trap, not a code fault; the view state flipped to
+running correctly). Both tsc legs clean. OPEN (deferred, his call): a "hurry
+up" urgency cue when the clock is nearly out — NOT a penalty, just tension;
+skipped per the green-only ruling, a trivial toggle if ever wanted.**
+
+---
+
+**Status (original, 2026-07-13, twenty-fifth session — the plans/22 step-6
+discussion): recorded, no build; deferrable to the aesthetics pass.**
 
 The read (his words, ruling on plans/22 §2.5's "earned time must be
 VISIBLE"): the clock should feel like a RACING GAME's — the order timer
@@ -1192,7 +1240,53 @@ the grief the gate invites). Route through concludeOrder as the second
 conclusion trigger; re-audit the tick-ordering (plans/22 §4's one
 high-risk spot) at build time.
 
-## 31. THE GARNISH & TOPPER "+Ns" POPS — the honest-pop seam — UNCLAIMED
+## 31. THE GARNISH & TOPPER "+Ns" POPS — the honest-pop seam — BUILT
+
+**BUILT 2026-07-14 (twenty-eighth session) — all three pops in one pass, as
+the note below asked. THE TWIN: `src/client/earn-pops.ts` (EarnPops) gathers
+the three silent axes' arithmetic in one testable home, echoing the server:
+`drip` mirrors room.ts dripFraction (fractional coins, whole-coin flush),
+`garnish` mirrors order-flow.earnGarnishTime (ask-capped high-water over the
+on-frosting rows, Σ min(current,target); sub-second fractions accumulate,
+never floored away), `topper` mirrors order-flow.earnTopperTime (TOPPER_TIME_S
+once). Reset PER DEAL (`reset`, called from main's fx.bindDessert — the same
+boundary the Room resets garnishHigh/topperPaid).
+
+THE TWO RENDER SITES (by data source, honestly split):
+- DRIP rides the LOCAL twin (paintResult.fresh) → fires in shots-view's paint
+  block, a GOLD "+N🪙" stacked one beat above the green "+Ns" at the splat.
+  `shots-view.onDrip` is main-wired to `earnPops.drip`; the block is already
+  orderLive-gated (= the Room's two gates: phase running AND order.status
+  running), so the linger drips nothing, exactly like the server fix.
+- GARNISH + TOPPER ride the BROADCAST (checks / desire.met) → main polls the
+  twin each frame (gated on orderLive) and fires a green "+Ns" OVER THE CAKE
+  (`shots-view.popWord` at the summit: {0, tiers[topTier].top, CAKE_Z}) —
+  where the grains land and the cherry crowns. Most frames the checks are
+  unchanged → the twin returns 0 → silent.
+
+DEVIATION from the note's "at the burst site" (garnish): the `scored` wire
+carries NO position, so the honest anchor is the cake summit (always correct:
+sprinkles land on the cake, the cherry crowns it) — not the burst muzzle.
+Ruled the right call; the summit reads as "the cake is rewarding your work."
+
+INHERITED IMPRECISION (accepted, same bargain the paint "+Ns" already struck):
+the shared EARNED_TIME_CAP_S is not modelled client-side, so near the cap a
+garnish/topper pop can name a second the clock didn't gain. The cap is loose
+by design (never bites normal play); the authoritative clock/purse are the
+truth surface. And the drip's per-deal reset (vs the Room carrying its
+sub-coin fraction across deals within a run) can lag the purse by <1 coin per
+deal — under-celebration, never a lie (floor, never over-claims).
+
+Tests (511 → 521): earn-pops.test.ts (10 pins — drip flush/floor, garnish
+high-water/burial/sub-second-accumulate/on-frosting-only, topper once, reset
+re-arms all three); shots-view.test.ts (drip pop renders gold +N🪙 off the
+real fresh count, silent when orderLive false). Live-verified in the client:
+onDrip wired + returns correct coins (200 fresh → 10), popWord renders into
+the scene; both tsc legs clean. Constants: COIN_GOLD 0xf2c14e, DRIP_WORD_RISE_M
+2.6 (the third tier of the splat column). HUD favor-line wording + the 👑/
+MASTER-BAKER emoji collision (handoff §6) were NOT touched — left for his eye.**
+
+---
 
 **Status: recorded 2026-07-14 (twenty-sixth session, the plans/24 build).
 The ONE CLOCK RULE pays clock for sprinkle conversions and the cherry's
