@@ -25,6 +25,7 @@ import {
   CRANK_TICKS_PER_CLICK,
   SCREW_TICKS_PER_NOTCH,
   TENSION_MAX_CLICKS,
+  TRAVERSE_DEG_PER_SECOND,
 } from "../game/catapult";
 import { rungRow, type Rung } from "../game/campaign";
 import type { ServerMsg } from "../game/protocol";
@@ -170,6 +171,28 @@ function fireLime(room: Room, c: FakeClient, wait = 400): void {
   run(room, wait);
 }
 
+/** One real 6-click frosting glob — the arc that "splats the tiers" (the
+ * frosting-glob-scores test), painting FRESH cake through the scoring phase
+ * (so the coin drip fires, unlike seamPaint which writes the field directly).
+ * `turnDeg` pre-aims the traverse so a sweep of shots lands on DIFFERENT cake
+ * (each footprint ~1% coverage; identical aim just re-coats — zero fresh). */
+function fireFrost(room: Room, c: FakeClient, turnDeg = 0): void {
+  room.onMessage(c.id, { t: "load", topping: "frosting" });
+  run(room, 1);
+  if (turnDeg !== 0) {
+    const ticks = Math.round(Math.abs(turnDeg) / (TRAVERSE_DEG_PER_SECOND / 60));
+    room.onMessage(c.id, { t: "op", turn: turnDeg > 0 ? 1 : -1, screw: 0, crank: 0 });
+    run(room, ticks);
+    room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+  }
+  room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 1 });
+  run(room, CRANK_TICKS_PER_CLICK * 6);
+  room.onMessage(c.id, { t: "op", turn: 0, screw: 0, crank: 0 });
+  run(room, 1);
+  room.onMessage(c.id, { t: "lever" });
+  run(room, 300);
+}
+
 /** THE TOWN-2 SEAM (slice 5): the stall purchase is separator-gated and
  * purse-priced now (plans/13 §5 amendment), so tests that just need a
  * two-town room build one through privates. The purchase LAW has its own
@@ -203,6 +226,29 @@ function seamWin(room: Room, c: FakeClient, coverage = 0.4): void {
   if (grains > 0) seamSprinkles(room, grains + 10);
   fireLime(room, c);
   seamBuzzer(room);
+}
+
+/** The purse a PASSED order pays (plans/22 step 9): its authored pay column
+ * (base + stars × perStar + any flourish) times THE REALM'S FAVOR the verdict
+ * wears — the favor multiplies the conclusion award UP, and a spotless seam
+ * (no mess, no impatience) earns full favor. Reads the STAMPED favor off the
+ * won order wire, so the check proves the words == wallet invariant whatever
+ * the seam's mood — and tracks the tuning if the favor curve moves. NOTE: the
+ * live coin DRIP is a SEPARATE axis (fresh paint through real landings); the
+ * seams paint the field directly (no scoring tick), so a seam-win drips
+ * nothing and this column is the whole purse. */
+function paidColumn(
+  c: FakeClient,
+  rung: number,
+  stars: number,
+  flourish = false,
+): number {
+  const won = c.all("order").find((m) => m.order.status === "won");
+  const favor = won?.judgment?.favor ?? 1;
+  const pay = rungRow(rung).pay;
+  const column =
+    pay.base + stars * pay.perStar + (flourish ? FLOURISH_BONUS_COINS : 0);
+  return Math.round(column * favor);
 }
 
 describe("Room: the match, headless over protocol", () => {
@@ -565,6 +611,20 @@ describe("Room: the match, headless over protocol", () => {
       room.onMessage(a.id, { t: "buy", item: "town2" });
       room.onMessage(a.id, { t: "buy", item: "town2" });
       room.onMessage(a.id, { t: "pickTown", town: 1 });
+      // The purse right after the buy — captured BEFORE the rung-3 frost so
+      // the live coin drip (a separate axis) can't muddy the debit check. The
+      // two spotless wins' columns × their stamped favor, less TOWN2_PRICE.
+      const wins = a.all("order").filter((m) => m.order.status === "won");
+      const paidAfterBuy = a.last("run")?.purse;
+      const rung1pay = rungRow(1).pay;
+      const rung2pay = rungRow(2).pay;
+      const earned =
+        Math.round(
+          (rung1pay.base + 3 * rung1pay.perStar) * (wins[0]?.judgment?.favor ?? 1),
+        ) +
+        Math.round(
+          (rung2pay.base + 3 * rung2pay.perStar) * (wins[1]?.judgment?.favor ?? 1),
+        );
       run(room, ORDER_RESET_TICKS + 10); // rung 3: two towns, one dwarf
       // Fire town 1's 6-click frost at the RUNNING two-town order — the
       // real play situation, no linger-timing dependence.
@@ -578,6 +638,8 @@ describe("Room: the match, headless over protocol", () => {
         shot: a.last("shot"),
         town: a.last("town"),
         runWire: a.last("run"),
+        paidAfterBuy,
+        earned,
         w: connect(room, "peek").last("welcome"),
       };
     };
@@ -595,14 +657,17 @@ describe("Room: the match, headless over protocol", () => {
     expect(A.w?.toppings).toEqual(B.w?.toppings);
     expect(A.w?.stuck).toEqual(B.w?.stuck);
     expect(A.w?.checks).toEqual(B.w?.checks);
-    // Non-vacuous: both towns are live, the purse debited exactly once
-    // (60 earned − 50 = 10, the second buy refused untouched), the fresh
+    // Non-vacuous: both towns are live, the purse debited exactly once (two
+    // wins' favored columns − 50, the second buy refused untouched), the fresh
     // deal is priced for two TOWNS × one PAIR OF HANDS (REACH × LABOR,
-    // stamped on the ticket), and the town-1 frost painted the cake.
+    // stamped on the ticket), and the town-1 frost painted the cake. The
+    // final purse is favor+drip dependent but MUST match between replicas —
+    // the determinism point (A == B).
     expect(A.w?.machines).toHaveLength(2);
     expect(A.w?.yourTown).toBe(0); // joiners always start home
-    expect(A.runWire?.purse).toBe(60 - TOWN2_PRICE);
-    expect(A.w?.run.purse).toBe(60 - TOWN2_PRICE);
+    expect(A.paidAfterBuy).toBe(A.earned - TOWN2_PRICE); // debited exactly once
+    expect(A.runWire?.purse).toBe(B.runWire?.purse); // replicas converge
+    expect(A.w?.run.purse).toBe(B.w?.run.purse);
     const frost = A.w?.order.requirements.find(
       (r) => r.kind === "frost-coverage",
     ) as { floorCoverage?: number } | undefined;
@@ -652,11 +717,12 @@ describe("Room: the match, headless over protocol", () => {
       const room = new Room();
       const a = connect(room, "alice");
       readyUp(room, a);
-      seamWin(room, a); // rung 1, 3★: the purse holds 25 — under the 50
-      expect(a.last("run")?.purse).toBe(25);
+      seamWin(room, a); // rung 1, 3★ spotless: the column × the realm's favor
+      const paid = paidColumn(a, 1, 3); // still well under the 50 town-2 price
+      expect(a.last("run")?.purse).toBe(paid);
       room.onMessage(a.id, { t: "buy", item: "town2" }); // the won linger: hours OPEN
-      expect(seams(room).towns.length).toBe(1); // ...but 25 < 50
-      expect(seams(room).run.purse).toBe(25); // nothing was taken
+      expect(seams(room).towns.length).toBe(1); // ...but the purse < 50
+      expect(seams(room).run.purse).toBe(paid); // nothing was taken
     });
 
     it("PAY rides the conclusion tick: base + stars × perStar on the run wire (§5's column, live at last)", () => {
@@ -669,8 +735,8 @@ describe("Room: the match, headless over protocol", () => {
       fireLime(room, a); // a real landing keeps the ledger honest
       seamBuzzer(room); // the clock renders the verdict now (plans/22)
       expect(a.all("order").some((m) => m.order.status === "won")).toBe(true);
-      const pay = rungRow(3).pay;
-      expect(a.last("run")?.purse).toBe(pay.base + 2 * pay.perStar);
+      // The column pays at the buzzer, now lifted by the realm's favor (step 9).
+      expect(a.last("run")?.purse).toBe(paidColumn(a, 3, 2));
     });
 
     it("THE FLOURISH PAYS: the coda adds its bonus on top of the column", () => {
@@ -685,10 +751,8 @@ describe("Room: the match, headless over protocol", () => {
       seamBuzzer(room);
       const end = a.all("order").find((m) => m.order.status === "won");
       expect(end?.judgment?.flourish).toBe(true);
-      const pay = rungRow(3).pay;
-      expect(a.last("run")?.purse).toBe(
-        pay.base + 2 * pay.perStar + FLOURISH_BONUS_COINS,
-      );
+      // Column + the flourish bonus, all lifted by the realm's favor (step 9).
+      expect(a.last("run")?.purse).toBe(paidColumn(a, 3, 2, true));
     });
 
     it("INVENTORY DIES WITH THE RUN: the next start re-locks town 2, zeroes the purse, re-addresses the crew home", () => {
@@ -803,8 +867,8 @@ describe("Room: the match, headless over protocol", () => {
       const a = connect(room, "alice");
       readyUp(room, a);
       seamWin(room, a); // 3★ on the half-labor ticket — honest stars
-      const pay = rungRow(1).pay;
-      expect(a.last("run")?.purse).toBe(pay.base + 3 * pay.perStar);
+      // The full column (no lone-hero discount), lifted by the realm's favor.
+      expect(a.last("run")?.purse).toBe(paidColumn(a, 1, 3));
     });
   });
 
@@ -1013,6 +1077,42 @@ describe("Room: the match, headless over protocol", () => {
     const w = carol.last("welcome");
     expect(w?.toppings).toEqual([]);
     expect(w?.frosting.some((c) => c > 0)).toBe(true);
+  });
+
+  it("THE COIN DRIP: fresh paint pays coins LIVE, mid-order, off real landings (plans/22 step 9)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    readyUp(room, a);
+    jumpToRung(room, 3); // a big cake — a 6-click glob paints plenty of fresh
+    expect(a.last("run")?.purse ?? 0).toBe(0); // nothing earned yet
+    // Real frosting landings paint fresh cake, which drips coins through the
+    // scoring phase (the small-frequent-win twin of earned time). Several
+    // globs to clear the first whole-coin flush (0.05/sample, per-coin at 20).
+    fireFrost(room, a, -20); // sweep the azimuth so each glob lands on FRESH
+    for (let i = 0; i < 5; i++) fireFrost(room, a, 10); // cake, not a re-coat
+    // The coins came from the DRIP, not a conclusion — the order is still
+    // running (the clock is long). Small, frequent, LIVE wins.
+    expect(seams(room).flow.order.status).toBe("running");
+    expect(a.last("run")?.purse ?? 0).toBeGreaterThan(0);
+  });
+
+  it("THE DRIP SURVIVES A FLOOR-LOSS: a below-floor cake keeps its dripped coins — never total zero (plans/22 §2 / step 9)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    readyUp(room, a);
+    jumpToRung(room, 3);
+    // Some coins dripped while the crew painted (the drip is live and
+    // unconditional) — stamp that banked reality on the purse.
+    seams(room).run.purse = 7;
+    // No paint at all → coverage 0 < the 8% floor → a below-floor LOSS. The
+    // conclusion award gates on `accepted` and pays nothing; but the drip is
+    // already banked and untouched — the giant leaves hungry, the realm still
+    // paid for the effort (never total zero, the relax's promise).
+    fireLime(room, a); // a real landing keeps the ledger honest
+    seamBuzzer(room);
+    const end = a.all("order").find((m) => m.judgment);
+    expect(end?.judgment?.accepted).toBe(false); // below the floor — a loss
+    expect(seams(room).run.purse).toBe(7); // ...yet the drip survives
   });
 
   it("fudge is a real pantry row: it loads, flies, and PAINTS (plans/10 §4)", () => {

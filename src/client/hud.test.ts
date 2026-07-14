@@ -250,6 +250,21 @@ describe("bannerText — the relax: served or hungry, culprit always named (plan
     expect(plain).not.toContain("🪙");
   });
 
+  it("THE REALM'S FAVOR (step 9): a pleased giant adds a favor bonus; a ×1 mood is silent", () => {
+    const order = { ...createOrder([], 100), status: "won" as const };
+    // Rung 3, 2★ column 40, favor ×1.5 → total 60, so the favor grants +20
+    // ON TOP of the named column (words == wallet: 40 + 20 = 60 = 40 × 1.5).
+    const pleased = bannerText(order, rows, judgment({ stars: 2, favor: 1.5 }), 2, undefined, 3);
+    expect(pleased).toContain("🪙 the realm pays +40 coins");
+    expect(pleased).toContain("the realm's favor grants +20 more");
+    // A ×1 mood (poor service) forgoes the bonus — no line, no lost coin.
+    const unmoved = bannerText(order, rows, judgment({ stars: 2, favor: 1 }), 2, undefined, 3);
+    expect(unmoved).not.toContain("the realm's favor");
+    // Absent favor (pre-stamp / loss verdict) behaves as ×1 too.
+    const bare = bannerText(order, rows, judgment({ stars: 2 }), 2, undefined, 3);
+    expect(bare).not.toContain("the realm's favor");
+  });
+
   it("a run-ending loss promises NO new order — the run ends (plans/13)", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
     const text = bannerText(order, rows, null, 2, {

@@ -46,6 +46,7 @@ import {
   checkRequirements,
   crownedOnFrosting,
   judge,
+  realmFavor,
   type Judgment,
   type RequirementCheck,
   type SettledTopping,
@@ -57,7 +58,7 @@ import {
   validateRungs,
   type Rung,
 } from "../game/campaign";
-import { FLOURISH_BONUS_COINS, TOWN2_PRICE } from "../game/tuning";
+import { DRIP_COINS_PER_SAMPLE, FLOURISH_BONUS_COINS, TOWN2_PRICE } from "../game/tuning";
 import { evaluateOrder } from "../game/order";
 import {
   OrderFlow,
@@ -126,6 +127,11 @@ export class Room {
   /** How the order that just ENDED concluded — captured at the "ended"
    * event (the flow's fresh deal replaces the order before "redeal"). */
   private endedWon = false;
+  /** THE COIN DRIP's sub-coin remainder (plans/22 step 9): fresh paint pays
+   * DRIP_COINS_PER_SAMPLE per sample, fractional; whole coins flush to the
+   * purse as they accrue and the remainder carries. Run-scoped (coins are the
+   * run's purse) — zeroed at startRun so a new run's drip starts clean. */
+  private dripFraction = 0;
   /** Last lobby readiness broadcast (`in/of`) — broadcast on change only. */
   private lastReadyKey = "";
   /** Everything at rest THIS order — the census the checklist counts from.
@@ -480,7 +486,24 @@ export class Room {
     // `scored` order carries the risen ticksLeft (the client's authoritative
     // clock; the "+Ns" pop-up is client-local juice off its own frosting
     // twin). No-op off a running order or at the cap (earnTime guards both).
-    if (freshThisTick > 0) this.flow.earnTime(freshThisTick);
+    if (freshThisTick > 0) {
+      this.flow.earnTime(freshThisTick);
+      // THE COIN DRIP (plans/22 step 9): fresh cake pays COINS as it happens —
+      // earned time's twin off the same signal, but UNCAPPED (the continuous-
+      // past-3★ force, §0.5/§6: a saturated cake stops the time cap, never the
+      // drip). Fractional coins accumulate; a whole coin flushes to the purse
+      // and rides a run broadcast — a small, frequent, VISIBLE win. Paid LIVE
+      // and UNMULTIPLIED (the favor touches only the conclusion award, awardPay)
+      // and NEVER clawed back: a below-floor loss keeps its drip (never total
+      // zero, plans/23 §2). Gated to a running rung by the phase guard above.
+      this.dripFraction += freshThisTick * DRIP_COINS_PER_SAMPLE;
+      const coins = Math.floor(this.dripFraction);
+      if (coins > 0) {
+        this.dripFraction -= coins;
+        this.run.earn(coins);
+        this.broadcastRun();
+      }
+    }
     // THE DESIRE'S LIVE CHECKMARK (slice 4b; the MATERIAL predicate since
     // plans/24 ruling 4 — crowned ON FROSTING, one truth with the impress
     // and the flourish stamp): ledger truth for the HUD's golden row,
@@ -547,7 +570,15 @@ export class Room {
    * unmet, since a met order concluded instantly), a buzzer verdict on a
    * finished cake CAN be accepted — that is the whole point of the redesign. */
   private concludeOrder(judgment: Judgment, checks: RequirementCheck[]): void {
-    this.lingerVerdict = this.stampFlourish(judgment);
+    const stamped = this.stampFlourish(judgment);
+    // THE REALM'S FAVOR (plans/22 step 9): compute the mood multiplier ONCE
+    // here (spending the dormant patienceDebt) and stamp it onto the verdict
+    // — the wire carries it so the HUD's pay line matches the wallet, and
+    // awardPay reads the SAME value (never recomputes). Accepted verdicts
+    // only: a loss pays nothing, so it wears no favor.
+    this.lingerVerdict = stamped.accepted
+      ? { ...stamped, favor: realmFavor(this.flow.patienceDebt) }
+      : stamped;
     this.endedWon = this.lingerVerdict.accepted;
     this.flow.order = {
       ...this.flow.order,
@@ -573,9 +604,18 @@ export class Room {
   private awardPay(j: Judgment): void {
     if (!j.accepted) return;
     const pay = rungRow(this.run.rung).pay;
-    this.run.earn(
-      pay.base + j.stars * pay.perStar + (j.flourish ? FLOURISH_BONUS_COINS : 0),
-    );
+    const conclusion =
+      pay.base + j.stars * pay.perStar + (j.flourish ? FLOURISH_BONUS_COINS : 0);
+    // THE REALM'S FAVOR (plans/22 §2.6 + step 9): the giant's MOOD — spent
+    // from the dormant patienceDebt (mess/idle/lateness, integrated by the
+    // patron's burns) — multiplies the conclusion award UP. Pristine service
+    // pays a bonus; a poor order pays ×1 and loses nothing (the relax: a
+    // raised eyebrow, not a lost coin). It grades the SERVICE; the star column
+    // (the cake's milestones) SITS BESIDE the live drip (the cake's continuous
+    // climb) — neither absorbed. The drip is already banked and untouched here.
+    // The multiplier was stamped onto the verdict in concludeOrder (one
+    // computation, wallet == wire); ?? 1 guards a direct pre-stamp caller.
+    this.run.earn(Math.round(conclusion * (j.favor ?? 1)));
     this.broadcastRun();
   }
 
@@ -740,6 +780,7 @@ export class Room {
         if (this.roster.townOf(id) > 0 && this.roster.setTown(id, 0, 1))
           this.roster.broadcast({ t: "town", id, town: 0 });
     }
+    this.dripFraction = 0; // a fresh run's coin drip starts clean (step 9)
     this.dealAt(rungRow(this.run.rung)); // rung 1 — tickReady set it
     this.redealDessert();
     this.roster.broadcast({

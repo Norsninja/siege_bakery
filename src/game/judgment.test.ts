@@ -16,11 +16,13 @@ import {
   describeProgress,
   describeRequirement,
   judge,
+  realmFavor,
   weighedMess,
   type Requirement,
   type SettledTopping,
 } from "./judgment";
 import { flavorOf } from "./toppings";
+import { FAVOR_MAX_BONUS, FAVOR_PATIENCE_FULL_S } from "./tuning";
 
 // The spec refactor (plans/13 §3): the rules see the deal's geometry —
 // cake-3 here, the anchor row; zones are tier INDICES now.
@@ -432,6 +434,21 @@ describe("grains (plans/10)", () => {
       at("sprinkles", 8 + i * 0.1, 0.05, false),
     );
     expect(weighedMess([...wildBurst, at("cherry", 0, TOP_Y)])).toBeCloseTo(0.5, 10);
+  });
+
+  it("THE REALM'S FAVOR grades the SERVICE: spotless earns full favor, a kept-waiting giant earns none (plans/22 step 9)", () => {
+    // A spotless order (zero patience debt) earns the full upward multiplier.
+    expect(realmFavor(0)).toBeCloseTo(1 + FAVOR_MAX_BONUS, 10);
+    // At the full-debt threshold the mood bottoms out at ×1 — a raised
+    // eyebrow, NEVER below (poor service forgoes the bonus, it is never taxed;
+    // the relax, plans/23 §4.3).
+    expect(realmFavor(FAVOR_PATIENCE_FULL_S)).toBeCloseTo(1, 10);
+    expect(realmFavor(FAVOR_PATIENCE_FULL_S * 5)).toBe(1); // clamped, never < 1
+    // Monotone down as impatience grows, and always in [1, 1+bonus].
+    const half = realmFavor(FAVOR_PATIENCE_FULL_S / 2);
+    expect(half).toBeGreaterThan(1);
+    expect(half).toBeLessThan(1 + FAVOR_MAX_BONUS);
+    expect(half).toBeCloseTo(1 + FAVOR_MAX_BONUS / 2, 10);
   });
 });
 

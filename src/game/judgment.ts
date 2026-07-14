@@ -17,7 +17,13 @@ import { tierLabel, type DessertGeometry, type ZoneId } from "../core/dessert";
 import type { Vec3 } from "../core/ballistics";
 import type { FrostingField } from "../core/frosting";
 import { canCrown, deliveryWeight, FLAVOR_WORDS, flavorOf } from "./toppings";
-import { CHERRY_IMPRESS, FLAVOR_IMPRESS, SPRINKLE_IMPRESS } from "./tuning";
+import {
+  CHERRY_IMPRESS,
+  FAVOR_MAX_BONUS,
+  FAVOR_PATIENCE_FULL_S,
+  FLAVOR_IMPRESS,
+  SPRINKLE_IMPRESS,
+} from "./tuning";
 
 export type Requirement =
   | { kind: "count-on-cake"; topping: string; needed: number }
@@ -234,6 +240,13 @@ export interface Judgment {
    * distinct from its dressing star-lift (plans/23 §7 sub-ruling: keep
    * both — a hard physical feat earns its own beat AND counts as dressing). */
   flourish?: true;
+  /** THE REALM'S FAVOR multiplier (plans/22 step 9): the SERVICE grade, ≥1.
+   * Stamped by the ROOM at conclusion from realmFavor(patienceDebt) — NOT by
+   * judge() (which grades only the cake). It multiplies the conclusion award
+   * UP (awardPay); it rides the wire so the HUD's pay line matches the wallet
+   * (words == wallet) and can name the giant's mood. Absent on a loss (no pay)
+   * and on the live/pre-conclusion verdict. */
+  favor?: number;
 }
 
 /**
@@ -308,6 +321,25 @@ export function judge(
           : 1;
 
   return { accepted, stars, checks, coverage, dressing, impress };
+}
+
+/** THE REALM'S FAVOR (plans/22 §2.6 + step 9) — the SERVICE grade, sibling
+ * to judge()'s CAKE grade. The clean split: STARS grade the cake (coverage +
+ * dressing); the favor grades the giant's MOOD (how the service went). The
+ * mood reads OrderFlow.patienceDebt, which already integrates the three
+ * service sins — mess → thunder, idling → grumble, lateness → urgent
+ * (patron.ts). Returns the PAY MULTIPLIER on the conclusion award: 1 (bare,
+ * a debt ≥ FAVOR_PATIENCE_FULL_S) up to 1 + FAVOR_MAX_BONUS (pristine, debt
+ * 0). NEVER below 1 — poor service FORGOES the bonus, it never taxes the
+ * coins (the relax, plans/23 §4.3: a raised eyebrow, not a lost coin). ONE
+ * force on the pay, mirroring earned time's one force on the clock. Pure;
+ * the Room applies it in awardPay. */
+export function realmFavor(patienceDebtSeconds: number): number {
+  const mood = Math.max(
+    0,
+    Math.min(1, 1 - patienceDebtSeconds / FAVOR_PATIENCE_FULL_S),
+  );
+  return 1 + mood * FAVOR_MAX_BONUS;
 }
 
 /** One row's words — shared by the HUD checklist and the end banner.

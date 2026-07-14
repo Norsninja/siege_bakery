@@ -220,8 +220,15 @@ export function bannerText(
         verdict.stars * pay.perStar +
         (verdict.flourish ? FLOURISH_BONUS_COINS : 0);
       // THE REALM PAYS (plans/17): the giants are guests — relief
-    // contracts settle the order, so the pay line says who's paying.
-    payLine = `\n🪙 the realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
+      // contracts settle the order, so the pay line says who's paying.
+      payLine = `\n🪙 the realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
+      // THE REALM'S FAVOR (plans/22 step 9): the giant's MOOD (service) earns
+      // the realm's favor — a coin bonus ON TOP, stamped on the verdict so the
+      // words match the wallet (the total = coins × favor). A poor order pays
+      // ×1: no bonus, no line — the eyebrow is silent (never a lost coin).
+      const favorBonus = Math.round(coins * (verdict.favor ?? 1)) - coins;
+      if (favorBonus > 0)
+        payLine += `\n👑 the giant leaves pleased — the realm's favor grants +${favorBonus} more`;
     }
     // The comedy of the gap (plans/23 §7): even 3★ still longs for perfect.
     const head =

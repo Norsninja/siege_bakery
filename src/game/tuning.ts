@@ -117,6 +117,21 @@ export const EARNED_TIME_PER_SAMPLE_S = 2;
  * paint-forever case. A pure ceiling, not a live constraint. */
 export const EARNED_TIME_CAP_S = 120;
 
+/** THE COIN DRIP (plans/22 step 9 — the realm's favor pass): fresh cake pays
+ * COINS as it happens, the small-frequent-win twin of earned time (both read
+ * the SAME fresh signal in room.ts — fresh paint buys TIME and COINS at once).
+ * Unlike earned time it is UNCAPPED to 100% coverage: this IS the "reward
+ * continuous past 3★" force (plans/22 §0.5/§6) — coins keep climbing toward the
+ * perfect cake even after stars top out (a saturated cake stops the time cap
+ * but never the drip). Paid LIVE during the running order, UNMULTIPLIED by the
+ * favor (favor grades the service, the drip the cake), and NEVER clawed back —
+ * a below-floor loss keeps its dripped coins (never total zero, plans/23 §2).
+ * PROVISIONAL: cake-3's 661 samples → a ~30% order drips ~10 coins, an
+ * (impossible) perfect cake ~33 — comparable to the star column; tune at a
+ * playtest. 0.05 = one coin per 20 fresh samples ≈ a coin every couple of good
+ * shots (the drip cadence). */
+export const DRIP_COINS_PER_SAMPLE = 0.05;
+
 /** THE DRESSING (plans/23 — "dressed to impress": dressing lifts the grade,
  * never gates it; plans/24 adds the FLAVOR term). Each dressing element adds
  * this coverage-EQUIVALENT to IMPRESS (judge(): stars grade on coverage +
@@ -155,6 +170,19 @@ export const TOPPER_TIME_S = 15;
  * (campaign.ts): +10 = two stars' worth — style pays like excellence,
  * flat and legible (a multiplier can't be mentally verified mid-game). */
 export const FLOURISH_BONUS_COINS = 10;
+/** THE REALM'S FAVOR (plans/22 §2.6 + step 9): the giant's MOOD grades the
+ * SERVICE (mess, idling, being kept waiting) — all already integrated into
+ * OrderFlow.patienceDebt by the patron's thunder/grumble/urgent burns, so
+ * patience (which stopped touching the clock in step 6) is finally SPENT
+ * here. The favor is an UPWARD multiplier on the conclusion award (base +
+ * stars + flourish): pristine service pays up to ×(1 + FAVOR_MAX_BONUS); a
+ * messy, slow order pays ×1.0 and loses NOTHING (a raised eyebrow, not a
+ * lost coin — the relax, plans/23 §4.3). ONE force on the pay, mirroring
+ * earned time's one force on the clock. PROVISIONAL (playtest-gated): a debt
+ * of FAVOR_PATIENCE_FULL_S seconds drives the mood to 0 (bare ×1); a spotless
+ * order (debt 0) earns the full bonus. */
+export const FAVOR_PATIENCE_FULL_S = 40;
+export const FAVOR_MAX_BONUS = 0.5;
 /** Town 2 at the stall — §5's scale: affordable by rung 2–3 for a
  * decent crew (two 3★ wins = 60), right as the asks start outgrowing
  * one town's throughput. */
