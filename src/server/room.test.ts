@@ -947,9 +947,8 @@ describe("Room: the match, headless over protocol", () => {
     const running = a.last("order") ?? a.last("welcome");
     const frostRow = (o: { requirements: Array<{ kind: string; floorCoverage?: number }> }) =>
       o.requirements.find((r) => r.kind === "frost-coverage");
-    // The floor is flat, running and fresh alike; PAR is the town dial.
+    // The floor is flat, running and fresh alike (town-independent, plans/22).
     expect(frostRow(running!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
-    expect(running!.order.parShots).toBe(rungRow(1).parShots.solo);
     // WIN the order and ride the linger to rung 2's fresh cake.
     seamWin(room, a);
     run(room, ORDER_RESET_TICKS + 10);
@@ -957,9 +956,8 @@ describe("Room: the match, headless over protocol", () => {
     const fresh = msgs
       .slice(msgs.findIndex((m) => m.order.status !== "running") + 1)
       .find((m) => m.order.status === "running");
-    // The fresh deal is priced for two towns — par jumps to the duo column.
+    // The fresh deal keeps the flat floor whatever the town count.
     expect(frostRow(fresh!.order)?.floorCoverage).toBe(FLOOR_COVERAGE);
-    expect(fresh!.order.parShots).toBe(rungRow(2).parShots.duo);
   });
 
   it("late joiners are welcomed with the world as it lies (F2, plans/06)", () => {
@@ -1099,8 +1097,9 @@ describe("Room: the match, headless over protocol", () => {
     const ended = a.last("order");
     expect(ended?.order.status).toBe("lost");
     expect(ended?.order.ticksLeft).toBe(0);
-    // The clock died: the verdict rides along, and it's the sad kind.
-    expect(ended?.judgment?.met).toBe(false);
+    // The clock died on a bare cake: below the floor → not served (the sole
+    // zero), no stars (plans/23 — accepted replaces the retired `met`).
+    expect(ended?.judgment?.accepted).toBe(false);
     expect(ended?.judgment?.stars).toBe(0);
     // THE INVERSION (plans/22 step 6): the reliable clock ran its FULL base
     // — patience no longer steals seconds. Under the old lie the Giant's
@@ -1336,7 +1335,6 @@ describe("Room: the match, headless over protocol", () => {
     // honest row, soloClock 1.0 — no stretch).
     expect(rungRow(4).soloClock).toBe(1.0);
     expect(fresh?.order.ticksLeft).toBe(rungRow(4).clockSeconds * 60);
-    expect(fresh?.order.parShots).toBe(rungRow(4).parShots.solo);
     // The CLIMB is a live deal, and one baker played this script: the
     // anchor seam pinned rung 3 at full labor, but the ladder prices the
     // roster's truth — the cupcake asks the lone hero half its grains
@@ -1365,7 +1363,7 @@ describe("Room: the match, headless over protocol", () => {
     const carol = connect(room, "carol");
     const w = carol.last("welcome");
     expect(w?.order.status).toBe("lost");
-    expect(w?.judgment?.met).toBe(false); // the verdict rides the welcome
+    expect(w?.judgment?.accepted).toBe(false); // the verdict rides the welcome
     expect(w?.judgment?.stars).toBe(0);
     expect(w?.run.phase).toBe("running"); // the linger is still the rung's
     // A joiner mid-REPORT gets the runover phase AND the frozen verdict
@@ -1411,10 +1409,11 @@ describe("Room: the match, headless over protocol", () => {
     room.onMessage(a.id, { t: "lever" });
     run(room, 300); // impact ~170 ticks out — lands well inside the linger
     // Non-vacuous: the linger paint really moved the live re-judgment…
+    // (coverage is the grade's spine now — score retired, plans/23).
     const live = (
-      room as unknown as { judgeNow(): { score: number } }
+      room as unknown as { judgeNow(): { coverage: number } }
     ).judgeNow();
-    expect(live.score).not.toBe(frozen!.score);
+    expect(live.coverage).not.toBe(frozen!.coverage);
     // …and the mid-banner joiner still gets the frozen one, byte-for-byte.
     const carol = connect(room, "carol");
     expect(carol.last("welcome")?.judgment).toEqual(frozen);

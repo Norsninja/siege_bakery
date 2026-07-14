@@ -3,21 +3,20 @@
  * imports core/ + sibling game modules only.
  *
  * An order is a MUTABLE list of typed requirements (the Patron appends and
- * tightens rows mid-order — 2D law, deliberate mutability) + the par shot
- * count and the Patron's snob threshold (gate 2, consumed from Step 2) +
- * the clock. Scoring truth stays PHYSICAL (visionary, 2026-07-02): rows
+ * tightens rows mid-order — 2D law, deliberate mutability) + the star tiers
+ * + the clock. Scoring truth stays PHYSICAL (visionary, 2026-07-02): rows
  * count toppings AT REST — hit the top and roll off the back, the patron
  * gets nothing. Wrong toppings land and lie there — mistakes execute, they
  * never block, they just don't count.
  *
- * End semantics (plans/22, grade-at-the-buzzer — supersedes plans/03's
- * "the Judgment renders the moment every row is met"): the order runs to
- * the CLOCK (or, later, a player serve) — meeting the rows no longer ends
- * it. At the buzzer the Room renders the Judgment: rows unmet → hungry (the
- * sad kind); rows met but gate 2 below → REFUSED (the insulting kind); met
- * and good → delighted (1–3 stars). This module only ticks the clock and
- * censuses the rows now — `evaluateOrder` is CHECK-ONLY; the Room judges at
- * conclusion (see server/room.ts concludeOrder).
+ * End semantics (plans/22 grade-at-the-buzzer + plans/23 the relax): the
+ * order runs to the CLOCK (or, later, a serve) — meeting the rows no longer
+ * ends it. At the buzzer the Room renders the Judgment on ONE gate, the
+ * frosting FLOOR (plans/23): below it → hungry (no cake, the sole zero);
+ * above it → served, 1–3 stars by IMPRESS (coverage + dressing). The old
+ * gate-2 REFUSED is retired. This module only ticks the clock and censuses
+ * the rows — `evaluateOrder` is CHECK-ONLY; the Room judges at conclusion
+ * (see server/room.ts concludeOrder).
  */
 import type { DessertGeometry } from "../core/dessert";
 import type { FrostingField } from "../core/frosting";
@@ -64,10 +63,6 @@ export interface OrderState {
    * mid-order leaver never flickers it. Absent = a pre-amendment order
    * (full labor). */
   hands?: number;
-  /** Shots for full waste credit (gate 2, Step 2 — carried on the wire now). */
-  parShots: number;
-  /** Gate 2: minimum assembly score the Patron will accept (Step 2). */
-  passScore: number;
   /** Star tiers, ABSOLUTE coverage fractions (plans/22 step 4; on the wire
    * — the HUD prints what each star takes). */
   star2Coverage: number;
@@ -80,8 +75,6 @@ export function createOrder(
   requirements: Requirement[],
   ticks: number,
   opts?: {
-    parShots?: number;
-    passScore?: number;
     star2Coverage?: number;
     star3Coverage?: number;
     desire?: Desire;
@@ -92,8 +85,6 @@ export function createOrder(
     requirements,
     ...(opts?.desire ? { desire: opts.desire } : {}),
     ...(opts?.hands !== undefined ? { hands: opts.hands } : {}),
-    parShots: opts?.parShots ?? 6,
-    passScore: opts?.passScore ?? 50,
     star2Coverage: opts?.star2Coverage ?? STAR2_COVERAGE,
     star3Coverage: opts?.star3Coverage ?? STAR3_COVERAGE,
     ticksLeft: ticks,

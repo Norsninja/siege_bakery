@@ -63,17 +63,13 @@ const bone = (root: THREE.Object3D, name: string): THREE.Object3D => {
   return found;
 };
 
-const judgment = (met: boolean, accepted: boolean): Judgment => ({
-  met,
+const judgment = (accepted: boolean, stars: 0 | 1 | 2 | 3): Judgment => ({
   accepted,
-  score: 50,
-  stars: 1,
+  stars,
   checks: [],
   coverage: 0.5,
-  neatness: 1,
-  integrity: 1,
-  mess: 0,
-  waste: 1,
+  dressing: 0,
+  impress: 0.5,
 });
 
 const pump = (
@@ -89,7 +85,7 @@ describe("PatronBody choreography", () => {
   it("a rig-less root is a permanent no-op (assetless-boot law)", () => {
     const body = new PatronBody(new THREE.Object3D());
     expect(body.rigged).toBe(false);
-    expect(() => body.update(3, judgment(true, true))).not.toThrow();
+    expect(() => body.update(3, judgment(true, 3))).not.toThrow();
     expect(body.act).toBe("idle");
   });
 
@@ -162,17 +158,18 @@ describe("PatronBody choreography", () => {
     expect(spine.rotation.x).toBeCloseTo(0.02, 2);
   });
 
-  it("verdictPose is the banner's two-gate read", () => {
-    expect(verdictPose(judgment(true, true))).toBe("delighted");
-    expect(verdictPose(judgment(true, false))).toBe("refused");
-    expect(verdictPose(judgment(false, false))).toBe("hungry");
+  it("verdictPose reads the stars (plans/23 relax): 2★+ devours, 1★ grudges, below-floor hungry", () => {
+    expect(verdictPose(judgment(true, 3))).toBe("delighted");
+    expect(verdictPose(judgment(true, 2))).toBe("delighted");
+    expect(verdictPose(judgment(true, 1))).toBe("refused");
+    expect(verdictPose(judgment(false, 0))).toBe("hungry");
   });
 
   it("a verdict snaps the pose; a patron line NEVER yanks him out", () => {
     const root = fakeOgre();
     const body = new PatronBody(root);
     pump(body, 1, 1);
-    const v = judgment(true, true);
+    const v = judgment(true, 3);
     pump(body, 60, 1, v);
     expect(body.act).toBe("delighted");
     const arm = bone(root, "upper_armL");
@@ -189,7 +186,7 @@ describe("PatronBody choreography", () => {
   it("the same lingering verdict never re-triggers after its hold", () => {
     const root = fakeOgre();
     const body = new PatronBody(root);
-    const v = judgment(false, false);
+    const v = judgment(false, 0);
     pump(body, 30, null, v);
     expect(body.act).toBe("hungry");
     pump(body, 500, null, v); // linger continues, he has relaxed
@@ -199,7 +196,7 @@ describe("PatronBody choreography", () => {
 
   it("a fresh deal mid-hold straightens him up", () => {
     const body = new PatronBody(fakeOgre());
-    pump(body, 30, null, judgment(true, false));
+    pump(body, 30, null, judgment(true, 1));
     expect(body.act).toBe("refused");
     pump(body, 1, null, null); // order message with a running fresh deal
     expect(body.act).toBe("idle");
@@ -296,7 +293,7 @@ describe("PatronBody species riders (plans/19)", () => {
   it("her verdicts speak dragon: hungry droops the NECK arc", () => {
     const root = fakeDragon();
     const body = new PatronBody(root, SPECIES_POSES["dragon"]);
-    pump(body, 60, null, judgment(false, false));
+    pump(body, 60, null, judgment(false, 0));
     expect(body.act).toBe("hungry");
     expect(bone(root, "neck1").rotation.x).toBeCloseTo(0.2 + deg(18), 2);
     expect(bone(root, "neck2").rotation.x).toBeCloseTo(0.15 + deg(14), 2);
@@ -305,7 +302,7 @@ describe("PatronBody species riders (plans/19)", () => {
   it("delight flares the wings and relaxes home through the linger", () => {
     const root = fakeDragon();
     const body = new PatronBody(root, SPECIES_POSES["dragon"]);
-    const v = judgment(true, true);
+    const v = judgment(true, 3);
     pump(body, 60, null, v);
     expect(bone(root, "wingL").rotation.z).toBeLessThan(0.5 - 0.3); // −25° flare
     expect(bone(root, "wingR").rotation.z).toBeGreaterThan(-0.5 + 0.3);

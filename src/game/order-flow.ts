@@ -134,8 +134,6 @@ export class OrderFlow {
    * is stale scores NOTHING (audit AUD-4) — a glob fired against one order
    * can't paint the next one's fresh cake. */
   private dealGen = 0;
-  /** Shots this order — the waste axis. Resets with each fresh deal. */
-  private shots = 0;
   /** The personality at the table. FRESH each deal — his nagged-once flags
    * live in his closure. The whim rng persists across deals. */
   private patron: Patron = createGiant();
@@ -183,7 +181,6 @@ export class OrderFlow {
         // The ticket wears its pricing (the HUD's "one pair of hands"
         // tag reads the stamp, never the live headcount).
         hands: this.activeCrew,
-        parShots: this.activeTowns >= 2 ? row.parShots.duo : row.parShots.solo,
         // The absolute star tiers ride the rung's row (plans/22 step 4 —
         // flat on the cake ladder, bespoke on the cupcake).
         star2Coverage: row.stars.two,
@@ -203,10 +200,6 @@ export class OrderFlow {
 
   get deal(): number {
     return this.dealGen;
-  }
-
-  get shotsFired(): number {
-    return this.shots;
   }
 
   /** THE PATIENCE DEBT (plans/22 step 6): seconds of impatience the Giant
@@ -235,10 +228,6 @@ export class OrderFlow {
     this.earnedTicks += grant;
     this.order = { ...this.order, ticksLeft: this.order.ticksLeft + grant };
     return grant / 60;
-  }
-
-  noteShot(): void {
-    this.shots++;
   }
 
   /** The Patron's look cadence: every PATRON_LOOK_EVERY ticks of RUNNING
@@ -293,7 +282,6 @@ export class OrderFlow {
   dealFresh(row: Rung): void {
     this.endedTicks = 0;
     this.dealGen++; // in-flight shots now carry a stale tag
-    this.shots = 0;
     this.patron = createGiant();
     this.orderTicks = 0;
     this.looks = 0;

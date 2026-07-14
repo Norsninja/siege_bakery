@@ -87,21 +87,18 @@ describe("THE LONE HERO AMENDMENT (plans/13 §5) — labor scales the GRAINS now
 });
 
 describe("OrderFlow", () => {
-  it("the dormant boot order is rung 1's ticket — clock, rows, and solo par", () => {
+  it("the dormant boot order is rung 1's ticket — clock and rows", () => {
     const flow = new OrderFlow();
     expect(flow.order.status).toBe("running");
     expect(flow.order.ticksLeft).toBe(rungRow(1).clockSeconds * 60);
-    expect(flow.order.parShots).toBe(rungRow(1).parShots.solo);
     expect(flow.order.requirements).toEqual(requirementsFor(rungRow(1)));
     expect(flow.deal).toBe(0);
-    expect(flow.shotsFired).toBe(0);
   });
 
   it("dealFresh prices the GIVEN row — clock and asks climb with the rung", () => {
     const flow = new OrderFlow();
     flow.dealFresh(rungRow(3));
     expect(flow.order.ticksLeft).toBe(ORDER_SECONDS * 60); // the anchor's 216s (reliable clock)
-    expect(flow.order.parShots).toBe(rungRow(3).parShots.solo); // 24
     expect(flow.order.requirements).toEqual(standardRequirements());
   });
 
@@ -187,13 +184,11 @@ describe("OrderFlow", () => {
     expect(flow.patienceDebt).toBe(0);
   });
 
-  it("par picks the duo column when the second town is active", () => {
+  it("the frost floor is town-independent (plans/22 step 4)", () => {
     const flow = new OrderFlow();
     flow.activeTowns = 2;
     flow.dealFresh(rungRow(3));
-    expect(flow.order.parShots).toBe(rungRow(3).parShots.duo);
-    // The frost floor is town-independent now (plans/22 step 4): the second
-    // town buys par workload + reach, never a higher coverage bar.
+    // The second town buys reach, never a higher coverage bar.
     expect(flow.order.requirements[0]).toMatchObject({
       kind: "frost-coverage",
       floorCoverage: FLOOR_COVERAGE,
@@ -265,18 +260,14 @@ describe("OrderFlow", () => {
     expect(() => validateDesires()).not.toThrow();
   });
 
-  it("the deal: tag ratchets, shots reset, fresh order, fresh cadence", () => {
+  it("the deal: tag ratchets, fresh order, fresh cadence", () => {
     const flow = new OrderFlow();
-    flow.noteShot();
-    flow.noteShot();
-    expect(flow.shotsFired).toBe(2);
     // Walk one tick into the look cadence so a stale counter would show.
     flow.shouldLook();
     flow.order = { ...flow.order, ticksLeft: 1 };
     while (!flow.tickClock().includes("lingerOver")); // burn the linger
     flow.dealFresh(rungRow(2)); // the Room's answer at the boundary
     expect(flow.deal).toBe(1); // in-flight shots now carry a stale tag
-    expect(flow.shotsFired).toBe(0);
     expect(flow.order.status).toBe("running");
     expect(flow.order.ticksLeft).toBe(rungRow(2).clockSeconds * 60);
     // The fresh order's cadence starts over: no early look.

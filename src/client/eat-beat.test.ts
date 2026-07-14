@@ -24,17 +24,13 @@ import { VERDICT_HOLD_FRAMES } from "./patron-body";
 import { DEPART_AT_FRAMES } from "./patron-table";
 import { MOMENT_TICKS } from "./report-view";
 
-const judgment = (met: boolean, accepted: boolean): Judgment => ({
-  met,
+const judgment = (accepted: boolean, stars: 0 | 1 | 2 | 3): Judgment => ({
   accepted,
-  score: 50,
-  stars: 1,
+  stars,
   checks: [],
   coverage: 0.5,
-  neatness: 1,
-  integrity: 1,
-  mess: 0,
-  waste: 1,
+  dressing: 0,
+  impress: 0.5,
 });
 
 /** Drive a theatre from the verdict edge to `until` with a fixed
@@ -52,11 +48,12 @@ const named = (scene: THREE.Scene, name: string): THREE.Object3D[] => {
   return out;
 };
 
-describe("the eat action (the ruled three-verdict split)", () => {
-  it("DELIGHTED devours, REFUSED begrudges, HUNGRY leaves the cake", () => {
-    expect(eatAction(judgment(true, true))).toBe("devour");
-    expect(eatAction(judgment(true, false))).toBe("begrudge");
-    expect(eatAction(judgment(false, false))).toBeNull();
+describe("the eat action (the star split, plans/23 relax)", () => {
+  it("2★+ devours, 1★ begrudges, below-floor leaves the cake", () => {
+    expect(eatAction(judgment(true, 3))).toBe("devour");
+    expect(eatAction(judgment(true, 2))).toBe("devour");
+    expect(eatAction(judgment(true, 1))).toBe("begrudge");
+    expect(eatAction(judgment(false, 0))).toBeNull();
     expect(eatAction(null)).toBeNull();
   });
 });

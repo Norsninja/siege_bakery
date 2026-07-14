@@ -131,14 +131,17 @@ const DRIVEN_BONES = [
   "wingR",
 ] as const;
 
-/** The banner's exact two-gate read (hud.ts precedent): accepted →
- * DELIGHTED; every row met but score refused → REFUSED, the insulting
- * kind; a row unmet → the patron goes HUNGRY. */
+/** THE RELAX remap (plans/23): the pose keys off STARS, not the dead
+ * two-gate read. Below the floor (!accepted) → HUNGRY (no cake, he leaves).
+ * 1★ → the "refused" pose, now the GRUDGING eat ("…it's a cake. I suppose.")
+ * — the begrudging-eat beat survives the gate's retirement. 2★/3★ → DELIGHTED
+ * (he devours it). The pose name "refused" is kept as the animation label;
+ * the player never sees it — its meaning is now "grudging", not "insulted". */
 export function verdictPose(
-  j: Pick<Judgment, "met" | "accepted">,
+  j: Pick<Judgment, "accepted" | "stars">,
 ): Exclude<PoseName, "lean"> {
-  if (j.accepted) return "delighted";
-  return j.met ? "refused" : "hungry";
+  if (!j.accepted) return "hungry";
+  return j.stars >= 2 ? "delighted" : "refused";
 }
 
 /** THE SHAKE-OFF (plans/15 item 16): a wild shot bonked off the body —

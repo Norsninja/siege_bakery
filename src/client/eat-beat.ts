@@ -43,11 +43,12 @@ export const EAT_START_FRAME = VERDICT_HOLD_FRAMES + 10;
 export const EAT_ARC_FRAMES = 80; // cake mark → mouth, ~1.3s
 export const CHOMP_FRAME = EAT_START_FRAME + EAT_ARC_FRAMES; // 330
 
-/** How the patron treats the cake — the rulings' split, derived from
- * the same two-gate read as his pose. null = HUNGRY: no eat beat. */
+/** How the patron treats the cake — derived from the same star read as his
+ * pose (plans/23 relax): devour at 2★+, begrudge at 1★. null = HUNGRY (below
+ * the floor, no cake): no eat beat. */
 export type EatAction = "devour" | "begrudge";
 export function eatAction(
-  j: Pick<Judgment, "met" | "accepted"> | null,
+  j: Pick<Judgment, "accepted" | "stars"> | null,
 ): EatAction | null {
   if (!j) return null;
   const pose = verdictPose(j);

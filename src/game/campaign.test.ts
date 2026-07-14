@@ -17,7 +17,6 @@ import {
 } from "./campaign";
 import {
   FLOOR_COVERAGE,
-  ORDER_PAR_SHOTS,
   ORDER_SECONDS,
   SPRINKLES_NEEDED,
   STAR2_COVERAGE,
@@ -41,7 +40,6 @@ describe("RUNGS (the authored ladder)", () => {
     expect(anchor.stars.three).toBe(STAR3_COVERAGE);
     expect(anchor.asks.sprinkles).toBe(SPRINKLES_NEEDED);
     expect(anchor.asks.crown).toBe(true);
-    expect(anchor.parShots.solo).toBe(ORDER_PAR_SHOTS); // 24, the anchor's par
   });
 
   it("the cupcake is rung 4 — the precision spike after the anchor (§1 amendment)", () => {
@@ -74,16 +72,6 @@ describe("RUNGS (the authored ladder)", () => {
       expect(r.pay.base).toBeGreaterThan(prevBase);
       expect(r.pay.perStar).toBeGreaterThan(0);
       prevBase = r.pay.base;
-    }
-  });
-
-  it("par is sane: duo prices the bigger workload, both positive", () => {
-    // The authored column (campaign.ts header formula). Duo > solo on
-    // every row — the two-town ask is a strictly bigger workload; flat
-    // par punishing duo play on high rungs is the gap par-per-rung fixes.
-    for (const r of RUNGS) {
-      expect(r.parShots.solo).toBeGreaterThan(0);
-      expect(r.parShots.duo).toBeGreaterThan(r.parShots.solo);
     }
   });
 

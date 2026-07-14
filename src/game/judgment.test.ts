@@ -16,6 +16,7 @@ import {
   describeProgress,
   describeRequirement,
   judge,
+  weighedMess,
   type Requirement,
   type SettledTopping,
 } from "./judgment";
@@ -262,102 +263,72 @@ describe("the crown — uppermost SOLID on the cake, resting on the summit", () 
   });
 });
 
-describe("judge — the two gates, weights home (plans/07)", () => {
+describe("judge — the relax: one floor, an additive impress climb (plans/23)", () => {
+  const FROST_FLOOR: Requirement = { kind: "frost-coverage", floorCoverage: 0.08 };
+  // A bare frost floor, low tiers — the anchor shape after the relax.
   const order = {
-    requirements: [CHERRIES_2],
-    parShots: 6,
-    passScore: 50,
+    requirements: [FROST_FLOOR],
     star2Coverage: 0.18,
     star3Coverage: 0.35,
   };
-  const clean = [at("cherry", 3.5, LEDGE_Y), at("cherry", 0, TOP_Y)];
+  const paintFraction = (fr: number) => {
+    const f = naked();
+    f.restore(SAMPLES.map((_, i) => (i / SAMPLES.length < fr ? 1 : 0)));
+    return f;
+  };
 
-  it("a frosted clean bake under par: met, accepted, full marks, three stars", () => {
-    const j = judge(GEOM, order, clean, fullCoat(), 2);
-    expect(j).toMatchObject({ met: true, accepted: true, score: 100, stars: 3 });
+  it("above the floor is SERVED; a full coat tops the climb — 3★, no dressing needed", () => {
+    const j = judge(GEOM, order, [], fullCoat());
+    expect(j.accepted).toBe(true);
     expect(j.coverage).toBe(1);
-    expect(j.neatness).toBe(1);
-    expect(j.integrity).toBe(1); // the Bite's axis, waiting for its slice
-    expect(j.mess).toBe(0);
-    expect(j.waste).toBe(1);
+    expect(j.dressing).toBe(0); // no sprinkle row, no desire
+    expect(j.impress).toBe(1);
+    expect(j.stars).toBe(3);
   });
 
-  it("a NAKED cake caps at 50 even played perfectly — frosting is 50% of the grade", () => {
-    // 0.25 integrity + 0.15 tidy + 0.10 par = 0.50: borderline-accepted at
-    // passScore 50, one grudging star. The patron wants his cake DRESSED.
-    const j = judge(GEOM, order, clean, naked(), 2);
-    expect(j.score).toBe(50);
-    expect(j.stars).toBe(1);
-  });
-
-  it("gate 1 fails when a row is unmet — hungry, no stars, whatever the score", () => {
-    const j = judge(GEOM, order, [at("cherry", 3.5, LEDGE_Y)], fullCoat(), 1);
-    expect(j.met).toBe(false);
+  it("below the floor is the SOLE zero — no cake, the giant leaves hungry", () => {
+    const j = judge(GEOM, order, [], naked());
+    expect(j.coverage).toBe(0);
     expect(j.accepted).toBe(false);
     expect(j.stars).toBe(0);
   });
 
-  it("mess drags the score: every floor delivery stings, whatever it is", () => {
-    const j = judge(GEOM, 
-      order,
-      [...clean, at("lime", 8, 0.3, false), at("frosting", -8, 0.3, false)],
-      fullCoat(),
-      4,
-    );
-    expect(j.mess).toBe(0.5);
-    expect(j.score).toBe(93); // 0.35 + 0.15 + 0.25 + 0.15·0.5 + 0.10
+  it("a MISSED dressing ask never zeroes a real cake (the headline relax)", () => {
+    // A well-frosted cake with the sprinkle ask unmet: the old model went
+    // HUNGRY; now it is served on its coverage alone.
+    const dressed = { ...order, requirements: [FROST_FLOOR, SPRINKLES_2] };
+    const j = judge(GEOM, dressed, [], fullCoat()); // zero sprinkles landed
+    expect(j.accepted).toBe(true);
+    expect(j.dressing).toBe(0);
+    expect(j.stars).toBe(3); // coverage 1.0 carries it — dressing was gravy
   });
 
-  it("the coverage axis is ABSOLUTE and saturates at the 3★ tier (plans/22 step 4)", () => {
-    // Half the WHOLE cake painted — past the 3★ tier (0.35), so the coverage
-    // axis is maxed and the top star is earned, no of-potential rescaling.
-    const field = naked();
-    field.restore(SAMPLES.map((_, i) => (i % 2 === 0 ? 1 : 0)));
-    const withRow = {
-      ...order,
-      requirements: [
-        CHERRIES_2,
-        { kind: "frost-coverage", floorCoverage: 0.08 } as Requirement,
-      ],
-    };
-    const j = judge(GEOM, withRow, clean, field, 2);
-    expect(j.coverage).toBeGreaterThanOrEqual(0.5);
-    expect(j.score).toBe(100);
-    expect(j.stars).toBe(3);
+  it("DRESSING lifts the grade: the cherry tips a near-tier cake over the line", () => {
+    // Coverage 0.16 alone is 1★ (< star2 0.18); the crowned cherry adds
+    // CHERRY_IMPRESS (0.04) → impress 0.20 → 2★. Dressing ADDS, never gates.
+    const withDesire = { ...order, desire: { topping: "cherry" } };
+    const cov = paintFraction(0.16);
+    const bare = judge(GEOM, withDesire, [], paintFraction(0.16));
+    expect(bare.stars).toBe(1);
+    const crowned = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], cov);
+    expect(crowned.dressing).toBeCloseTo(0.04, 10);
+    expect(crowned.impress).toBeCloseTo(0.20, 2);
+    expect(crowned.stars).toBe(2);
   });
 
-  it("STARS come from the ABSOLUTE coverage tiers, not score arithmetic (plans/22 step 4)", () => {
-    // floor 0.08, tiers 0.18 / 0.35: absolute coverage alone sets the star,
-    // however cleanly it was played — a bigger cake makes each tier harder.
-    const withRow = {
-      ...order,
-      requirements: [
-        CHERRIES_2,
-        { kind: "frost-coverage", floorCoverage: 0.08 } as Requirement,
-      ],
-    };
-    const paintFraction = (fr: number) => {
-      const f = naked();
-      f.restore(SAMPLES.map((_, i) => (i / SAMPLES.length < fr ? 1 : 0)));
-      return f;
-    };
-    expect(judge(GEOM, withRow, clean, paintFraction(0.12), 2).stars).toBe(1);
-    expect(judge(GEOM, withRow, clean, paintFraction(0.25), 2).stars).toBe(2);
-    expect(judge(GEOM, withRow, clean, paintFraction(0.45), 2).stars).toBe(3);
+  it("COVERAGE is the spine: dressing can't carry a near-floor cake up a whole tier", () => {
+    // 0.09 coverage (just over the floor) + a crowned cherry (0.04) = 0.13,
+    // still short of star2 0.18: you must FROST more to climb (tuning bound).
+    const withDesire = { ...order, desire: { topping: "cherry" } };
+    const j = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], paintFraction(0.09));
+    expect(j.accepted).toBe(true);
+    expect(j.stars).toBe(1);
   });
 
-  it("waste decays past par; a naked hosed-down bakery gets REFUSED", () => {
-    const overPar = judge(GEOM, order, clean, fullCoat(), 12);
-    expect(overPar.waste).toBe(0.5); // 6 par / 12 fired
-    expect(overPar.score).toBe(95);
-    const hosed = judge(GEOM, 
-      order,
-      [...clean, ...Array.from({ length: 8 }, (_, i) => at("cherry", i, 0.3, false))],
-      naked(),
-      30,
-    );
-    expect(hosed.met).toBe(true); // every box ticked...
-    expect(hosed.accepted).toBe(false); // ...on a bare, littered cake. REFUSED.
+  it("STARS read IMPRESS against the absolute tiers (coverage alone, no dressing)", () => {
+    expect(judge(GEOM, order, [], paintFraction(0.12)).stars).toBe(1);
+    expect(judge(GEOM, order, [], paintFraction(0.25)).stars).toBe(2);
+    expect(judge(GEOM, order, [], paintFraction(0.45)).stars).toBe(3);
   });
 });
 
@@ -379,25 +350,15 @@ describe("grains (plans/10)", () => {
     expect(usurped[0]!.met).toBe(false);
   });
 
-  it("a burst weighs as ONE delivery in the mess arithmetic", () => {
+  it("a burst weighs as ONE delivery in the mess arithmetic (weighedMess — the giant's mood, plans/23)", () => {
     // 40 grains on the floor + 1 cherry on the cake: one wild pop is ONE
-    // mistake against one good delivery — mess 0.5, not 40/41.
+    // mistake against one good delivery — mess 0.5, not 40/41. Mess left
+    // judge()'s grade in the relax; it feeds the realm's favor now, still
+    // read through weighedMess.
     const wildBurst = Array.from({ length: 40 }, (_, i) =>
       at("sprinkles", 8 + i * 0.1, 0.05, false),
     );
-    const v = judge(GEOM, 
-      {
-        requirements: [FROST_HALF],
-        parShots: 6,
-        passScore: 50,
-        star2Coverage: 0.18,
-        star3Coverage: 0.35,
-      },
-      [...wildBurst, at("cherry", 0, TOP_Y)],
-      fullCoat(),
-      2,
-    );
-    expect(v.mess).toBeCloseTo(0.5, 10);
+    expect(weighedMess([...wildBurst, at("cherry", 0, TOP_Y)])).toBeCloseTo(0.5, 10);
   });
 });
 

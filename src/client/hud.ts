@@ -193,15 +193,20 @@ export function bannerText(
   const list = checks
     .map((c) => `${c.met ? "✓" : "✗"} ${describeRequirement(c.req, topTier)}`)
     .join("\n");
+  // THE RELAX (plans/23): the grade reads as a CLIMB — how much frosted,
+  // how much the dressing added, where that lands. All-positive, no penalty
+  // axes (waste/neat/mess retired from the grade).
   const scoreLine = verdict
-    ? `assembly ${verdict.score}/100 — coverage ${Math.round(verdict.coverage * 100)}% · neat ${Math.round(verdict.neatness * 100)}% · mess ${Math.round(verdict.mess * 100)}% · ${
-        verdict.waste >= 1 ? "under par" : "over par"
-      }`
+    ? `${Math.round(verdict.coverage * 100)}% frosted${
+        verdict.dressing > 0 ? ` + ${Math.round(verdict.dressing * 100)}% dressed` : ""
+      } → ${Math.round(verdict.impress * 100)}% toward perfect`
     : "";
   let text: string;
   if (order.status === "won" && verdict) {
-    // Both gates cleared: tiered delight. THE CODA (plans/13 §1, slice
-    // 4b): the flourish landed — the verdict upgrades, never gates.
+    // Above the floor — the cake is SERVED. Tiered by stars (plans/23
+    // re-tone): the giant always wanted perfection and reacts to the GAP,
+    // never with "you gave me nothing". THE CODA (plans/13 §1): the
+    // flourish landed — it upgrades, never gates.
     const coda = verdict.flourish
       ? `\n✨ AND THE FLOURISH — A ${(order.desire?.topping ?? "flourish").toUpperCase()} ON THE VERY TOP ✨`
       : "";
@@ -218,13 +223,19 @@ export function bannerText(
     // contracts settle the order, so the pay line says who's paying.
     payLine = `\n🪙 the realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
     }
-    text = `THE PATRON IS DELIGHTED! ${"★".repeat(verdict.stars)}${coda}${payLine}\n${list}\n${scoreLine}`;
-  } else if (verdict?.met) {
-    // Gate 2 refusal — the insulting kind: every box ticked, badly.
-    text = `REFUSED.\n"you did what I asked. it is TERRIBLE."\n${list}\n${scoreLine} (the patron demands ${order.passScore})`;
+    // The comedy of the gap (plans/23 §7): even 3★ still longs for perfect.
+    const head =
+      verdict.stars >= 3
+        ? `MAGNIFICENT! ${"★".repeat(3)}\n"…though it could always be more perfect."`
+        : verdict.stars === 2
+          ? `NOT BAD! ${"★".repeat(2)}\n"it wants for more, though."`
+          : `"…it's a cake. I suppose." ★`;
+    text = `${head}${coda}${payLine}\n${list}\n${scoreLine}`;
   } else {
-    // Gate 1 failure: the clock died first.
-    text = `TIME!\n${list}\nthe patron goes hungry`;
+    // Below the floor — no cake at all, the sole zero (plans/23). Baffled,
+    // not cruel: the tone guard holds (nobody's belittled, there's just
+    // nothing to eat).
+    text = `TIME!\n${list}\n"…there's no cake here." — the giant leaves hungry`;
   }
   // The countdown + the carry-home warning (the gates close with the deal;
   // a baker out of his town is placed home — say so BEFORE it happens).
@@ -246,10 +257,12 @@ export function bannerText(
 export function snapshotCaption(verdict: Judgment | null): string {
   const head = "the dessert, as the Giant saw it";
   if (!verdict) return head;
-  if (!verdict.met) return `${head}\n— and he goes hungry`;
-  if (!verdict.accepted)
-    return `${head}\n— "it is TERRIBLE." (${verdict.score}/100)`;
-  return `${head}\n${"★".repeat(verdict.stars)} delighted — ${verdict.score}/100${verdict.flourish ? " — WITH A FLOURISH ✨" : ""}`;
+  // THE RELAX (plans/23): one gate (the floor) — below it no cake; above it
+  // served, graded by IMPRESS toward the perfect cake he'll never get.
+  if (!verdict.accepted) return `${head}\n— "…there's no cake here."`;
+  const impress = Math.round(verdict.impress * 100);
+  if (verdict.stars <= 1) return `${head}\n★ "…it's a cake. I suppose." (${impress}%)`;
+  return `${head}\n${"★".repeat(verdict.stars)} — ${impress}% toward perfect${verdict.flourish ? " — WITH A FLOURISH ✨" : ""}`;
 }
 
 /** The run report's one fact (plans/13): how far the crew climbed.

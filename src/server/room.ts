@@ -336,7 +336,6 @@ export class Room {
       town.crankTicks = r.crankTicks;
       town.screwTicks = r.screwTicks;
       if (!r.shot) continue;
-      this.flow.noteShot();
       const seed = Math.floor(this.shotSeed() * 0x100000000);
       const facing = TOWNS[i]!.facingDeg;
       this.shots.spawn(
@@ -802,13 +801,7 @@ export class Room {
   }
 
   private judgeNow() {
-    return judge(
-      this.dessert,
-      this.flow.order,
-      this.ledger(),
-      this.frosting,
-      this.flow.shotsFired,
-    );
+    return judge(this.dessert, this.flow.order, this.ledger(), this.frosting);
   }
 
   memberCount(): number {

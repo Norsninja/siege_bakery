@@ -18,16 +18,12 @@ const check = (current: number, target = 3): RequirementCheck => ({
 });
 
 const judgment: Judgment = {
-  met: true,
   accepted: true,
-  score: 100,
   stars: 3,
   checks: [],
   coverage: 1,
-  neatness: 1,
-  integrity: 1,
-  mess: 0,
-  waste: 1,
+  dressing: 0,
+  impress: 1,
 };
 
 function harness(): {

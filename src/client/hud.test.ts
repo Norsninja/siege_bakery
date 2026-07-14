@@ -39,33 +39,29 @@ const check = (met: boolean, current = met ? 3 : 0): RequirementCheck => ({
 });
 
 const judgment = (over: Partial<Judgment> = {}): Judgment => ({
-  met: true,
   accepted: true,
-  score: 100,
   stars: 3,
   checks: [],
   coverage: 1,
-  neatness: 1,
-  integrity: 1,
-  mess: 0,
-  waste: 1,
+  dressing: 0,
+  impress: 1,
   ...over,
 });
 
-describe("snapshotCaption — the photo speaks the Patron's voice (dessert report, 2026-07-07)", () => {
-  it("delight: stars and the score under the photo", () => {
-    expect(snapshotCaption(judgment({ stars: 2, score: 81 }))).toBe(
-      "the dessert, as the Giant saw it\n★★ delighted — 81/100",
+describe("snapshotCaption — the photo speaks the Patron's voice (dessert report, plans/23 re-tone)", () => {
+  it("delight: stars and how far toward perfect", () => {
+    expect(snapshotCaption(judgment({ stars: 2, impress: 0.81 }))).toBe(
+      "the dessert, as the Giant saw it\n★★ — 81% toward perfect",
     );
   });
-  it("gate-2 refusal keeps the insult", () => {
-    expect(snapshotCaption(judgment({ accepted: false, score: 42, stars: 0 }))).toBe(
-      'the dessert, as the Giant saw it\n— "it is TERRIBLE." (42/100)',
+  it("below the floor: no cake at all (the sole zero)", () => {
+    expect(snapshotCaption(judgment({ accepted: false, stars: 0 }))).toBe(
+      'the dessert, as the Giant saw it\n— "…there\'s no cake here."',
     );
   });
-  it("gate-1 hunger", () => {
-    expect(snapshotCaption(judgment({ met: false, accepted: false, stars: 0 }))).toBe(
-      "the dessert, as the Giant saw it\n— and he goes hungry",
+  it("one grudging star: he'll take it", () => {
+    expect(snapshotCaption(judgment({ stars: 1, impress: 0.12 }))).toBe(
+      'the dessert, as the Giant saw it\n★ "…it\'s a cake. I suppose." (12%)',
     );
   });
   it("no verdict yet (the broadcast races the status flip): just the head", () => {
@@ -73,8 +69,8 @@ describe("snapshotCaption — the photo speaks the Patron's voice (dessert repor
   });
 
   it("the flourish rides the caption (slice 4b)", () => {
-    expect(snapshotCaption(judgment({ stars: 2, score: 81, flourish: true }))).toBe(
-      "the dessert, as the Giant saw it\n★★ delighted — 81/100 — WITH A FLOURISH ✨",
+    expect(snapshotCaption(judgment({ stars: 2, impress: 0.81, flourish: true }))).toBe(
+      "the dessert, as the Giant saw it\n★★ — 81% toward perfect — WITH A FLOURISH ✨",
     );
   });
 });
@@ -151,37 +147,55 @@ describe("promptFor", () => {
   });
 });
 
-describe("bannerText — three endings, culprit always named", () => {
+describe("bannerText — the relax: served or hungry, culprit always named (plans/23)", () => {
   const rows = [check(true), check(false)];
 
-  it("delighted: stars + the list + the score line", () => {
+  it("served, 2★: the tiered head + the list + the climb line", () => {
     const order = { ...createOrder([], 100), status: "won" as const };
-    const text = bannerText(order, rows, judgment({ stars: 2, score: 74 }), 2);
-    expect(text).toContain("THE PATRON IS DELIGHTED! ★★");
-    expect(text).toContain("✗ 3 × cherry ON the cake"); // the culprit law
-    expect(text).toContain("assembly 74/100");
-    expect(text).toContain("a new order is coming…");
-  });
-
-  it("refused: the insulting kind, naming the demanded pass score", () => {
-    const order = { ...createOrder([], 100), status: "lost" as const };
     const text = bannerText(
       order,
       rows,
-      judgment({ accepted: false, score: 40, stars: 0, waste: 0.4 }),
+      judgment({ stars: 2, coverage: 0.25, dressing: 0.04, impress: 0.29 }),
       2,
     );
-    expect(text).toContain("REFUSED.");
-    expect(text).toContain("it is TERRIBLE.");
-    expect(text).toContain("over par");
-    expect(text).toContain("(the patron demands 50)");
+    expect(text).toContain("NOT BAD! ★★");
+    expect(text).toContain("✗ 3 × cherry ON the cake"); // the culprit law
+    expect(text).toContain("25% frosted");
+    expect(text).toContain("4% dressed");
+    expect(text).toContain("29% toward perfect");
+    expect(text).toContain("a new order is coming…");
   });
 
-  it("hungry: the clock died first — no verdict, the list still names rows", () => {
+  it("served, 3★: magnificent — and still longing for perfect", () => {
+    const order = { ...createOrder([], 100), status: "won" as const };
+    const text = bannerText(
+      order,
+      rows,
+      judgment({ stars: 3, coverage: 0.45, impress: 0.45 }),
+      2,
+    );
+    expect(text).toContain("MAGNIFICENT! ★★★");
+    expect(text).toContain("more perfect");
+  });
+
+  it("served, 1★: he'll take it, grudgingly (the old REFUSED energy, no zero)", () => {
+    const order = { ...createOrder([], 100), status: "won" as const };
+    const text = bannerText(
+      order,
+      rows,
+      judgment({ stars: 1, coverage: 0.12, impress: 0.12 }),
+      2,
+    );
+    expect(text).toContain("it's a cake. I suppose.");
+    expect(text).not.toContain("REFUSED");
+  });
+
+  it("below the floor: no cake at all (the sole zero), the list still names rows", () => {
     const order = { ...createOrder([], 100), status: "lost" as const };
     const text = bannerText(order, rows, null, 2);
     expect(text).toContain("TIME!");
-    expect(text).toContain("the patron goes hungry");
+    expect(text).toContain("there's no cake here");
+    expect(text).toContain("the giant leaves hungry");
     expect(text).toContain("✗ 3 × cherry ON the cake");
   });
 
@@ -210,7 +224,7 @@ describe("bannerText — three endings, culprit always named", () => {
       status: "won" as const,
     };
     const text = bannerText(order, rows, judgment({ stars: 2, flourish: true }), 2);
-    expect(text).toContain("THE PATRON IS DELIGHTED! ★★");
+    expect(text).toContain("NOT BAD! ★★");
     expect(text).toContain("✨ AND THE FLOURISH — A CHERRY ON THE VERY TOP ✨");
     // No coda without the flag — the plain win reads exactly as ever.
     const plain = bannerText(order, rows, judgment({ stars: 2 }), 2);

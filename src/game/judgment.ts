@@ -17,6 +17,7 @@ import { tierLabel, type DessertGeometry, type ZoneId } from "../core/dessert";
 import type { Vec3 } from "../core/ballistics";
 import type { FrostingField } from "../core/frosting";
 import { canCrown, deliveryWeight } from "./toppings";
+import { CHERRY_IMPRESS, SPRINKLE_IMPRESS } from "./tuning";
 
 export type Requirement =
   | { kind: "count-on-cake"; topping: string; needed: number }
@@ -167,11 +168,12 @@ export function checkRequirements(
  * OrderState (order.ts imports this module; the reverse would be a cycle). */
 export interface JudgedOrder {
   requirements: Requirement[];
-  /** Shots for full waste credit; beyond this the score decays. */
-  parShots: number;
-  /** Gate 2: minimum assembly score the Patron will accept. */
-  passScore: number;
-  /** The star tiers, ABSOLUTE coverage fractions (plans/22 step 4): 2★ at
+  /** THE DRESSING's crown (plans/23): the patron's optional cherry. When
+   * crowned it lifts the grade like every other dressing element — a
+   * structural slice of OrderState.desire (absent = no flourish this deal). */
+  desire?: { topping: string };
+  /** The star tiers, ABSOLUTE fractions (plans/22 step 4) — graded against
+   * IMPRESS now (coverage + dressing, plans/23), not coverage alone: 2★ at
    * star2Coverage, 3★ at star3Coverage. Per-rung (campaign.ts) — flat on
    * the cake ladder, bespoke on the cupcake; defaults in createOrder. */
   star2Coverage: number;
@@ -179,99 +181,94 @@ export interface JudgedOrder {
 }
 
 export interface Judgment {
-  /** Gate 1: every row satisfied? FAIL → the patron goes hungry. */
-  met: boolean;
-  /** Gate 2: met AND score ≥ passScore? FAIL → refused, the insulting kind. */
+  /** THE ONE GATE (plans/23 — the relax, supersedes the two-gate
+   * met/accepted): the frosting FLOOR. accepted = coverage ≥ floor — the
+   * giant takes any real cake, dressed or not. Below the floor (no cake at
+   * all) is the ONLY total fail — the sole zero, and it is rare. */
   accepted: boolean;
-  score: number; // 0..100
   stars: 0 | 1 | 2 | 3;
   checks: RequirementCheck[];
-  // The score axes, exposed for the HUD breakdown (all 0..1):
-  /** ABSOLUTE coverage of the whole cake (plans/22 step 4) — the dessert
-   * report reads it ("you frosted 31% of the cake"), and the star tiers +
-   * the score's coverage axis grade it directly (no of-potential denom). */
+  /** ABSOLUTE frosting coverage of the whole cake (plans/22 step 4) — the
+   * climb's SPINE. The report reads it ("you frosted 31% of the cake"). */
   coverage: number;
-  neatness: number;
-  integrity: number;
-  mess: number;
-  waste: number;
+  /** THE DRESSING (plans/23): sprinkles landed + the cherry crowned, as a
+   * small coverage-EQUIVALENT bonus (0..~0.08). It ADDS to the grade and
+   * never gates — missing dressing costs stars, never zeroes a real cake. */
+  dressing: number;
+  /** coverage + dressing, capped at 1 — the number the STARS grade against
+   * ("dressed to impress"). Coverage dominates; dressing tips you over a
+   * nearby tier, never carries a bare cake a whole tier (tuning bounds it). */
+  impress: number;
   /** THE FLOURISH (plans/13 §1 finish-it amendment, 2026-07-09): the
    * desire landed — the coda. Stamped by the ROOM at each conclusion
-   * point from the live ledger (accepted verdicts only), never computed
-   * by judge(): on the window path the flourish is judged at the
-   * WINDOW'S end, after this base froze. */
+   * point from the live ledger (accepted verdicts only). Its coin bonus is
+   * distinct from its dressing star-lift (plans/23 §7 sub-ruling: keep
+   * both — a hard physical feat earns its own beat AND counts as dressing). */
   flourish?: true;
 }
 
 /**
- * Render the verdict — the 2D judge(), weights HOME (plans/07): 0.35
- * coverage + 0.15 neatness + 0.25 integrity + 0.15 (1-mess) + 0.10 waste.
- * The coverage axis is color-blind and ABSOLUTE now (plans/22 step 4) —
- * how much of the WHOLE cake is frosted, saturating at the 3★ tier; gate 1
- * asks "did you do what was asked", gate 2 asks "is it good". STARS come
- * from the coverage tiers, not score arithmetic (plans/08 in spirit, the
- * thresholds absolute now): accepted = 1★, star2Coverage = 2★,
- * star3Coverage = 3★ — legible whole-cake percent goals the HUD prints,
- * and a bigger cake makes each harder for free. An order with no frost row
- * grades on raw census coverage (still absolute) — every real order frosts
- * first. INTEGRITY is constant 1 until the Bite exists — honest: the cake
- * is undamaged, full credit, the axis wired for the carve slice. MESS
- * counts every settled delivery off-cake — floor frosting stings exactly
- * like floor limes.
+ * Render the verdict — THE RELAX (plans/23): one gate, an additive climb.
+ *
+ * ONE GATE — the frosting FLOOR: coverage ≥ the frost row's floorCoverage.
+ * Above it the cake is ACCEPTED and served; below it (no cake at all) is the
+ * sole total fail. The two-gate model is gone — no more "met every row but
+ * REFUSED", no more one-missed-sprinkle HUNGRY (plans/23 §4).
+ *
+ * THE CLIMB — stars grade against IMPRESS = coverage + dressing. Coverage is
+ * the spine (ABSOLUTE, whole-cake — plans/22 step 4); DRESSING (sprinkles +
+ * the crowned cherry) is a small coverage-equivalent that lifts you toward
+ * the next tier without ever gating. Partial dressing = partial lift, no
+ * cliff — so burying your own sprinkles just contributes a little less
+ * (plans/23 §4.4, the gotcha dissolves). 1★ = accepted, 2★ = star2Coverage,
+ * 3★ = star3Coverage, read on IMPRESS. Waste, neatness, mess, and the 0..100
+ * assembly score are RETIRED from the grade (plans/23 §4/§5): the difficulty
+ * lives in the craft, not the rulebook; mess moves to the realm's favor
+ * (step 9), neatness is cut, waste is dropped.
  */
 export function judge(
   dessert: DessertGeometry,
   order: JudgedOrder,
   settled: readonly SettledTopping[],
   frosting: FrostingField,
-  shotsFired: number,
 ): Judgment {
   const checks = checkRequirements(dessert, order.requirements, settled, frosting);
-  const met = checks.length > 0 && checks.every((c) => c.met);
-
   const coverage = frosting.coverage();
-  const neatness = frosting.neatness();
-  const integrity = 1; // the Bite's axis, waiting for its slice
 
-  const mess = weighedMess(settled);
-  const waste =
-    shotsFired <= order.parShots ? 1 : order.parShots / Math.max(1, shotsFired);
+  // THE ONE GATE (plans/23): the frosting floor. Any cake above it is served;
+  // below it the giant has no cake at all — the only zero.
+  let floor = 0;
+  for (const r of order.requirements)
+    if (r.kind === "frost-coverage") floor = r.floorCoverage;
+  const accepted = coverage >= floor;
 
-  // The coverage axis is ABSOLUTE now (plans/22 step 4), saturating at the
-  // 3★ tier: frosting the 3★ amount maxes the coverage contribution.
-  const score = Math.max(
-    0,
-    Math.round(
-      100 *
-        (0.35 * Math.min(1, coverage / order.star3Coverage) +
-          0.15 * neatness +
-          0.25 * integrity +
-          0.15 * (1 - mess) +
-          0.1 * waste),
-    ),
+  // THE DRESSING (plans/23): sprinkles landed (proportional) + the cherry
+  // crowned, each a small coverage-equivalent. It LIFTS the grade, never
+  // gates it — a partial sprinkle count is a partial lift.
+  const sprinkles = checks.find(
+    (c) => c.req.kind === "on-frosting" && c.req.topping === "sprinkles",
   );
-  const accepted = met && score >= order.passScore;
+  const sprinkleFrac =
+    sprinkles && sprinkles.target > 0
+      ? Math.min(1, sprinkles.current / sprinkles.target)
+      : 0;
+  const cherryCrowned = order.desire
+    ? crownedWith(dessert, settled, order.desire.topping)
+    : false;
+  const dressing =
+    sprinkleFrac * SPRINKLE_IMPRESS + (cherryCrowned ? CHERRY_IMPRESS : 0);
+
+  const impress = Math.min(1, coverage + dressing);
   let stars: 0 | 1 | 2 | 3 = 0;
-  if (accepted) {
+  if (accepted)
     stars =
-      coverage >= order.star3Coverage
+      impress >= order.star3Coverage
         ? 3
-        : coverage >= order.star2Coverage
+        : impress >= order.star2Coverage
           ? 2
           : 1;
-  }
-  return {
-    met,
-    accepted,
-    score,
-    stars,
-    checks,
-    coverage,
-    neatness,
-    integrity,
-    mess,
-    waste,
-  };
+
+  return { accepted, stars, checks, coverage, dressing, impress };
 }
 
 /** One row's words — shared by the HUD checklist and the end banner.

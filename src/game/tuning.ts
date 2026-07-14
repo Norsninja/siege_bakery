@@ -59,15 +59,23 @@
  * free. The old FROST_FRAC × TOWN_ASK_POTENTIAL × census workload (~139
  * samples, a pipelining-DUO ask) is retired with those constants; solo's
  * relief is now the clock + earned time, not a shrunken ask (plans/22
- * §2.8). Until step 6 re-derives, the shipped clocks (campaign.ts) run
- * unchanged.
+ * §2.8). The shipped clocks (campaign.ts) run the reliable-clock numbers.
+ *
+ * ── THE RELAX (plans/23 — dress the cake / relax the rulebook) ─────────
+ * The two-gate model collapsed to ONE gate: the frosting FLOOR. Above it a
+ * cake is served; below it (no cake) is the sole zero. Stars grade on
+ * IMPRESS = coverage + DRESSING (sprinkles + cherry, each a small
+ * coverage-equivalent — SPRINKLE_IMPRESS / CHERRY_IMPRESS below). The waste
+ * axis (par shots) and the neatness axis are RETIRED from the grade; mess
+ * moves to the realm's favor (step 9). Difficulty lives in the craft, not
+ * the rulebook. ORDER_PAR_SHOTS / passScore are gone with them.
  *
  * ── The re-pin law (plans/07 + plans/08, NARROWED by plans/22 step 4) ──
  * Splat-constant or census changes still move the census pin (661) only on
  * purpose. The coverage side re-pins the ABSOLUTE tiers now (FLOOR_COVERAGE
  * / STAR2_COVERAGE / STAR3_COVERAGE) against research/21's measured curve,
- * never the retired FROST_FRAC / TOWN_POTENTIAL; ORDER_PAR_SHOTS /
- * ORDER_SECONDS re-derive in step 6 (earned time + the reliable clock).
+ * never the retired FROST_FRAC / TOWN_POTENTIAL; the dressing bonuses
+ * (SPRINKLE_IMPRESS / CHERRY_IMPRESS) re-pin against a real playtest.
  */
 import { FIXED_DT } from "../core/constants";
 
@@ -80,12 +88,6 @@ import { FIXED_DT } from "../core/constants";
  * superseded it for coverage): patience no longer drains, so the base IS
  * the honest number, and earned time adds on top. */
 export const ORDER_SECONDS = 216;
-/** Shots for full waste credit — a good line's count, not a perfect one:
- * ~20 frost + 2 sprinkles + 1 crown + slack (plans/08 math above).
- * ANCHOR REFERENCE (slice 4): the live game reads each rung's parShots
- * column ({solo, duo} — campaign.ts header formula); this is rung 3's
- * solo number, pinned equal there. */
-export const ORDER_PAR_SHOTS = 24;
 /** How long a finished order's banner lingers before the fresh deal —
  * ALSO the whole town-switch window (the gates stand open only here).
  * MEASURED (2026-07-07 solo play-through): a frame-perfect scripted run
@@ -114,6 +116,19 @@ export const EARNED_TIME_PER_SAMPLE_S = 2;
  * a modest base never bites normal play — it only kills the degenerate
  * paint-forever case. A pure ceiling, not a live constraint. */
 export const EARNED_TIME_CAP_S = 120;
+
+/** THE DRESSING (plans/23 — "dressed to impress": dressing lifts the grade,
+ * never gates it). Each dressing element adds this coverage-EQUIVALENT to
+ * IMPRESS (judge(): stars grade on coverage + dressing). Bounded small so
+ * COVERAGE stays the spine: full dressing is +0.08, and floor 0.08 + 0.08 =
+ * 0.16 < STAR2_COVERAGE 0.18 — a bare cake, even perfectly dressed, stays
+ * 1★; you must FROST more to climb. Dressing tips you over a NEARBY tier,
+ * it never carries you a whole one. PROVISIONAL — tune at a real playtest.
+ * Sub-ruling (plans/23 §7): the cherry lifts stars HERE *and* keeps its
+ * distinct flourish coin bonus (FLOURISH_BONUS_COINS) — different currencies,
+ * not a double-dip. */
+export const SPRINKLE_IMPRESS = 0.04;
+export const CHERRY_IMPRESS = 0.04;
 
 /** THE ECONOMY's dials (plans/13 §5 as amended 2026-07-09 — the
  * shop-sells-infrastructure amendment). Both are feel-pass hypotheses,
@@ -167,8 +182,8 @@ export const CREW_LABOR: readonly number[] = [0, 0.35, 1.0, 1.0, 1.0];
  * changes shape as tiers stack, and rung 1 was the only calibrated
  * row (research/20). THE RULING: the relief is the TUTORIAL'S — the
  * solo factor moved onto the Rung row (campaign.ts `soloClock`,
- * rung 1 = 1.25, rung 2+ = 1.0), sitting beside clockSeconds/parShots,
- * the other per-rung feel knobs. Duo stays ZERO drift (the deal reads
+ * rung 1 = 1.25, rung 2+ = 1.0), sitting beside clockSeconds, the other
+ * per-rung feel knob. Duo stays ZERO drift (the deal reads
  * a literal 1.0 for crew 2+; the crew dimension returns at that code
  * site if a playtest ever asks). This constant retired — a scalar
  * cannot say "rung 1 only," and a live scalar beside a per-rung column

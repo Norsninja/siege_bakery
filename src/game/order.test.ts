@@ -81,28 +81,11 @@ describe("orders with rows", () => {
     const allChecks = evaluateOrder(GEOM, o, settled, naked());
     expect(allChecks.every((c) => c.met)).toBe(true);
     expect(o.status).toBe("running"); // still running — the buzzer hasn't rung
-    // The Room judges at conclusion (concludeOrder → judge): a clean bake,
-    // under par, clears both gates — delighted, full marks.
-    const j = judge(GEOM, o, settled, fullCoat(), 3);
-    expect(j.met).toBe(true);
+    // The Room judges at conclusion (concludeOrder → judge): a fully frosted
+    // cake clears the floor — served, coverage tops the climb (3★).
+    const j = judge(GEOM, o, settled, fullCoat());
     expect(j.accepted).toBe(true);
-    expect(j.score).toBe(100);
     expect(j.stars).toBe(3);
-  });
-
-  it("gate 2 refusal at the buzzer: every box ticked, but the floor wears most of it", () => {
-    const o = createOrder(rows(), 5400); // passScore 50
-    const settled = [
-      onCake("cherry"),
-      onCake("cherry", -3.5),
-      onSummit("lime"),
-      ...Array.from({ length: 9 }, () => onFloor("cherry")),
-    ];
-    // 12 toppings, 24 shots vs par 6 — the verdict is the Room's at the buzzer.
-    const j = judge(GEOM, o, settled, naked(), 24);
-    expect(j.met).toBe(true); // you did what was asked...
-    expect(j.accepted).toBe(false); // ...badly. REFUSED.
-    expect(j.stars).toBe(0);
   });
 
   it("floor cherries and lower-tier limes move no row", () => {
@@ -120,13 +103,11 @@ describe("orders with rows", () => {
     expect(o.status).toBe("running");
   });
 
-  it("an empty order cannot win — nothing was asked", () => {
+  it("an order with no rows censuses to nothing (a degenerate ticket)", () => {
     const o = createOrder([], 5400);
     expect(evaluateOrder(GEOM, o, [], naked())).toHaveLength(0);
-    // At the buzzer an empty order can't be met (no rows) — hungry, never won.
-    const j = judge(GEOM, o, [], naked(), 0);
-    expect(j.met).toBe(false);
-    expect(j.accepted).toBe(false);
+    // No frost row = no floor to fail — every live order carries one
+    // (requirementsFor); this is only the empty-fixture guard.
   });
 
   it("the Patron may mutate rows mid-order: tightening un-meets, appending demands more", () => {
