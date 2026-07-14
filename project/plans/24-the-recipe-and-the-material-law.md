@@ -1,15 +1,27 @@
 # Plan 24 — THE RECIPE & THE MATERIAL LAW
 
-**Status: DESIGN OF RECORD, drafted 2026-07-14 (twenty-sixth session) from
-the visionary's material re-think, immediately after plans/23 (the relax)
-was built. The five governing rulings were pinned in discussion THIS
-session (§2); the pricing knobs in §7 are open with recommendations. It
-does not yet build. It extends plans/22/§0.5 (the north star) and
-plans/23 (the relax — everything above the floor is additive); where it
-and an older material or order law disagree, this is the newer truth.
-JUMPS THE QUEUE ahead of plans/22 step 9 (the realm's favor): the favor
-grades the service, and the recipe defines what the service IS. Step 8
-(serve) is SKIPPED — deferred to plans/15 item 30.**
+**Status: BUILT 2026-07-14 (twenty-sixth session, same day as the draft).
+The five §2 rulings executed; §7's prices pinned as recommended (garnish
+0.4 s/grain, topper 15 s, FLAVOR_IMPRESS 0.03 — and the bound re-read
+dropped SPRINKLE/CHERRY_IMPRESS 0.04 → 0.03 so three terms fit under
+star2). AS-BUILT deviations, all reuse-driven: (1) the two flavors are
+the CLASSIC FROSTING (VANILLA) + FUDGE (the chocolate) — fudge was
+already a full paint row with its own measured splat law (plans/10 §4)
+and a shelf/crate/dark-render in the client; the recipe's arrival IS
+fudge's rung, zero new physics. (2) The §6 wire re-pin proved UNNEEDED:
+the flavor stamp is Room-side scoring state, NOT on the welcome wire —
+clients never judge (the impress is the Room's) and the client field is
+visuals; snapshot/restore untouched. (3) The flavor term FOLDS INTO the
+displayed `dressing` number (one impress family, one HUD line). (4) The
+client "+Ns" pops for garnish/topper are DEFERRED to plans/15 item 31
+(an honest pop needs the high-water/ask-cap mirrored client-side; an
+optimistic one would lie). Verified: 506 headless tests (incl. a
+tick-exact Room integration pin for both new clock axes) + a live-bundle
+seam run (fudge ticket dealt, color-blind floor, 0.03 flavor lift,
+last-coat-wins repaint flip). It extends plans/22 §0.5 and plans/23;
+where it and an older material or order law disagree, this is the newer
+truth. Step 8 (serve) SKIPPED — plans/15 item 30; step 9 (the realm's
+favor) is next.**
 
 ---
 

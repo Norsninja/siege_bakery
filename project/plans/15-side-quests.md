@@ -1191,3 +1191,25 @@ consensus was considered and REJECTED (a barely-there bank is exactly
 the grief the gate invites). Route through concludeOrder as the second
 conclusion trigger; re-audit the tick-ordering (plans/22 §4's one
 high-risk spot) at build time.
+
+## 31. THE GARNISH & TOPPER "+Ns" POPS — the honest-pop seam — UNCLAIMED
+
+**Status: recorded 2026-07-14 (twenty-sixth session, the plans/24 build).
+The ONE CLOCK RULE pays clock for sprinkle conversions and the cherry's
+first crowning (server-authoritative, tick-exact-tested), but only the
+PAINT axis has its "+Ns" comic-word pop (plans/22 step 6b). The other two
+axes ride the risen ticksLeft broadcast silently.**
+
+Why it was deferred: the paint pop is EXACT because the client's
+deterministic frosting twin computes the same fresh count the Room pays
+on. A garnish pop needs the ask-cap + high-water law mirrored
+client-side (checks state ride the scored broadcast, so the data is
+there); an optimistic per-grain pop would happily show "+16s" the server
+never granted — a lying HUD, the exact sin this project hunts.
+
+The build when claimed: client-local high-water over the scored
+broadcast's on-frosting rows (Σ min(current, target), same arithmetic as
+room.ts's garnish loop), pop the delta × GARNISH_TIME_PER_GRAIN_S at the
+burst site; topper pops TOPPER_TIME_S once when desire.met first flips
+true on the order broadcast. Both live-rung gated like the paint pop.
+Scope: client-only (shots-view/net-handlers + main's wiring).
