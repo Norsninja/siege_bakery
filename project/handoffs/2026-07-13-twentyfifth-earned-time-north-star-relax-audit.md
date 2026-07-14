@@ -8,8 +8,9 @@ game's NORTH STAR (plans/22 §0.5) and a whole scoring-relax design
 (plans/23). Eight code/doc commits shipped (tip 8788653); two design docs
 drafted this turn (plans/23 + the plans/22 pointer) plus this handoff
 still to commit. 501 tests green, both tsc legs clean throughout. NEXT
-SESSION (the visionary's words): IMMEDIATELY CONTINUE — build the next
-steps (plans/23 the relax pass, then plans/22 steps 8 serve / 9 favor).
+SESSION (the visionary's words): continue immediately into the next steps
+(plans/23 the relax pass, then plans/22 steps 8 serve / 9 favor) — but
+DISCUSS before executing edits (the standing rule holds; §7).
 
 ## 2. What changed this session
 
@@ -158,8 +159,11 @@ OPEN (plans/23 §7 — the visionary pins these at the build):
 
 ## 7. Next session focus
 
-The visionary's explicit instruction: IMMEDIATELY CONTINUE building the
-next steps — no long review preamble. The queue:
+The visionary's instruction: continue IMMEDIATELY into the next steps (no
+long review preamble — re-orient fast) BUT **discuss before executing
+edits** — the standing rule holds. Read plans/23, then DISCUSS the approach
+and pin §7's open rulings WITH him before touching game/judgment.ts. "Jump
+back in" means pick up the thread, not skip the conversation. The queue:
 1. **plans/23 — the relax pass** (game/judgment.ts + the requirement model):
    collapse the two-gate model to a floor + additive impress-and-dress
    score; drop waste/mess penalties; re-tone the verdicts. Pin plans/23 §7's
