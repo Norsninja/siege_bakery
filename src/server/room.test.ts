@@ -9,6 +9,7 @@ import { Room } from "./room";
 import { READY_CIRCLE } from "../core/arena";
 import {
   CREW_LABOR,
+  FAVOR_MAX_BONUS,
   FLOOR_COVERAGE,
   FLOURISH_BONUS_COINS,
   GARNISH_TIME_PER_GRAIN_S,
@@ -736,6 +737,12 @@ describe("Room: the match, headless over protocol", () => {
       seamBuzzer(room); // the clock renders the verdict now (plans/22)
       expect(a.all("order").some((m) => m.order.status === "won")).toBe(true);
       // The column pays at the buzzer, now lifted by the realm's favor (step 9).
+      // Pin the stamped VALUE too, not just the wallet==wire consistency
+      // (paidColumn reads the stamp back, so alone it can't catch a wrong
+      // stamp): this seam is SPOTLESS — no look fires inside its few seconds,
+      // so the debt is 0 and the favor is the full bonus, exactly.
+      const won = a.all("order").find((m) => m.order.status === "won");
+      expect(won?.judgment?.favor).toBeCloseTo(1 + FAVOR_MAX_BONUS, 10);
       expect(a.last("run")?.purse).toBe(paidColumn(a, 3, 2));
     });
 
@@ -1094,6 +1101,27 @@ describe("Room: the match, headless over protocol", () => {
     // running (the clock is long). Small, frequent, LIVE wins.
     expect(seams(room).flow.order.status).toBe("running");
     expect(a.last("run")?.purse ?? 0).toBeGreaterThan(0);
+  });
+
+  it("THE DRIP STOPS AT THE BUZZER: fresh paint landed during the linger drips nothing (plans/22 step 9)", () => {
+    const room = new Room();
+    const a = connect(room, "alice");
+    readyUp(room, a);
+    jumpToRung(room, 3);
+    seamPaint(room, 0.2); // above the floor — but leave most cake BARE
+    fireLime(room, a);
+    seamBuzzer(room); // concluded — the won linger begins (run phase still "running")
+    expect(seams(room).flow.order.status).toBe("won");
+    const paid = a.last("run")?.purse ?? 0; // the conclusion award, banked
+    const coverageBefore = seams(room).frosting.coverage();
+    // A real glob lands DURING the linger: the deal tag is still current, so
+    // it paints the standing cake honestly (physics) — but the cake is already
+    // GRADED, and every earn axis refuses a non-running order. Non-vacuous:
+    // the coverage genuinely rose, yet not a coin dripped.
+    fireFrost(room, a, 0); // straight aim splats an upper tier — bare skin
+    expect(seams(room).flow.order.status).toBe("won"); // still lingering
+    expect(seams(room).frosting.coverage()).toBeGreaterThan(coverageBefore);
+    expect(a.last("run")?.purse ?? 0).toBe(paid);
   });
 
   it("THE DRIP SURVIVES A FLOOR-LOSS: a below-floor cake keeps its dripped coins — never total zero (plans/22 §2 / step 9)", () => {

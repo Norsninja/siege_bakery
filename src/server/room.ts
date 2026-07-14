@@ -495,13 +495,20 @@ export class Room {
       // and rides a run broadcast — a small, frequent, VISIBLE win. Paid LIVE
       // and UNMULTIPLIED (the favor touches only the conclusion award, awardPay)
       // and NEVER clawed back: a below-floor loss keeps its drip (never total
-      // zero, plans/23 §2). Gated to a running rung by the phase guard above.
-      this.dripFraction += freshThisTick * DRIP_COINS_PER_SAMPLE;
-      const coins = Math.floor(this.dripFraction);
-      if (coins > 0) {
-        this.dripFraction -= coins;
-        this.run.earn(coins);
-        this.broadcastRun();
+      // zero, plans/23 §2). TWO gates, like every earn axis: the phase guard
+      // above (lobby/countdown/runover never drip) AND the order-status check
+      // here — during the post-conclusion linger the run phase is still
+      // "running" but the cake is already GRADED; a glob in flight at the
+      // buzzer paints it honestly (physics) yet drips nothing, exactly as
+      // earned time (grantSeconds) and the desire checkmark refuse it.
+      if (this.flow.order.status === "running") {
+        this.dripFraction += freshThisTick * DRIP_COINS_PER_SAMPLE;
+        const coins = Math.floor(this.dripFraction);
+        if (coins > 0) {
+          this.dripFraction -= coins;
+          this.run.earn(coins);
+          this.broadcastRun();
+        }
       }
     }
     // THE DESIRE'S LIVE CHECKMARK (slice 4b; the MATERIAL predicate since
