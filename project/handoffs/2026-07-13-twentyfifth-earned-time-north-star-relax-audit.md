@@ -13,7 +13,8 @@ steps (plans/23 the relax pass, then plans/22 steps 8 serve / 9 favor).
 
 ## 2. What changed this session
 
-Commits (all on main, pushed through 8788653):
+Commits (all on main, committed locally through 25a4947 — push pending the
+visionary's go-ahead, per the usual session-end pattern):
 
 - **bd594e8 — DOCS: reconcile plans/22 §9 to the 8-step build, close the
   flourish rulings.** §9 rewritten to the real 8→9-step vocabulary; §8
