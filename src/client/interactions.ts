@@ -78,7 +78,7 @@ export function tickInteraction(
     return {
       carrying,
       send: [{ t: "buy", item: "town2" }],
-      flash: { msg: "🪙 TOWN 2 — the second fort wakes!", ms: 3500 },
+      flash: { msg: "TOWN 2 — the second fort wakes!", ms: 3500 },
     };
   }
   // The release lever ALWAYS executes — empty bucket included.

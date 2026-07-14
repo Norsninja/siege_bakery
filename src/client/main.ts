@@ -22,7 +22,7 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { FIXED_DT, GRAVITY } from "../core/constants";
 import { Baker, EYE_HEIGHT_OFFSET, type BakerInput } from "../core/baker";
-import { TOWNS, buildArenaColliders } from "../core/arena";
+import { CAKE_Z, TOWNS, buildArenaColliders } from "../core/arena";
 import { PatronColliderRig } from "../core/patron-collider";
 import { patronAtMark } from "../game/cast";
 import type { ServerMsg, HeldOp } from "../game/protocol";
@@ -35,6 +35,7 @@ import {
   type LastShot,
 } from "./hud";
 import { PostHud } from "./post-hud";
+import { RaceClock } from "./race-clock";
 import { ReportView } from "./report-view";
 import { deriveMood, MusicBox } from "./music";
 import { createAudioBus } from "./audio-bus";
@@ -51,7 +52,8 @@ import { loadModel } from "./assets";
 import { LineManager } from "./line";
 import { PatronTable, scoldLine } from "./patron-table";
 import { buildGameScene, TOPPING_COLORS } from "./scene";
-import { ShotsView } from "./shots-view";
+import { ShotsView, VERDICT_GREEN } from "./shots-view";
+import { EarnPops } from "./earn-pops";
 import { FrostingView } from "./frosting-view";
 import { SprinklesView } from "./sprinkles-view";
 import { TILT_DEG_PER_NOTCH } from "../game/catapult";
@@ -114,6 +116,13 @@ async function main(): Promise<void> {
   shotsView.bindStickyPaint((p) => frostingView.stickyNear(p));
   shotsView.onStuck = (_topping, pos, normal) =>
     sprinklesView.add(pos, normal, frostingView.coatsNear(pos));
+  // THE HONEST-POP TWIN (plans/15 item 31): the three silent earn axes made
+  // visible. The DRIP rides the local fresh count at the impact (room.ts's
+  // coin drip); GARNISH + TOPPER ride the broadcast (polled below, over the
+  // cake). One home for all three accumulators — reset at each deal boundary
+  // (bindDessert), exactly where the Room resets garnishHigh/topperPaid.
+  const earnPops = new EarnPops();
+  shotsView.onDrip = (fresh) => earnPops.drip(fresh);
   const ghosts = new GhostManager(scene);
 
   // THE VOLUME BUS + THE SOUND TABLE (slice 6, plans/20 §5): born
@@ -162,6 +171,11 @@ async function main(): Promise<void> {
 
   const hud = document.getElementById("hud");
   const postHud = new PostHud();
+  // THE RACE CLOCK (plans/15 item 29): the timer top-center and BIG — the
+  // run's feedback surface, green when earned time lands, the shared purse
+  // beside it flashing gold on each dripped coin (the item-31 signals, now
+  // where the eye lives during the run-back).
+  const raceClock = new RaceClock();
   // THE FIRING MEMORY (plans/15 item 5, constraint a): each machine's
   // last-fired solution, recorded off the shot broadcast — client-local,
   // no wire change. The panels' "last shot" line reads it by town.
@@ -242,6 +256,7 @@ async function main(): Promise<void> {
       frostingView.bindDessert(dessert.samples);
       snapshot.aimAt(dessert.spec.tiers);
       shotsView.bumpDeal(); // in-flight globs are the OLD order's paint
+      earnPops.reset(); // a fresh cake: garnish/topper/drip pops start clean
     },
     clearCakeSolids: () => shotsView.clearCakeSolids(view.dessert),
     restoreStuck: (list) => {
@@ -544,6 +559,28 @@ async function main(): Promise<void> {
       shotsView.orderLive = orderLive;
       shotsView.step(view.dessert, fxPort);
 
+      // THE GARNISH + TOPPER POPS (plans/15 item 31): these earns ride the
+      // BROADCAST (sprinkle checks, the desire.met flip), not the local sim,
+      // so main polls the mirror off view state and fires "+Ns" OVER THE CAKE
+      // — where the grains land and the cherry crowns. Live-rung only
+      // (orderLive = the Room's two gates), matching the drip and the Room's
+      // own order-status guard; the twin floors/onces internally, so a stale
+      // frame or a re-crown pops nothing. Most frames the checks are
+      // unchanged → zero seconds → silent.
+      if (orderLive) {
+        const summit = {
+          x: 0,
+          y: view.dessert.spec.tiers[view.dessert.topTier]?.top ?? 0,
+          z: CAKE_Z,
+        };
+        const garnishSecs = earnPops.garnish(view.checks);
+        if (garnishSecs > 0)
+          shotsView.popWord(`+${garnishSecs}s`, VERDICT_GREEN, summit, 1.5);
+        const topperSecs = earnPops.topper(view.order.desire?.met ?? false);
+        if (topperSecs > 0)
+          shotsView.popWord(`+${topperSecs}s`, VERDICT_GREEN, summit, 1.5);
+      }
+
       // THE RUN'S EDGES (plans/13): rung 1 deals the moment the countdown
       // holds — a baker readied in town 0's circle while ASSIGNED to town
       // 1 is carried home, same law as the mid-run deal edge below.
@@ -663,6 +700,15 @@ async function main(): Promise<void> {
       // The manned post's big panel (plans/15 item 5): the numbers go
       // where the eyes are — winch center, gunner bottom-left.
       postHud.update(postPanel(hv));
+      // THE RACE CLOCK (plans/15 item 29): visible only on a live order
+      // (the Room's two gates); it reads the authoritative clock's own rise
+      // for the green gain and the shared purse for the gold drip.
+      raceClock.update({
+        visible:
+          view.run.phase === "running" && view.order.status === "running",
+        ticksLeft: view.order.ticksLeft,
+        purse: view.run.purse ?? 0,
+      });
     }
 
     renderer.render(scene, camera);

@@ -221,7 +221,10 @@ export function bannerText(
         (verdict.flourish ? FLOURISH_BONUS_COINS : 0);
       // THE REALM PAYS (plans/17): the giants are guests — relief
       // contracts settle the order, so the pay line says who's paying.
-      payLine = `\n🪙 the realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
+      // No coin GLYPH in text (playtest 2026-07-14: 🪙 U+1FA99 tofus on
+      // fonts that lack it) — the word "coins" carries it. The race clock's
+      // gold DISC is the only coin mark that renders everywhere.
+      payLine = `\nthe realm pays +${coins} coins${verdict.flourish ? ` — ${FLOURISH_BONUS_COINS} of them for the style` : ""}`;
       // THE REALM'S FAVOR (plans/22 step 9): the giant's MOOD (service) earns
       // the realm's favor — a coin bonus ON TOP, stamped on the verdict so the
       // words match the wallet (the total = coins × favor). A poor order pays
@@ -299,7 +302,7 @@ export function runOverText(
   // The run report tells the purse's end too (§5 amendment: the purse
   // dies at the NEXT run's start, so the report and the lobby still
   // hold the finished story's balance).
-  const coins = purse > 0 ? `\n🪙 the purse ends at ${purse} coins` : "";
+  const coins = purse > 0 ? `\nthe purse ends at ${purse} coins` : "";
   if (won)
     // ULTRA (§1 finish-it amendment): the triumph's verdict wore the coda —
     // the title upgrades; the ceremony rides the MASTER BAKER content pass.
@@ -487,8 +490,10 @@ function coverageLadder(
 export function hudLines(v: HudView): string[] {
   // Signed since the unwind (plans/14): -N% is a click being let out.
   const crankPct = Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100);
-  const secsLeft = Math.ceil(v.order.ticksLeft * FIXED_DT);
-  const clock = `${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, "0")}`;
+  // THE CLOCK LEFT THE CORNER (plans/15 item 29): the timer is the RACE
+  // CLOCK now — top-center and big (race-clock.ts), the run's feedback
+  // surface. The header keeps the patron + hands identity; the number, and
+  // the running-block purse below, moved up where the eye lives on the run.
   // THE LONE HERO tag (plans/13 §5): the ticket wears its pricing — the
   // stamp is deal-time truth (order.hands), never the live headcount, so
   // a mid-order leaver can't flicker it onto a duo-priced order.
@@ -533,7 +538,7 @@ export function hudLines(v: HudView): string[] {
                   v.order.status === "won"
                     ? `PATRON ${v.run.rung} SERVED`
                     : `PATRON ${v.run.rung} GOES HUNGRY`
-                } · 🪙 purse: ${v.run.purse ?? 0}   [${who}]`,
+                } · purse: ${v.run.purse ?? 0}   [${who}]`,
               ]
             : [
               // THE SEMANTIC AUDIT (item 12): the rung number IS the
@@ -541,7 +546,7 @@ export function hudLines(v: HudView): string[] {
               // the header names the guest, never the ladder. (The order
               // runs to the buzzer now — plans/22 step 3; the finish-it
               // window it used to swap in was deleted in step 5.)
-              `PATRON ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
+              `PATRON ${v.run.rung} · THE ORDER${lone}   [${who}]`,
               // The frost row is the COVERAGE LADDER now (plans/22 §0.5 north
               // star): a climb toward the perfect cake, not a checkbox at the
               // floor. Every other row stays a plain checklist line.
@@ -564,9 +569,6 @@ export function hudLines(v: HudView): string[] {
                     `  ★ THE FLOURISH: a ${v.order.desire.topping} on the very top${v.order.desire.met ? " ✓" : " — style, not required"}`,
                   ]
                 : []),
-              // The shared purse (§5 amendment): one wallet, always in
-              // sight during the run — the stall's prompt prices from it.
-              `  🪙 purse: ${v.run.purse ?? 0} coins`,
             ];
   const lines = [
     ...top,

@@ -132,6 +132,58 @@ describe("THE EARNED-TIME POP (plans/22 step 6b): fresh coverage floats a green 
   });
 });
 
+describe("THE COIN DRIP POP (plans/15 item 31): fresh cake floats a gold +N", () => {
+  const words = (v: ShotsView): Array<{ text: string }> =>
+    (v as unknown as { words: Array<{ text: string }> }).words;
+  // The coin pop is a GOLD "+N" (no 🪙 glyph — it tofus; gold is the coin
+  // channel, item 29); the SECONDS pop is a green "+Ns". The trailing "s"
+  // tells them apart in the test, the color does on screen.
+  const coinPops = (v: ShotsView): number =>
+    words(v).filter((w) => /^\+\d+$/.test(w.text)).length;
+  const plusNs = (v: ShotsView): number =>
+    words(v).filter((w) => /^\+\d+s$/.test(w.text)).length;
+  // A second naked spot so a later glob still counts fresh (a re-coat on the
+  // first point is zero fresh and skips the drip block entirely).
+  const G2 = { x: -3.5, y: 2.0, z: CAKE_Z };
+  const impact2 = { ...coveringImpact, pos: { ...G2 } };
+
+  it("onDrip is fed the REAL fresh count; a whole coin floats gold +N, a fraction stays silent", () => {
+    const { shotsView, setEvents } = harness();
+    shotsView.orderLive = true;
+    let toDrip = 0;
+    let sawFresh = -1;
+    shotsView.onDrip = (fresh) => {
+      sawFresh = fresh;
+      return toDrip;
+    };
+    // First fresh glob, but the drip's fraction isn't whole yet → no coin.
+    setEvents({ ...empty, impacts: [coveringImpact] });
+    shotsView.step(GEOM, noop);
+    expect(sawFresh).toBeGreaterThan(0); // the twin got the deterministic fresh
+    expect(plusNs(shotsView)).toBe(1); // the seconds pop still floats
+    expect(coinPops(shotsView)).toBe(0); // the coin stays silent
+    // A later fresh glob whose fraction crosses a whole coin: the gold pops.
+    toDrip = 1;
+    setEvents({ ...empty, impacts: [impact2] });
+    shotsView.step(GEOM, noop);
+    expect(coinPops(shotsView)).toBe(1);
+  });
+
+  it("the SANDBOX never drips coins: orderLive false → onDrip is never consulted", () => {
+    const { shotsView, setEvents } = harness();
+    shotsView.orderLive = false;
+    let called = false;
+    shotsView.onDrip = () => {
+      called = true;
+      return 1;
+    };
+    setEvents({ ...empty, impacts: [coveringImpact] });
+    shotsView.step(GEOM, noop);
+    expect(called).toBe(false); // no live order → the drip block is skipped
+    expect(coinPops(shotsView)).toBe(0);
+  });
+});
+
 type RingRec = { mesh: THREE.Mesh; bodyHandle: number };
 const rings = (v: ShotsView): Map<number, RingRec> =>
   (v as unknown as { markers: Map<number, RingRec> }).markers;

@@ -85,6 +85,13 @@ const WORD_PLOP_WIDTH_M = 1.5; // …a gentle placement whispers
 /** The earned-time "+Ns" rises above the splat word it shares a spot with
  * (plans/22 step 6b) — a clear second beat, not an overlap. */
 const EARNED_WORD_RISE_M = 1.4;
+/** THE COIN DRIP "+N" (plans/15 item 31) stacks one beat ABOVE the "+Ns" at
+ * the same splat — a third tier so the two earns read as a column, not a
+ * pile. GOLD is the coin channel (no 🪙 glyph — it tofus on fonts lacking
+ * U+1FA99, playtest 2026-07-14); green seconds vs gold coins, color tells
+ * them apart, matching the race clock's green clock + gold purse (item 29). */
+const DRIP_WORD_RISE_M = 2.6;
+const COIN_GOLD = 0xf2c14e;
 
 /** THE LANDING VERDICT (plans/15 item 15, rings recolor RULED
  * 2026-07-12): color is the VERDICT channel everywhere — green = on
@@ -96,7 +103,7 @@ const EARNED_WORD_RISE_M = 1.4;
  * (a solid can land red and roll on; the neutral ring waits for the
  * census's word). Before this ruling the ring spoke energy in color
  * (red = splat, green = gentle); that axis now lives in size alone. */
-const VERDICT_GREEN = 0x3fae5a;
+export const VERDICT_GREEN = 0x3fae5a;
 const VERDICT_RED = 0xd8452e;
 const VERDICT_NEUTRAL = 0xe8e0d2; // a solid mid-verdict: the rest will tell
 
@@ -292,6 +299,12 @@ export class ShotsView {
         speed: number,
       ) => { footprint: number; fresh: number })
     | null = null;
+  /** THE COIN DRIP POP (plans/15 item 31): fresh cake pays coins live
+   * (room.ts dripFraction). main wires this to the EarnPops twin — it
+   * takes THIS impact's fresh count and returns whole coins to celebrate,
+   * so the gold "+N" fires at the splat exactly beside the "+Ns". Null
+   * (tests, pre-wire) = no drip pop, the seconds pop still floats. */
+  onDrip: ((fresh: number) => number) | null = null;
   /** THE GIANT'S INTERPRETER (item 16): main binds the patron rig's
    * handle set — Impact.otherHandle in this set means the shot hit
    * HIM. Null (tests, assetless) = no giant hits detected. */
@@ -317,6 +330,16 @@ export class ShotsView {
     private readonly world: RAPIER.World,
     private readonly scene: THREE.Scene,
   ) {}
+
+  /** Push a comic word into the world at `pos` (plans/15 item 31): main
+   * uses this for the GARNISH/TOPPER "+Ns" pops — broadcast-driven earns
+   * (checks/desire, not the local sim), so main computes them off the wire
+   * and fires them OVER THE CAKE (the sprinkles land on it, the cherry
+   * crowns it). The word joins the same list the landings use, ticked and
+   * disposed in step() — one lifecycle for every word in flight. */
+  popWord(text: string, colorHex: number, pos: Vec3, widthM: number): void {
+    this.words.push(new ComicWord(text, colorHex, pos, widthM, this.scene));
+  }
 
   /** Everyone simulates the same deterministic lob locally — including
    * bursts: the shot event's seed replays the identical scatter here. */
@@ -543,6 +566,23 @@ export class ShotsView {
               this.scene,
             ),
           );
+          // THE COIN DRIP POP (plans/15 item 31): the SAME fresh cake also
+          // dripped coins (room.ts) — a GOLD "+N" stacks above the green
+          // seconds (gold = coins, no glyph — item 29's color channel). Only
+          // whole coins pop (the twin floors the fraction), so most shots show
+          // only "+Ns" and a coin lands every couple of good ones — the drip
+          // cadence, made visible.
+          const coins = this.onDrip?.(paintResult.fresh) ?? 0;
+          if (coins > 0)
+            this.words.push(
+              new ComicWord(
+                `+${coins}`,
+                COIN_GOLD,
+                { x: im.pos.x, y: im.pos.y + DRIP_WORD_RISE_M, z: im.pos.z },
+                WORD_PLOP_WIDTH_M,
+                this.scene,
+              ),
+            );
         }
       }
       fx.flash(

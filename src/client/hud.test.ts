@@ -238,16 +238,19 @@ describe("bannerText — the relax: served or hungry, culprit always named (plan
     // THE REALM PAYS (plans/17): the giants are guests — the pay line
     // names the payer (the semantic audit's lore alignment).
     const text = bannerText(order, rows, judgment({ stars: 2 }), 2, undefined, 3);
-    expect(text).toContain("🪙 the realm pays +40 coins");
+    // No coin GLYPH in text (playtest 2026-07-14: 🪙 tofus where the font
+    // lacks it) — the word carries it, the race clock's gold disc marks it.
+    expect(text).toContain("the realm pays +40 coins");
+    expect(text).not.toContain("🪙");
     expect(text).not.toContain("for the style");
     // The coda adds its named bonus: 40 + 10.
     const styled = bannerText(
       order, rows, judgment({ stars: 2, flourish: true }), 2, undefined, 3,
     );
-    expect(styled).toContain("🪙 the realm pays +50 coins — 10 of them for the style");
+    expect(styled).toContain("the realm pays +50 coins — 10 of them for the style");
     // No rung (pre-run callers): no pay line — the pre-slice-5 banner.
     const plain = bannerText(order, rows, judgment({ stars: 2 }), 2);
-    expect(plain).not.toContain("🪙");
+    expect(plain).not.toContain("the realm pays");
   });
 
   it("THE REALM'S FAVOR (step 9): a pleased giant adds a favor bonus; a ×1 mood is silent", () => {
@@ -255,7 +258,7 @@ describe("bannerText — the relax: served or hungry, culprit always named (plan
     // Rung 3, 2★ column 40, favor ×1.5 → total 60, so the favor grants +20
     // ON TOP of the named column (words == wallet: 40 + 20 = 60 = 40 × 1.5).
     const pleased = bannerText(order, rows, judgment({ stars: 2, favor: 1.5 }), 2, undefined, 3);
-    expect(pleased).toContain("🪙 the realm pays +40 coins");
+    expect(pleased).toContain("the realm pays +40 coins");
     expect(pleased).toContain("the realm's favor grants +20 more");
     // A ×1 mood (poor service) forgoes the bonus — no line, no lost coin.
     const unmoved = bannerText(order, rows, judgment({ stars: 2, favor: 1 }), 2, undefined, 3);
@@ -292,10 +295,11 @@ describe("runOverText — the run report banner", () => {
 
   it("the report tells the purse's end (slice 5) — and stays silent at zero", () => {
     expect(runOverText(3, false, false, 42)).toContain(
-      "🪙 the purse ends at 42 coins",
+      "the purse ends at 42 coins",
     );
+    expect(runOverText(3, false, false, 42)).not.toContain("🪙"); // no tofu glyph
     expect(runOverText(7, true, false, 15)).toContain("the purse ends at 15");
-    expect(runOverText(3, false)).not.toContain("🪙"); // the pre-purse report
+    expect(runOverText(3, false)).not.toContain("the purse ends"); // pre-purse report
   });
 });
 
@@ -324,11 +328,14 @@ const view = (over: Partial<HudView> = {}): HudView => ({
 
 describe("hudLines", () => {
 
-  it("headline patron + clock + solo tag; checklist rows carry progress", () => {
+  it("headline patron + solo tag; checklist rows carry progress (clock left for the race clock, item 29)", () => {
     // The rung number IS the patron's number on screen (the semantic
-    // audit, item 12 — the header names the guest, never the ladder).
+    // audit, item 12 — the header names the guest, never the ladder). The
+    // clock moved to the top-center race clock (item 29) — the header is
+    // identity now, not the timer.
     const lines = hudLines(view());
-    expect(lines[0]).toBe("PATRON 1 · THE ORDER · 1:11   [solo bakery]");
+    expect(lines[0]).toBe("PATRON 1 · THE ORDER   [solo bakery]");
+    expect(lines[0]).not.toMatch(/\d:\d\d/); // the timer is the race clock's
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
   });
 
@@ -371,22 +378,26 @@ describe("hudLines", () => {
       view({ order: createOrder([], 71 * 60, { hands: 1 }) }),
     );
     expect(lone[0]).toBe(
-      "PATRON 1 · THE ORDER · 1:11 · 🖐 one pair of hands   [solo bakery]",
+      "PATRON 1 · THE ORDER · 🖐 one pair of hands   [solo bakery]",
     );
     const duo = hudLines(view({ order: createOrder([], 71 * 60, { hands: 2 }) }));
-    expect(duo[0]).toBe("PATRON 1 · THE ORDER · 1:11   [solo bakery]");
+    expect(duo[0]).toBe("PATRON 1 · THE ORDER   [solo bakery]");
     // The stamp is the TICKET's pricing, not the live headcount: an
     // unstamped (pre-amendment) order reads full labor.
     expect(hudLines(view())[0]).not.toContain("one pair of hands");
   });
 
-  it("the purse rides the run block (slice 5): the wire's balance, absent reads 0", () => {
-    const lines = hudLines(
+  it("the purse LEFT the running corner for the race clock (item 29) — the linger still carries it", () => {
+    // The wallet moved top-center beside the race clock (race-clock.ts): a
+    // RUNNING order's corner block no longer prints it — the timer and the
+    // purse now live together where the eye is on the run.
+    const running = hudLines(
       view({ run: { phase: "running", rung: 2, purse: 35 } }),
     );
-    expect(lines).toContain("  🪙 purse: 35 coins");
-    expect(hudLines(view())).toContain("  🪙 purse: 0 coins");
-    // Only a live rung banks: the lobby block carries no wallet line.
+    expect(running.join("\n")).not.toContain("purse");
+    // The linger (order ended) DOES keep the slim purse line — the race
+    // clock hides once the order isn't running, so the corner carries it
+    // through the between-orders window (asserted in the linger test below).
     const lobby = hudLines(view({ run: { phase: "lobby", rung: 0 } }));
     expect(lobby.join("\n")).not.toContain("purse");
   });
@@ -398,7 +409,7 @@ describe("hudLines", () => {
         run: { phase: "running", rung: 3, purse: 12 },
       }),
     );
-    expect(won[0]).toBe("PATRON 3 SERVED · 🪙 purse: 12   [solo bakery]");
+    expect(won[0]).toBe("PATRON 3 SERVED · purse: 12   [solo bakery]");
     // No checklist rows, no golden row — the photo owns the corner now.
     expect(won.join("\n")).not.toContain("✓");
     expect(won.join("\n")).not.toContain("✗");
@@ -408,7 +419,7 @@ describe("hudLines", () => {
         run: { phase: "running", rung: 2 },
       }),
     );
-    expect(lost[0]).toBe("PATRON 2 GOES HUNGRY · 🪙 purse: 0   [solo bakery]");
+    expect(lost[0]).toBe("PATRON 2 GOES HUNGRY · purse: 0   [solo bakery]");
     // A RUNNING order keeps its full corner block untouched.
     expect(hudLines(view())[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
   });
