@@ -33,6 +33,46 @@ only its most visible symptom.
 
 ---
 
+## 0.5. THE NORTH STAR — the perfect cake (2026-07-13, twenty-fifth session)
+
+**The visionary's ruling, and the principle every scoring + presentation
+decision in this plan now serves:**
+
+The goal is a **PERFECTLY FROSTED CAKE** — the whole surface, 100%. Nobody
+will ever reach it. That futility is not a flaw; it is THE POINT. Everyone
+strains toward perfection, gets a fraction of the way, and earns points for
+every step closer to an ideal they cannot touch. The stars are MILESTONES on
+that climb (a low floor the giant grudgingly accepts, then better and
+better) — never the ceiling: past the top star the cake is still mostly
+bare, and the reward keeps growing toward a perfect cake that never comes.
+
+**THE FUN IS THE GAP** — what the giant WANTED (perfection) versus what the
+players could GIVE (a frantic, smeared, cherry-on-a-lump fraction). The
+comedy and the heart both live in that disparity. This is the lineage's
+futile-but-earnest soul (plans/02) applied to the frosting: Sisyphus with a
+catapult.
+
+What it DEMANDS of everything downstream:
+- **Coverage is a CLIMB** toward the whole cake, never a checkbox at the
+  floor. Everything on screen points ONE way — more cake, closer to perfect
+  — and the unfrosted remainder stays VISIBLE (it is the giant's longing,
+  and the joke).
+- **The floor is base camp, not the summit.** Meeting the requirement must
+  never feel like "done."
+- **Reward is continuous toward 100%** — points for getting closer, uncapped
+  past the top star (the §6 "coins keep growing" promise, now load-bearing;
+  the realm's favor, step 9, carries it).
+- **The patron's voice + verdict are the comedy engine:** he wanted it
+  perfect, he always wanted it perfect, and he is reacting to the gap.
+
+The MECHANIC already embodies this (absolute coverage IS a 0→100% climb; §6
+already grows reward past 3★). What was missing is that the player could not
+SEE it — the HUD stated only the floor, so meeting 8% read as "done" (the
+twenty-fifth session's playtest). "State the goals plainly" (§9 step 7) is
+the pass that finally shows the player the game he is already playing.
+
+---
+
 ## 1. What the research established (three streams, 2026-07-13)
 
 Full outputs in the session record; the load-bearing findings:
@@ -345,10 +385,21 @@ handoff vocabulary:
    _CAP_S 120, the base clocks) — the gentle-honest first cut (nobody worse
    off than today; earned time is pure upside), to be tuned at a playtest.
    The RATING/CAP/base-clock feel rulings (§8) stay open until then.
-7. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
+7. **State the goals plainly (the coverage-ladder HUD)** — the §0.5 north
+   star, made visible. The frost row stops being a checkbox at the floor and
+   becomes a CLIMB toward the whole cake: the floor as base camp, the star
+   milestones marked, the unfrosted remainder always in view. JUMPED THE
+   QUEUE ahead of serve (the twenty-fifth session's playtest: the player met
+   8%, felt done, and went further only out of curiosity — the model works,
+   nobody could see it; and serve can't be understood until the climb is).
+   Client-only (hud.ts); no mechanic change. Connects to side-quest 29 (the
+   big race clock) and the "+Ns" (step 6b).
+8. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
    banking; joins `concludeOrder` as the second conclusion trigger.
-8. **The realm's favor** — patience → payout; `judge()` gains the mood
+9. **The realm's favor** — patience → payout; `judge()` gains the mood
    axis; the noun lands in the HUD (§2.6, the payout-multiplier band).
+   Carries the §0.5 "reward continuous past 3★" ruling — coins keep climbing
+   with coverage toward the perfect cake, uncapped by the top star.
 
 Each step is a session-sized slice.
 
