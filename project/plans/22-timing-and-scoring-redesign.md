@@ -394,8 +394,15 @@ handoff vocabulary:
    nobody could see it; and serve can't be understood until the climb is).
    Client-only (hud.ts); no mechanic change. Connects to side-quest 29 (the
    big race clock) and the "+Ns" (step 6b).
-8. **Serve** — the `{t:"serve"}` edge-input, floor-gated, per-order
-   banking; joins `concludeOrder` as the second conclusion trigger.
+8. **Serve** — SKIPPED (ruled 2026-07-14, twenty-sixth session; the design
+   lives in plans/15 item 30 for the day a playtest asks). The reasoning:
+   earned time already does serve's pacing job (the round lives while the
+   cake improves, dies when it saturates); on the giant cakes you run out
+   of TIME long before reachable cake, so dead time barely exists; and
+   serving early is rarely rational on a fixed ladder (it banks fewer
+   stars). The consensus problem dissolves with it — if ever built, serve
+   is SATURATION-GATED and unilateral (grief-proof by construction), never
+   a consensus button.
 9. **The realm's favor** — patience → payout; `judge()` gains the mood
    axis; the noun lands in the HUD (§2.6, the payout-multiplier band).
    Carries the §0.5 "reward continuous past 3★" ruling — coins keep climbing

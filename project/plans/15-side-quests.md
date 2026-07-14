@@ -1167,3 +1167,27 @@ hasn't landed yet.
 Scope: client-only (hud.ts layout — the clock's home + scale, and the
 pop-up's anchor if it rides here). No sim/economy change; the number
 is the same broadcast ticksLeft, shown louder.
+
+## 30. SERVE — the "ORDER UP!" verb — SKIPPED AT STEP 8, BUILD ONLY ON PLAYTEST EVIDENCE
+
+**Status: recorded 2026-07-14 (twenty-sixth session). plans/22 step 8 was
+ruled SKIPPED — the queue moved to plans/24 (the recipe & the material
+law) then step 9. This item holds serve's grief-proof design for the day
+a playtest actually shows an idle-tail problem.**
+
+Why it was skipped: earned time already does serve's pacing job (the
+round lives while the cake improves and dies when it saturates); the
+giant cakes exhaust the CLOCK long before the reachable cake, so a
+satisfied-crew idle tail barely exists outside the cupcake; and on a
+fixed ladder serving early banks fewer stars — it is rarely rational.
+
+THE DESIGN OF RECORD IF EVER BUILT — **saturation-gated, unilateral,
+never consensus**: the serve affordance (a bell the visionary liked, or
+a key) lights ONLY when the cake has stopped improving (earned time dry).
+At that point the grade is locked by physics, so one player serving
+cannot rob anyone — no consensus machinery needed, and the button's own
+availability teaches "you've plateaued — send it." Floor-gated serve +
+consensus was considered and REJECTED (a barely-there bank is exactly
+the grief the gate invites). Route through concludeOrder as the second
+conclusion trigger; re-audit the tick-ordering (plans/22 §4's one
+high-risk spot) at build time.
