@@ -403,10 +403,48 @@ handoff vocabulary:
    stars). The consensus problem dissolves with it — if ever built, serve
    is SATURATION-GATED and unilateral (grief-proof by construction), never
    a consensus button.
-9. **The realm's favor** — patience → payout; `judge()` gains the mood
-   axis; the noun lands in the HUD (§2.6, the payout-multiplier band).
-   Carries the §0.5 "reward continuous past 3★" ruling — coins keep climbing
-   with coverage toward the perfect cake, uncapped by the top star.
+9. **The realm's favor** — BUILT 2026-07-14 (twenty-seventh session,
+   discussed-then-built). The step GREW (plans/23 §6) and its four threads
+   collapsed to **two mechanisms** in discussion:
+   - **THE COIN DRIP = the continuous-past-3★ reward (threads unified).** Fresh
+     paint pays COINS as it lands — the small-frequent-win twin of earned time,
+     off the SAME `freshThisTick` signal (room.ts `tickScoringPhase`), at
+     `DRIP_COINS_PER_SAMPLE` (0.05, ≈ a coin per two good shots). UNLIKE earned
+     time it is UNCAPPED to 100% coverage — so it IS the §0.5/§6
+     "reward-continuous-past-3★" force (a saturated cake stops the time cap,
+     never the drip; coins keep climbing toward the perfect cake). Paid LIVE
+     during the running order, UNMULTIPLIED by favor, and NEVER clawed back — a
+     below-floor loss keeps its drip (never total zero, plans/23 §2). A Room-
+     side fractional accumulator flushes whole coins to the purse + a run
+     broadcast; zeroed at startRun.
+   - **THE REALM'S FAVOR = an upward mood MULTIPLIER (patience spent).**
+     `realmFavor(patienceDebt)` (game/judgment.ts, pure) grades the SERVICE:
+     the giant's mood, read off the dormant `OrderFlow.patienceDebt` — which
+     already integrates the three service sins (mess→thunder, idle→grumble,
+     lateness→urgent). It multiplies the CONCLUSION award (base + stars +
+     flourish) UP: pristine service ×(1+`FAVOR_MAX_BONUS`) (0.5 → ×1.5 at debt
+     0), a poor order ×1.0 and loses NOTHING (a raised eyebrow, not a lost
+     coin — the relax, plans/23 §4.3). ONE force on the pay, mirroring earned
+     time's one force on the clock. Stamped onto the verdict (`Judgment.favor`)
+     in `concludeOrder` so the wire carries it — the HUD pay line matches the
+     wallet (words == wallet) and names the mood; `awardPay` reads the SAME
+     stamped value.
+   RULINGS (the visionary, blessed — "no pushback"): the drip ticks on FRESH
+   PAINT (not per-shot); per-star **SITS BESIDE** the drip (the milestone bump
+   kept, the continuous reward delivered as the drip — neither absorbed); the
+   drip SURVIVES a floor-loss; mood reads patienceDebt ONLY (no separate mess
+   term — mess routes through thunder); favor is an UPWARD multiplier (never
+   sub-1). HUD: the conclusion favor line ("the giant leaves pleased — the
+   realm's favor grants +N more") is provisional, his voice; the live gold
+   drip "+N" pop is DEFERRED to plans/15 item 31's family (an honest client pop
+   needs the drip mirrored client-side, same as garnish/topper). All numbers
+   PROVISIONAL (DRIP_COINS_PER_SAMPLE 0.05, FAVOR_PATIENCE_FULL_S 40,
+   FAVOR_MAX_BONUS 0.5) — tune at a playtest. Verified: 510 tests (realmFavor
+   curve, the drip firing live off real landings, the drip surviving a
+   floor-loss, favor stamped + reaching the purse via the paidColumn wire
+   read, the HUD favor line), both tsc legs.
+
+   **THIS COMPLETES THE PLANS/22 ARC** (step 8 serve skipped, plans/15 item 30).
 
 **RESHAPED BY plans/23** (the "dress the cake / relax the rulebook" pass) —
 BUILT 2026-07-14 (twenty-sixth session): the two-gate model collapsed to one

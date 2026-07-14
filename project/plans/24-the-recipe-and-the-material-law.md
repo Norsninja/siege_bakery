@@ -21,7 +21,8 @@ seam run (fudge ticket dealt, color-blind floor, 0.03 flavor lift,
 last-coat-wins repaint flip). It extends plans/22 §0.5 and plans/23;
 where it and an older material or order law disagree, this is the newer
 truth. Step 8 (serve) SKIPPED — plans/15 item 30; step 9 (the realm's
-favor) is next.**
+favor) BUILT the twenty-seventh session (the coin drip + the mood
+multiplier — plans/22 §9), completing the plans/22 arc.**
 
 ---
 

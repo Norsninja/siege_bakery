@@ -1213,3 +1213,15 @@ room.ts's garnish loop), pop the delta × GARNISH_TIME_PER_GRAIN_S at the
 burst site; topper pops TOPPER_TIME_S once when desire.met first flips
 true on the order broadcast. Both live-rung gated like the paint pop.
 Scope: client-only (shots-view/net-handlers + main's wiring).
+
+**THE COIN DRIP POP joins this family (added 2026-07-14, twenty-seventh
+session — the plans/22 step 9 build).** The realm's-favor coin drip
+(plans/22 §9) pays coins LIVE off fresh paint, but ships with NO client
+pop for the same reason: an honest gold "+N coins" pop needs the drip's
+fractional accumulator + whole-coin flush mirrored client-side (off the
+deterministic frosting twin's fresh count, exactly like the paint "+Ns").
+The purse still ticks up on the run broadcast — the win is visible in the
+counter — but the celebratory pop at the burst is deferred here. The
+build: same twin recipe, gold coin word (distinct from the green seconds
+word), DRIP_COINS_PER_SAMPLE × fresh, flush whole coins. When claimed,
+build all three pops together — one honest-pop pass.
