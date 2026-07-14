@@ -16,8 +16,8 @@
 import { tierLabel, type DessertGeometry, type ZoneId } from "../core/dessert";
 import type { Vec3 } from "../core/ballistics";
 import type { FrostingField } from "../core/frosting";
-import { canCrown, deliveryWeight } from "./toppings";
-import { CHERRY_IMPRESS, SPRINKLE_IMPRESS } from "./tuning";
+import { canCrown, deliveryWeight, FLAVOR_WORDS, flavorOf } from "./toppings";
+import { CHERRY_IMPRESS, FLAVOR_IMPRESS, SPRINKLE_IMPRESS } from "./tuning";
 
 export type Requirement =
   | { kind: "count-on-cake"; topping: string; needed: number }
@@ -33,8 +33,12 @@ export type Requirement =
    * supersedes the of-potential ask). `floorCoverage` is the pass floor
    * (Gate 1); the check's `current` is the live absolute covered fraction.
    * No reach or labor denominator — geometry scales the difficulty (a
-   * bigger cake makes the same fraction harder to reach). */
-  | { kind: "frost-coverage"; floorCoverage: number }
+   * bigger cake makes the same fraction harder to reach). `flavor` is the
+   * RECIPE's ask (plans/24): a paint topping id ("frosting" = vanilla,
+   * "fudge"). The floor check stays COLOR-BLIND (any paint passes —
+   * ruling 2); the flavor feeds IMPRESS only. Flavor is a QUALITY of the
+   * frost row, not a second number — the one-number law holds. */
+  | { kind: "frost-coverage"; floorCoverage: number; flavor?: string }
   /** Solids that count only where frosting already is — the 2D support-
    * chain rule ("sprinkles sit ON frosting"), re-bodied as a census lookup.
    * Live recompute like every row: frost applied UNDER a waiting sprinkle
@@ -117,6 +121,28 @@ export function crownedWith(
   );
 }
 
+/** THE MATERIAL CHERRY (plans/24 ruling 4): crowned AND resting on
+ * frosting — a cherry on a bare summit is the feat unfinished (it rests
+ * anywhere, physics untouched; it IMPRESSES only on paint). THE ONE
+ * PREDICATE: the dressing's cherry term, the Room's desire checkmark, the
+ * flourish stamp, and the topper's earned-time beat ALL read this — two
+ * subtly different cherry truths is a bug farm. Slightly hardens the
+ * flourish vs the crownedWith era (accepted — material honesty). */
+export function crownedOnFrosting(
+  dessert: DessertGeometry,
+  settled: readonly SettledTopping[],
+  topping: string,
+  frosting: FrostingField,
+): boolean {
+  const u = crownHolder(settled);
+  return (
+    u !== null &&
+    u.topping === topping &&
+    dessert.tierOf(u.pos) === dessert.topTier &&
+    frosting.frostedNear(u.pos)
+  );
+}
+
 /** Census every row against everything at rest and the frosting field.
  * Pure; called by the Room after each delivery and each Patron amendment.
  * `dessert` is the deal's geometry (spec refactor, plans/13 §3) — the
@@ -191,9 +217,12 @@ export interface Judgment {
   /** ABSOLUTE frosting coverage of the whole cake (plans/22 step 4) — the
    * climb's SPINE. The report reads it ("you frosted 31% of the cake"). */
   coverage: number;
-  /** THE DRESSING (plans/23): sprinkles landed + the cherry crowned, as a
-   * small coverage-EQUIVALENT bonus (0..~0.08). It ADDS to the grade and
-   * never gates — missing dressing costs stars, never zeroes a real cake. */
+  /** THE DRESSING (plans/23; plans/24 adds the flavor term): sprinkles
+   * landed + the cherry crowned ON FROSTING + the flavor match, as a small
+   * coverage-EQUIVALENT bonus (0..~0.09). It ADDS to the grade and never
+   * gates — missing dressing costs stars, never zeroes a real cake. The
+   * flavor term FOLDS in here (one displayed number: "dressed to impress"
+   * includes wearing the flavor the giant asked for). */
   dressing: number;
   /** coverage + dressing, capped at 1 — the number the STARS grade against
    * ("dressed to impress"). Coverage dominates; dressing tips you over a
@@ -236,15 +265,22 @@ export function judge(
   const coverage = frosting.coverage();
 
   // THE ONE GATE (plans/23): the frosting floor. Any cake above it is served;
-  // below it the giant has no cake at all — the only zero.
+  // below it the giant has no cake at all — the only zero. The floor is
+  // COLOR-BLIND (plans/24 ruling 2) — any paint passes, whatever the ask.
   let floor = 0;
+  let flavorAsk: string | undefined;
   for (const r of order.requirements)
-    if (r.kind === "frost-coverage") floor = r.floorCoverage;
+    if (r.kind === "frost-coverage") {
+      floor = r.floorCoverage;
+      flavorAsk = r.flavor;
+    }
   const accepted = coverage >= floor;
 
-  // THE DRESSING (plans/23): sprinkles landed (proportional) + the cherry
-  // crowned, each a small coverage-equivalent. It LIFTS the grade, never
-  // gates it — a partial sprinkle count is a partial lift.
+  // THE DRESSING (plans/23 + plans/24): sprinkles landed (proportional), the
+  // cherry crowned ON FROSTING (the material predicate, ruling 4), and the
+  // flavor match (the recipe's ask, worn by the painted skin) — each a small
+  // coverage-equivalent. It LIFTS the grade, never gates it — partial
+  // anything is a partial lift.
   const sprinkles = checks.find(
     (c) => c.req.kind === "on-frosting" && c.req.topping === "sprinkles",
   );
@@ -253,10 +289,13 @@ export function judge(
       ? Math.min(1, sprinkles.current / sprinkles.target)
       : 0;
   const cherryCrowned = order.desire
-    ? crownedWith(dessert, settled, order.desire.topping)
+    ? crownedOnFrosting(dessert, settled, order.desire.topping, frosting)
     : false;
+  const flavorFrac = flavorAsk ? frosting.flavorMatch(flavorOf(flavorAsk)) : 0;
   const dressing =
-    sprinkleFrac * SPRINKLE_IMPRESS + (cherryCrowned ? CHERRY_IMPRESS : 0);
+    sprinkleFrac * SPRINKLE_IMPRESS +
+    (cherryCrowned ? CHERRY_IMPRESS : 0) +
+    flavorFrac * FLAVOR_IMPRESS;
 
   const impress = Math.min(1, coverage + dressing);
   let stars: 0 | 1 | 2 | 3 = 0;
@@ -279,8 +318,14 @@ export function judge(
 export function describeRequirement(req: Requirement, topTier: number): string {
   if (req.kind === "crown") return `1 × ${req.topping} AS THE CROWN`;
   // Absolute now (plans/22 step 4): the ask is a share of the WHOLE cake.
-  if (req.kind === "frost-coverage")
-    return `FROST ${Math.round(req.floorCoverage * 100)}% OF THE CAKE`;
+  // The recipe's flavor (plans/24) rides the same row — a wish, never a
+  // gate (any paint passes the floor; the flavor impresses).
+  if (req.kind === "frost-coverage") {
+    const inFlavor = req.flavor
+      ? ` IN ${FLAVOR_WORDS[req.flavor] ?? req.flavor.toUpperCase()}`
+      : "";
+    return `FROST ${Math.round(req.floorCoverage * 100)}% OF THE CAKE${inFlavor}`;
+  }
   if (req.kind === "on-frosting")
     return `${req.needed} × ${req.topping} ON THE FROSTING`;
   const where =

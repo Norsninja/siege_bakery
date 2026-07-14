@@ -118,17 +118,35 @@ export const EARNED_TIME_PER_SAMPLE_S = 2;
 export const EARNED_TIME_CAP_S = 120;
 
 /** THE DRESSING (plans/23 — "dressed to impress": dressing lifts the grade,
- * never gates it). Each dressing element adds this coverage-EQUIVALENT to
- * IMPRESS (judge(): stars grade on coverage + dressing). Bounded small so
- * COVERAGE stays the spine: full dressing is +0.08, and floor 0.08 + 0.08 =
- * 0.16 < STAR2_COVERAGE 0.18 — a bare cake, even perfectly dressed, stays
- * 1★; you must FROST more to climb. Dressing tips you over a NEARBY tier,
- * it never carries you a whole one. PROVISIONAL — tune at a real playtest.
+ * never gates it; plans/24 adds the FLAVOR term). Each dressing element adds
+ * this coverage-EQUIVALENT to IMPRESS (judge(): stars grade on coverage +
+ * dressing). Bounded small so COVERAGE stays the spine — THE BOUND LAW
+ * (plans/23, re-read at plans/24 as §7 asked): floor + FULL dressing must
+ * stay under STAR2. Three terms now, so each dropped 0.04 → 0.03: full
+ * dressing 0.09, and floor 0.08 + 0.09 = 0.17 < STAR2 0.18 (cupcake: 0.55 +
+ * 0.09 = 0.64 < 0.70) — a bare cake, even perfectly dressed and flavored,
+ * stays 1★; you must FROST more to climb. Dressing tips you over a NEARBY
+ * tier, it never carries you a whole one. PROVISIONAL — tune at a playtest.
  * Sub-ruling (plans/23 §7): the cherry lifts stars HERE *and* keeps its
  * distinct flourish coin bonus (FLOURISH_BONUS_COINS) — different currencies,
  * not a double-dip. */
-export const SPRINKLE_IMPRESS = 0.04;
-export const CHERRY_IMPRESS = 0.04;
+export const SPRINKLE_IMPRESS = 0.03;
+export const CHERRY_IMPRESS = 0.03;
+/** The flavor-match term (plans/24 ruling 2: coverage is COLOR-BLIND,
+ * flavor lives in impress only — wrong flavor never zeroes, never messes;
+ * it just impresses less). Scaled by the matching fraction of painted skin. */
+export const FLAVOR_IMPRESS = 0.03;
+
+/** THE ONE CLOCK RULE's other two axes (plans/24 ruling 3: progress earns
+ * time on EVERY axis; redundancy earns nothing — all under EARNED_TIME_CAP_S).
+ * GARNISH: per sprinkle grain that converts AND advances the ask (a
+ * high-water mark — grains beyond the ask, and re-reaching a count already
+ * paid for after burial, earn nothing: the fresh-vs-recoat law applied to
+ * garnish). ~0.4 s/grain prices a good 40-grain burst ≈ 16 s, comparable
+ * to a good splat. TOPPER: once per order, on the cherry FIRST crowning ON
+ * FROSTING (ruling 4's predicate) — a chunk, the feat's beat. */
+export const GARNISH_TIME_PER_GRAIN_S = 0.4;
+export const TOPPER_TIME_S = 15;
 
 /** THE ECONOMY's dials (plans/13 §5 as amended 2026-07-09 — the
  * shop-sells-infrastructure amendment). Both are feel-pass hypotheses,

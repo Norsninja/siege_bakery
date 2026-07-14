@@ -18,18 +18,21 @@ import {
   EARNED_TIME_CAP_S,
   EARNED_TIME_PER_SAMPLE_S,
   FLOOR_COVERAGE,
+  GARNISH_TIME_PER_GRAIN_S,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   SPRINKLES_NEEDED,
+  TOPPER_TIME_S,
 } from "./tuning";
 
 describe("requirementsFor (the per-rung ticket, slice 4)", () => {
-  it("rung 3 IS today's standing order — the anchor, verbatim", () => {
+  it("rung 3 IS today's standing order — the anchor (+ the recipe's flavor wish, plans/24)", () => {
     expect(requirementsFor(rungRow(3))).toEqual([
       // The frost FLOOR is absolute + flat now (plans/22 step 4): a share of
       // the WHOLE cake, no towns/labor denominator (geometry scales it).
-      { kind: "frost-coverage", floorCoverage: FLOOR_COVERAGE },
+      // The flavor is plans/24's recipe ask — impress-only, never a gate.
+      { kind: "frost-coverage", floorCoverage: FLOOR_COVERAGE, flavor: "frosting" },
       { kind: "on-frosting", topping: "sprinkles", needed: SPRINKLES_NEEDED },
     ]);
     // standardRequirements survives as exactly this — the anchor alias
@@ -168,6 +171,52 @@ describe("OrderFlow", () => {
     // A FRESH deal earns its own time — the cap resets.
     flow.dealFresh(rungRow(3));
     expect(flow.earnTime(3)).toBe(3 * EARNED_TIME_PER_SAMPLE_S);
+  });
+
+  it("THE GARNISH AXIS (plans/24): ask-capped progress buys clock, high-water only", () => {
+    const flow = new OrderFlow();
+    flow.dealFresh(rungRow(3));
+    const base = flow.order.ticksLeft;
+    // 40 grains of ask-capped progress: a good burst's worth of clock.
+    expect(flow.earnGarnishTime(40)).toBe(40 * GARNISH_TIME_PER_GRAIN_S);
+    expect(flow.order.ticksLeft).toBe(
+      base + Math.round(40 * GARNISH_TIME_PER_GRAIN_S * 60),
+    );
+    // The SAME progress again is redundancy — the high-water law.
+    expect(flow.earnGarnishTime(40)).toBe(0);
+    // Burial dropped the count to 20, the crew re-sprinkled back to 40:
+    // that ground was already PAID for — nothing new until a NEW maximum.
+    expect(flow.earnGarnishTime(20)).toBe(0);
+    expect(flow.earnGarnishTime(40)).toBe(0);
+    expect(flow.earnGarnishTime(60)).toBe(20 * GARNISH_TIME_PER_GRAIN_S);
+    // A fresh deal earns its own garnish.
+    flow.dealFresh(rungRow(3));
+    expect(flow.earnGarnishTime(10)).toBe(10 * GARNISH_TIME_PER_GRAIN_S);
+  });
+
+  it("THE TOPPER AXIS (plans/24): the first crowning pays a chunk, ONCE per order", () => {
+    const flow = new OrderFlow();
+    flow.dealFresh(rungRow(3));
+    const base = flow.order.ticksLeft;
+    expect(flow.earnTopperTime()).toBe(TOPPER_TIME_S);
+    expect(flow.order.ticksLeft).toBe(base + TOPPER_TIME_S * 60);
+    // Knocked off and re-crowned: the beat was paid.
+    expect(flow.earnTopperTime()).toBe(0);
+    // A fresh deal has its own crowning beat.
+    flow.dealFresh(rungRow(3));
+    expect(flow.earnTopperTime()).toBe(TOPPER_TIME_S);
+  });
+
+  it("THE ONE CAP (plans/24): every axis shares EARNED_TIME_CAP_S", () => {
+    const flow = new OrderFlow();
+    flow.dealFresh(rungRow(3));
+    const base = flow.order.ticksLeft;
+    // Flood the paint axis to the cap; the other axes then earn NOTHING.
+    flow.earnTime(Math.ceil(EARNED_TIME_CAP_S / EARNED_TIME_PER_SAMPLE_S) + 10);
+    expect(flow.order.ticksLeft - base).toBe(Math.round(EARNED_TIME_CAP_S * 60));
+    expect(flow.earnGarnishTime(60)).toBe(0);
+    expect(flow.earnTopperTime()).toBe(0);
+    expect(flow.order.ticksLeft - base).toBe(Math.round(EARNED_TIME_CAP_S * 60));
   });
 
   it("PATIENCE IS DORMANT (step 6): a look no longer drains the clock; the debt accrues", () => {

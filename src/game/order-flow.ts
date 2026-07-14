@@ -29,8 +29,10 @@ import {
   CREW_LABOR,
   EARNED_TIME_CAP_S,
   EARNED_TIME_PER_SAMPLE_S,
+  GARNISH_TIME_PER_GRAIN_S,
   ORDER_RESET_TICKS,
   PATRON_LOOK_EVERY,
+  TOPPER_TIME_S,
 } from "./tuning";
 
 /** THE HONEST ORDER (plans/07 phase O), per-rung since the ladder went
@@ -59,8 +61,14 @@ export function requirementsFor(
   const labor = CREW_LABOR[Math.max(1, Math.min(crew, CREW_LABOR.length - 1))]!;
   // The frost floor is ABSOLUTE and flat (plans/22 step 4): a share of the
   // WHOLE cake straight off the rung's row — no reach × labor denominator.
+  // The recipe's flavor ask (plans/24) rides the row when the rung names
+  // one — a wish for impress, never a gate (the floor stays color-blind).
   const rows: Requirement[] = [
-    { kind: "frost-coverage", floorCoverage: row.asks.floorCoverage },
+    {
+      kind: "frost-coverage",
+      floorCoverage: row.asks.floorCoverage,
+      ...(row.asks.flavor ? { flavor: row.asks.flavor } : {}),
+    },
   ];
   // A zero ask deals NO row (rung 1): a zero-target row is born met and
   // the Giant's nag could tighten a thing that was never asked. Grains
@@ -142,10 +150,19 @@ export class OrderFlow {
   private looks = 0;
   private prevMess = 0;
   private endedTicks = 0;
-  /** EARNED TIME (plans/22 step 6): cumulative ticks this order has earned
-   * from fresh coverage, held to enforce EARNED_TIME_CAP_S. Resets each
-   * deal. */
+  /** EARNED TIME (plans/22 step 6; generalized by plans/24's ONE CLOCK
+   * RULE): cumulative ticks this order has earned across ALL axes (paint,
+   * garnish, topper), held to enforce the ONE shared EARNED_TIME_CAP_S.
+   * Resets each deal. */
   private earnedTicks = 0;
+  /** THE GARNISH HIGH-WATER (plans/24 ruling 3): the best ask-capped
+   * sprinkle progress already PAID for. Only new maxima earn — grains
+   * beyond the ask, and re-reaching a count after burial, are redundancy
+   * (the fresh-vs-recoat law applied to garnish). Resets each deal. */
+  private garnishHigh = 0;
+  /** THE TOPPER'S ONCE (plans/24 ruling 3): the crowning chunk is paid a
+   * single time per order. Resets each deal. */
+  private topperPaid = false;
   /** THE PATIENCE DEBT (plans/22 step 6, DORMANT until step 8): patience no
    * longer drains the clock — the Giant's impatience accumulates here (as
    * positive seconds burned) for the realm's-favor payout to spend. Nothing
@@ -218,12 +235,38 @@ export class OrderFlow {
    * naturally (§2.5). No-op off a running order (the clock only grows while
    * it ticks) or once the cap is hit. Returns the seconds actually granted. */
   earnTime(freshSamples: number): number {
-    if (this.order.status !== "running" || freshSamples <= 0) return 0;
+    if (freshSamples <= 0) return 0;
+    return this.grantSeconds(freshSamples * EARNED_TIME_PER_SAMPLE_S);
+  }
+
+  /** THE GARNISH AXIS (plans/24 ruling 3): sprinkle progress buys clock.
+   * The Room calls this from the scoring phase with the live ASK-CAPPED
+   * progress (Σ min(current, target) over on-frosting rows); only NEW
+   * high-water marks earn — grains beyond the ask, and re-climbing after
+   * burial, are redundancy. Same shared cap as every axis. */
+  earnGarnishTime(cappedProgress: number): number {
+    if (cappedProgress <= this.garnishHigh) return 0;
+    const gained = cappedProgress - this.garnishHigh;
+    this.garnishHigh = cappedProgress;
+    return this.grantSeconds(gained * GARNISH_TIME_PER_GRAIN_S);
+  }
+
+  /** THE TOPPER AXIS (plans/24 ruling 3): the cherry's FIRST crowning on
+   * frosting (ruling 4's predicate — the Room calls this at the moment its
+   * desire checkmark flips true) buys one chunk of clock, once per order. */
+  earnTopperTime(): number {
+    if (this.topperPaid) return 0;
+    this.topperPaid = true;
+    return this.grantSeconds(TOPPER_TIME_S);
+  }
+
+  /** THE ONE CAP (plans/22 §2.5's backstop, shared by every axis of the
+   * one clock rule): grant seconds of clock onto a RUNNING order, cumulative
+   * to EARNED_TIME_CAP_S per deal. Returns the seconds actually granted. */
+  private grantSeconds(seconds: number): number {
+    if (this.order.status !== "running" || seconds <= 0) return 0;
     const capTicks = Math.round(EARNED_TIME_CAP_S * 60);
-    const grant = Math.min(
-      Math.round(freshSamples * EARNED_TIME_PER_SAMPLE_S * 60),
-      capTicks - this.earnedTicks,
-    );
+    const grant = Math.min(Math.round(seconds * 60), capTicks - this.earnedTicks);
     if (grant <= 0) return 0;
     this.earnedTicks += grant;
     this.order = { ...this.order, ticksLeft: this.order.ticksLeft + grant };
@@ -287,6 +330,8 @@ export class OrderFlow {
     this.looks = 0;
     this.prevMess = 0;
     this.earnedTicks = 0; // a fresh order earns its own time (step 6)
+    this.garnishHigh = 0; // and its own garnish high-water (plans/24)
+    this.topperPaid = false; // and its own crowning beat (plans/24)
     this.patienceDebtSeconds = 0; // and owes its own favor (step 8)
     this.order = this.freshOrder(row);
   }

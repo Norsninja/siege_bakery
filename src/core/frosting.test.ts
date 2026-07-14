@@ -152,6 +152,33 @@ describe("the paint law", () => {
     expect(again.footprint).toBe(first.footprint); // same reach
     expect(again.fresh).toBe(0); // nothing crossed 0→>0
   });
+
+  it("THE FLAVOR STAMP (plans/24): last coat wins; the match reads the painted skin", () => {
+    const field = new FrostingField(SAMPLES);
+    expect(field.flavorMatch(1)).toBe(0); // naked cake: nothing to match
+    field.paint(SUMMIT, HOT, undefined, 1); // vanilla on the summit
+    expect(field.flavorMatch(1)).toBe(1); // all painted skin wears it
+    expect(field.flavorMatch(2)).toBe(0);
+    // Re-coat the SAME spot in flavor 2: zero fresh, but the stamp flips —
+    // repainting fixes an impress miss at the cost of clock (the plans/24
+    // last-coat-wins law).
+    const recoat = field.paint(SUMMIT, HOT, undefined, 2);
+    expect(recoat.fresh).toBe(0);
+    expect(field.flavorMatch(2)).toBe(1);
+    expect(field.flavorMatch(1)).toBe(0);
+    // A second flavor elsewhere splits the match proportionally.
+    field.paint(LEDGE1, HOT, undefined, 1);
+    expect(field.flavorMatch(1) + field.flavorMatch(2)).toBeCloseTo(1, 10);
+    expect(field.flavorMatch(1)).toBeGreaterThan(0);
+    expect(field.flavorMatch(2)).toBeGreaterThan(0);
+    // Flavor 0 (the client twin's don't-care) never stamps: reset, paint
+    // unflavored — no flavor matches, coverage still counts.
+    field.reset();
+    field.paint(SUMMIT, HOT);
+    expect(field.coverage()).toBeGreaterThan(0);
+    expect(field.flavorMatch(1)).toBe(0);
+    expect(field.flavorMatch(2)).toBe(0);
+  });
 });
 
 describe("the census measures", () => {

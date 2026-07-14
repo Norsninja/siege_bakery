@@ -227,6 +227,14 @@ export function buildCensus(spec: DessertSpec): FrostSample[] {
 
 export class FrostingField {
   private coats: number[];
+  /** THE FLAVOR STAMP (plans/24): which paint LAST coated each sample —
+   * a small int id (0 = unpainted; the topping→id mapping lives in
+   * game/toppings.flavorOf, core stays name-agnostic). LAST COAT WINS:
+   * repainting chocolate over vanilla changes the flavor — it earns no
+   * time (zero fresh) but can fix an impress miss, a real choice that
+   * costs clock. NOT on the welcome wire: clients never judge (the
+   * impress is the Room's), and the client field is visuals. */
+  private flavors: number[];
 
   /** A field is per-deal state over a per-deal census: constructed with
    * the deal's samples (DessertGeometry.samples) and REPLACED at the deal
@@ -234,6 +242,7 @@ export class FrostingField {
    * `this.frosting`, so replacement follows automatically. */
   constructor(readonly samples: readonly FrostSample[]) {
     this.coats = new Array<number>(samples.length).fill(0);
+    this.flavors = new Array<number>(samples.length).fill(0);
   }
 
   /** Apply one paint event (a paint topping's first impact), under the
@@ -243,11 +252,14 @@ export class FrostingField {
    * painted THIS splat — the coverage delta, plans/22 step 6). Fresh ≤
    * footprint; a re-coat over already-frosted skin adds a coat but zero
    * fresh. Earned time buys clock off FRESH only, so a saturated cake earns
-   * nothing and the round ends naturally (plans/22 §2.5). */
+   * nothing and the round ends naturally (plans/22 §2.5). `flavor` stamps
+   * the hit samples (plans/24, last coat wins); 0 keeps the stamp law out
+   * of callers that don't care (the client twin — visuals never judge). */
   paint(
     impact: Vec3,
     speed: number,
     spec: SplatSpec = DEFAULT_SPLAT,
+    flavor = 0,
   ): { footprint: number; fresh: number } {
     const hit = splatSamples(this.samples, impact, speed, spec);
     const add = splatCoats(speed, spec);
@@ -255,8 +267,23 @@ export class FrostingField {
     for (const i of hit) {
       if (this.coats[i]! === 0) fresh++;
       this.coats[i]! += add;
+      if (flavor !== 0) this.flavors[i] = flavor;
     }
     return { footprint: hit.length, fresh };
+  }
+
+  /** THE FLAVOR MATCH (plans/24): what fraction of the PAINTED skin wears
+   * this flavor's stamp. The impress's flavor term reads it (coverage
+   * itself stays color-blind — ruling 2). 0 on a naked cake. */
+  flavorMatch(flavor: number): number {
+    let painted = 0;
+    let match = 0;
+    for (let i = 0; i < this.coats.length; i++) {
+      if (this.coats[i]! === 0) continue;
+      painted++;
+      if (this.flavors[i] === flavor) match++;
+    }
+    return painted > 0 ? match / painted : 0;
   }
 
   /** Fraction of the cake's sampled skin under at least one coat (0..1). */
@@ -336,8 +363,9 @@ export class FrostingField {
 
   /** Fresh cake per order (the fresh-cake law, 2026-07-05): the finished
    * dessert is gone — eaten or taken away — and a naked cake wheels out.
-   * The paint leaves with it. */
+   * The paint leaves with it, stamps and all. */
   reset(): void {
     this.coats.fill(0);
+    this.flavors.fill(0);
   }
 }

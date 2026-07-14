@@ -79,6 +79,27 @@ export function isPaint(topping: string): boolean {
   return TOPPINGS[topping]?.form === "frosting";
 }
 
+/** THE FLAVORS (plans/24 — the recipe): every paint topping IS a flavor.
+ * The census stamps a small int per sample (core stays name-agnostic);
+ * this list is THE mapping, both replicas — order is wire-ish, append
+ * only. The classic frosting is VANILLA; fudge is the chocolate (already
+ * a full paint row with its own measured splat law — the recipe's arrival
+ * is fudge's rung, plans/10 §1's "rungs introduce projectiles" landing). */
+export const PAINT_FLAVORS: readonly string[] = ["frosting", "fudge"];
+
+/** The census stamp for a paint topping (1-based; 0 = not a paint /
+ * unpainted — FrostingField's "no stamp"). */
+export function flavorOf(topping: string): number {
+  return PAINT_FLAVORS.indexOf(topping) + 1;
+}
+
+/** The ticket's word for a flavor ask — the HUD speaks bakery, never
+ * engine ids (the semantic audit). */
+export const FLAVOR_WORDS: Record<string, string> = {
+  frosting: "VANILLA",
+  fudge: "FUDGE",
+};
+
 /** May this topping claim the crown? Unknown ids: solid, crownable —
  * mistakes execute, and the decoy's menace is the point. */
 export function canCrown(topping: string): boolean {

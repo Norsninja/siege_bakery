@@ -11,11 +11,13 @@ import {
   CREW_LABOR,
   FLOOR_COVERAGE,
   FLOURISH_BONUS_COINS,
+  GARNISH_TIME_PER_GRAIN_S,
   ORDER_RESET_TICKS,
   ORDER_SECONDS,
   PATRON_LOOK_EVERY,
   READY_COUNTDOWN_TICKS,
   RUNOVER_TICKS,
+  TOPPER_TIME_S,
   TOWN2_PRICE,
 } from "../game/tuning";
 import {
@@ -143,12 +145,15 @@ function seamSprinkles(room: Room, n: number): void {
     s.settled.push({ topping: "sprinkles", pos: { ...spot.pos }, onCake: true, stuck: true });
 }
 
-/** Rest a cherry on the deal's summit. */
+/** Rest a cherry on the deal's summit — ON FROSTING (the material cherry,
+ * plans/24 ruling 4: a bare-summit cherry is the feat unfinished), so the
+ * seam dabs the crown's spot before resting it, as a real crew must. */
 function seamCherry(room: Room): void {
   const s = seams(room);
   const summit = s.dessert.samples.find(
     (sm) => s.dessert.tierOf(sm.pos) === s.dessert.topTier,
   )!;
+  s.frosting.paint(summit.pos, 5);
   s.settled.push({ topping: "cherry", pos: { ...summit.pos }, onCake: true });
 }
 
@@ -1748,6 +1753,36 @@ describe("Room: the match, headless over protocol", () => {
       const lobby = a.all("run").filter((m) => m.phase === "lobby").pop();
       expect(lobby?.won).toBeUndefined();
       expect(lobby?.ultra).toBeUndefined();
+    });
+  });
+
+  describe("THE ONE CLOCK RULE (plans/24): every material's progress buys clock", () => {
+    it("garnish + topper pay on the landing tick, exactly once, tick-exact", () => {
+      const room = new Room();
+      const a = connect(room, "alice");
+      readyUp(room, a);
+      jumpToRung(room, 3); // ask: 60 grains, crown: true (the desire exists)
+      seamPaint(room, 0.12);
+      seamSprinkles(room, 40); // 40 grains ON paint → ask-capped progress 40
+      seamCherry(room); // the crown, on frosting (the material predicate)
+      const s = seams(room);
+      const before = s.flow.order.ticksLeft;
+      // The REAL landing tick evaluates everything (the seams build state,
+      // the trigger stays genuine). The lime is a solid: zero fresh paint,
+      // so the ONLY grants are the garnish axis + the topper's beat.
+      fireLime(room, a, 400);
+      const elapsed = 1 + CRANK_TICKS_PER_CLICK + 1 + 400; // fireLime's exact ticks
+      expect(s.flow.order.ticksLeft).toBe(
+        before -
+          elapsed +
+          Math.round(40 * GARNISH_TIME_PER_GRAIN_S * 60) +
+          TOPPER_TIME_S * 60,
+      );
+      // A second landing re-observes the same state: the high-water and the
+      // once-flag pay NOTHING twice — redundancy earns no clock.
+      const paid = s.flow.order.ticksLeft;
+      fireLime(room, a, 400);
+      expect(s.flow.order.ticksLeft).toBe(paid - elapsed);
     });
   });
 

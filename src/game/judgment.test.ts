@@ -20,6 +20,7 @@ import {
   type Requirement,
   type SettledTopping,
 } from "./judgment";
+import { flavorOf } from "./toppings";
 
 // The spec refactor (plans/13 §3): the rules see the deal's geometry —
 // cake-3 here, the anchor row; zones are tier INDICES now.
@@ -133,6 +134,19 @@ describe("checkRequirements", () => {
     expect(describeRequirement(CROWN, GEOM.topTier)).toBe("1 × cherry AS THE CROWN");
     expect(describeRequirement(FROST_HALF, GEOM.topTier)).toBe("FROST 50% OF THE CAKE");
     expect(describeRequirement(SPRINKLES_2, GEOM.topTier)).toBe("2 × sprinkles ON THE FROSTING");
+    // The recipe's flavor wish (plans/24) speaks bakery, never engine ids.
+    expect(
+      describeRequirement(
+        { kind: "frost-coverage", floorCoverage: 0.08, flavor: "frosting" },
+        GEOM.topTier,
+      ),
+    ).toBe("FROST 8% OF THE CAKE IN VANILLA");
+    expect(
+      describeRequirement(
+        { kind: "frost-coverage", floorCoverage: 0.08, flavor: "fudge" },
+        GEOM.topTier,
+      ),
+    ).toBe("FROST 8% OF THE CAKE IN FUDGE");
   });
 
   it("progress reads as one number: counts as counts, the fraction as percent", () => {
@@ -303,26 +317,85 @@ describe("judge — the relax: one floor, an additive impress climb (plans/23)",
     expect(j.stars).toBe(3); // coverage 1.0 carries it — dressing was gravy
   });
 
-  it("DRESSING lifts the grade: the cherry tips a near-tier cake over the line", () => {
-    // Coverage 0.16 alone is 1★ (< star2 0.18); the crowned cherry adds
-    // CHERRY_IMPRESS (0.04) → impress 0.20 → 2★. Dressing ADDS, never gates.
+  /** A field at ~`fr` coverage WITH a painted summit — the material cherry
+   * (plans/24 ruling 4) impresses only ON frosting, so these fixtures dab
+   * the summit too (a gentle dollop at the crown's spot). */
+  const paintedWithSummit = (fr: number) => {
+    const f = paintFraction(fr);
+    f.paint({ x: 0, y: TIERS[2]!.top, z: CAKE_Z }, 5);
+    return f;
+  };
+
+  it("DRESSING lifts the grade: the cherry ON FROSTING tips a near-tier cake over the line", () => {
     const withDesire = { ...order, desire: { topping: "cherry" } };
-    const cov = paintFraction(0.16);
-    const bare = judge(GEOM, withDesire, [], paintFraction(0.16));
+    const cov = paintedWithSummit(0.15);
+    // Self-check the fixture's premise: below star2 alone, within a
+    // cherry's reach of it (star2 0.18, CHERRY_IMPRESS 0.03).
+    expect(cov.coverage()).toBeGreaterThanOrEqual(0.15);
+    expect(cov.coverage()).toBeLessThan(0.18);
+    const bare = judge(GEOM, withDesire, [], cov);
     expect(bare.stars).toBe(1);
     const crowned = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], cov);
-    expect(crowned.dressing).toBeCloseTo(0.04, 10);
-    expect(crowned.impress).toBeCloseTo(0.20, 2);
+    expect(crowned.dressing).toBeCloseTo(0.03, 10);
     expect(crowned.stars).toBe(2);
   });
 
-  it("COVERAGE is the spine: dressing can't carry a near-floor cake up a whole tier", () => {
-    // 0.09 coverage (just over the floor) + a crowned cherry (0.04) = 0.13,
-    // still short of star2 0.18: you must FROST more to climb (tuning bound).
+  it("THE MATERIAL CHERRY (plans/24 ruling 4): a bare-summit cherry impresses NOTHING", () => {
+    // Crowned by rest position, but no paint under it — the feat unfinished.
+    // paintFraction paints by census index (tier 0 first), so the summit is
+    // bare at 0.16 — exactly the fixture the ruling needs.
     const withDesire = { ...order, desire: { topping: "cherry" } };
-    const j = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], paintFraction(0.09));
+    const j = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], paintFraction(0.16));
+    expect(j.dressing).toBe(0);
+    expect(j.stars).toBe(1);
+  });
+
+  it("COVERAGE is the spine: dressing can't carry a near-floor cake up a whole tier", () => {
+    // ~0.10 coverage (just over the floor) + a crowned cherry (0.03) stays
+    // well short of star2 0.18: you must FROST more to climb (tuning bound).
+    const withDesire = { ...order, desire: { topping: "cherry" } };
+    const cov = paintedWithSummit(0.09);
+    expect(cov.coverage()).toBeLessThan(0.15);
+    const j = judge(GEOM, withDesire, [at("cherry", 0, TOP_Y)], cov);
     expect(j.accepted).toBe(true);
     expect(j.stars).toBe(1);
+  });
+
+  it("THE FLAVOR TERM (plans/24 ruling 2): matching paint impresses; the floor stays color-blind", () => {
+    // Paint ~12% all in fudge (flavor 2). The floor passes on ANY paint;
+    // a fudge ask lifts impress by the full FLAVOR_IMPRESS (match 1.0), a
+    // vanilla ask lifts nothing (match 0.0) — never zeroes, never messes.
+    const fudgeAsk = {
+      ...order,
+      requirements: [
+        { kind: "frost-coverage", floorCoverage: 0.08, flavor: "fudge" } as Requirement,
+      ],
+    };
+    const vanillaAsk = {
+      ...order,
+      requirements: [
+        { kind: "frost-coverage", floorCoverage: 0.08, flavor: "frosting" } as Requirement,
+      ],
+    };
+    const f = naked();
+    // Stamp by painting: hot splashes around tier 0's ledge ring, in FUDGE.
+    for (let k = 0; k < 10; k++) {
+      const a = (2 * Math.PI * k) / 10;
+      f.paint(
+        { x: 4.2 * Math.cos(a), y: TIERS[0]!.top, z: CAKE_Z + 4.2 * Math.sin(a) },
+        SPLAT_SPEED + 5,
+        undefined,
+        flavorOf("fudge"),
+      );
+    }
+    expect(f.coverage()).toBeGreaterThan(0.08);
+    const asFudge = judge(GEOM, fudgeAsk, [], f);
+    const asVanilla = judge(GEOM, vanillaAsk, [], f);
+    expect(asFudge.accepted).toBe(true);
+    expect(asVanilla.accepted).toBe(true); // color-blind floor — both serve
+    expect(asFudge.dressing).toBeCloseTo(0.03, 10); // full match × FLAVOR_IMPRESS
+    expect(asVanilla.dressing).toBe(0); // wrong flavor: less impressed, never punished
+    expect(asFudge.impress).toBeGreaterThan(asVanilla.impress);
   });
 
   it("STARS read IMPRESS against the absolute tiers (coverage alone, no dressing)", () => {

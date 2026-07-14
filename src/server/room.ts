@@ -32,7 +32,7 @@ import { dessertGeometry, type DessertGeometry } from "../core/dessert";
 import { FrostingField, splatCovers, STICKY_NEAR_M } from "../core/frosting";
 import { launchOrigin, launchVelocity, type Vec3 } from "../core/ballistics";
 import { mulberry32 } from "../core/rng";
-import { isPaint, TOPPINGS } from "../game/toppings";
+import { flavorOf, isPaint, TOPPINGS } from "../game/toppings";
 import { ProjectileManager } from "../core/projectiles";
 import { PatronColliderRig } from "../core/patron-collider";
 import { patronAtMark } from "../game/cast";
@@ -44,7 +44,7 @@ import {
 } from "../game/catapult";
 import {
   checkRequirements,
-  crownedWith,
+  crownedOnFrosting,
   judge,
   type Judgment,
   type RequirementCheck,
@@ -421,7 +421,15 @@ export class Room {
       if (!isPaint(im.topping)) continue;
       if (im.tag !== this.flow.deal) continue; // fired against a previous order
       const spec = TOPPINGS[im.topping]?.splat;
-      const { footprint, fresh } = this.frosting.paint(im.pos, im.speed, spec);
+      // The flavor stamp rides the splat (plans/24): the census remembers
+      // which paint last coated each sample — the impress's flavor term
+      // reads it; coverage stays color-blind.
+      const { footprint, fresh } = this.frosting.paint(
+        im.pos,
+        im.speed,
+        spec,
+        flavorOf(im.topping),
+      );
       freshThisTick += fresh;
       // BURIAL (conversion law, plans/10 §8): stuck sprinkles under this
       // splat's footprint are covered — IN the cake now, not on it. Their
@@ -473,13 +481,25 @@ export class Room {
     // clock; the "+Ns" pop-up is client-local juice off its own frosting
     // twin). No-op off a running order or at the cap (earnTime guards both).
     if (freshThisTick > 0) this.flow.earnTime(freshThisTick);
-    // THE DESIRE'S LIVE CHECKMARK (slice 4b): ledger truth for the HUD's
-    // golden row, refreshed before this tick's broadcasts carry the order.
-    // Presentation only — every VERDICT re-reads the ledger at its own
-    // conclusion tick (the stamp below; physical truth, never this cache).
+    // THE DESIRE'S LIVE CHECKMARK (slice 4b; the MATERIAL predicate since
+    // plans/24 ruling 4 — crowned ON FROSTING, one truth with the impress
+    // and the flourish stamp): ledger truth for the HUD's golden row,
+    // refreshed before this tick's broadcasts carry the order. Presentation
+    // only — every VERDICT re-reads the ledger at its own conclusion tick
+    // (the stamp below; physical truth, never this cache). THE TOPPER'S
+    // BEAT rides the flip (plans/24 ruling 3): the FIRST crowning buys its
+    // chunk of clock — earnTopperTime is once-per-deal, so a knock-off and
+    // re-crown pays nothing twice.
     const desire = this.flow.order.desire;
-    if (desire && this.flow.order.status === "running")
-      desire.met = crownedWith(this.dessert, this.ledger(), desire.topping);
+    if (desire && this.flow.order.status === "running") {
+      desire.met = crownedOnFrosting(
+        this.dessert,
+        this.ledger(),
+        desire.topping,
+        this.frosting,
+      );
+      if (desire.met) this.flow.earnTopperTime();
+    }
     // THE BUZZER MODEL (plans/22 step 3): the scoring phase no longer
     // concludes. Meeting the rows renders no verdict — the order runs to
     // the clock (or, later, a serve), and the Judgment is the Room's at
@@ -494,6 +514,15 @@ export class Room {
       this.ledger(), // earlier deliveries may have been shoved since
       this.frosting,
     );
+    // THE GARNISH AXIS (plans/24 ruling 3): sprinkle progress buys clock —
+    // ask-capped, high-water-marked (earnGarnishTime owns the redundancy
+    // law). Before the broadcast, so `scored` carries the risen ticksLeft
+    // exactly like the paint axis above.
+    let garnish = 0;
+    for (const c of checks)
+      if (c.req.kind === "on-frosting")
+        garnish += Math.min(c.current, c.target);
+    this.flow.earnGarnishTime(garnish);
     for (const g of groups.values())
       this.roster.broadcast({
         t: "scored",
@@ -554,12 +583,15 @@ export class Room {
    * wear the flourish exactly when the desire rests met on the LIVE
    * ledger at the conclusion tick — physical truth, whenever the topping
    * was thrown (pre-styling counts; the reveal is presentation, never
-   * eligibility). Also settles the golden row's checkmark so the ending
-   * broadcast carries it. */
+   * eligibility). The MATERIAL predicate since plans/24 ruling 4: crowned
+   * ON FROSTING — a bare-summit cherry no longer codas (one truth with the
+   * impress and the live checkmark). Also settles the golden row's
+   * checkmark so the ending broadcast carries it. */
   private stampFlourish(j: Judgment): Judgment {
     const desire = this.flow.order.desire;
     if (!j.accepted || !desire) return j;
-    if (!crownedWith(this.dessert, this.ledger(), desire.topping)) return j;
+    if (!crownedOnFrosting(this.dessert, this.ledger(), desire.topping, this.frosting))
+      return j;
     desire.met = true;
     return { ...j, flourish: true };
   }

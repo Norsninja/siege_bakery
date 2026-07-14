@@ -86,6 +86,7 @@
  */
 import { PRACTICE_TARGET, specById, type DessertSpec } from "../core/dessert";
 import type { RunPhase } from "./run-flow";
+import { isPaint } from "./toppings";
 
 export interface Rung {
   /** DessertSpec id (the wire name — the deal carries the RUNG NUMBER
@@ -110,6 +111,14 @@ export interface Rung {
     floorCoverage: number;
     /** Sprinkle ask, in grains (bursts are 40; see SPRINKLES_NEEDED). */
     sprinkles: number;
+    /** THE RECIPE's flavor ask (plans/24): a paint topping id ("frosting"
+     * = vanilla, "fudge" = the chocolate). A WISH, never a gate — the
+     * floor stays color-blind; matching it lifts impress (FLAVOR_IMPRESS).
+     * Absent = the patron doesn't care. PROVISIONAL AUTHORING (the
+     * visionary's eye at a playtest): rungs 1–2 ask none (the tutorial
+     * teaches machine + frost), the cupcake asks none (the precision
+     * spike is the point), 3+ alternate so a run tastes both crates. */
+    flavor?: string;
     /** THE FLOURISH FLAG (§1 amendment — header): does this rung's
      * patron offer his desire when coverage turns great? NEVER a
      * requirement. cake-6's summit takes zero shipped combos — its
@@ -156,7 +165,7 @@ export const RUNGS: readonly Rung[] = [
   // 0.72 = 216 (the old effective, patience baked in and retired). COVERAGE
   // is the flat 8% floor + 18/35 tiers (step 4), not the of-potential
   // 0.5/0.7/0.9.
-  { spec: "cake-3", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 30, perStar: 5 } },
+  { spec: "cake-3", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, flavor: "frosting", crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 30, perStar: 5 } },
   // 4 — THE CUPCAKE: tiny census (68), so the frost ask is samples-few
   // but every miss is floor waste; sprinkles must land on a 1.2m disc;
   // the flourish's 8 windows all arrive hot (header finding). Short
@@ -167,14 +176,14 @@ export const RUNGS: readonly Rung[] = [
   // floor would gift 3★, so its floor + tiers ride high (55/70/85).
   { spec: "cupcake", clockSeconds: 108, soloClock: 1.0, asks: { floorCoverage: 0.55, sprinkles: 30, crown: true }, stars: { two: 0.70, three: 0.85 }, pay: { base: 40, perStar: 5 } },
   // 5 — the climb begins: 701 census, 7 flourish windows.
-  { spec: "cake-4", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 50, perStar: 5 } },
+  { spec: "cake-4", clockSeconds: 216, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 60, flavor: "fudge", crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 50, perStar: 5 } },
   // 6 — the heroic flourish: FOUR windows (three PLACE at c8n1–3), the
   // last rung the flourish can honestly be offered on.
-  { spec: "cake-5", clockSeconds: 238, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 60, perStar: 5 } },
+  { spec: "cake-5", clockSeconds: 238, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, flavor: "frosting", crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 60, perStar: 5 } },
   // 7 — the top of the ladder. Winnable by WORKLOAD (barely): MASTER
   // BAKER. The flourish stands over a summit no shipped combo reaches —
   // the ULTRA ask, sold by the future economy (§1 amendment).
-  { spec: "cake-6", clockSeconds: 259, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 70, perStar: 5 } },
+  { spec: "cake-6", clockSeconds: 259, soloClock: 1.0, asks: { floorCoverage: 0.08, sprinkles: 80, flavor: "fudge", crown: true }, stars: { two: 0.18, three: 0.35 }, pay: { base: 70, perStar: 5 } },
 ];
 
 /** The Rung row for rung N (1-based), clamped into the ladder: below 1
@@ -210,10 +219,16 @@ export function dessertSpecFor(phase: RunPhase, rung: number): DessertSpec {
   return PRACTICE_TARGET; // lobby/countdown — the training ground
 }
 
-/** Every RUNGS row must name a real spec row — authoring tripwire,
- * exported for the test's use (and slice 4's boot validation). */
+/** Every RUNGS row must name a real spec row — and a flavor ask, when
+ * present, a real PAINT row (plans/24: the recipe can only wish for what
+ * the pantry can throw). Authoring tripwire, exported for the test's use
+ * (and slice 4's boot validation). */
 export function validateRungs(): void {
   for (const r of RUNGS) {
     if (!specById(r.spec)) throw new Error(`RUNGS row names unknown spec "${r.spec}"`);
+    if (r.asks.flavor && !isPaint(r.asks.flavor))
+      throw new Error(
+        `RUNGS row (spec ${r.spec}) asks flavor "${r.asks.flavor}" — not a paint topping`,
+      );
   }
 }
