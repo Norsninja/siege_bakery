@@ -419,6 +419,16 @@ export interface HudView {
 }
 
 const COVERAGE_BAR_W = 30;
+/** THE BAR IS LOGARITHMIC (visionary, §0.5, twenty-fifth session): a linear
+ * bar makes the floor a discouraging sliver. Curving the FILL makes early
+ * frosting feel substantial (8% ≈ a third of the bar) and each further gain
+ * fill less — so the climb toward a perfect cake visibly gets harder and
+ * harder, the north star's asymptote made kinetic. The % NUMBER stays honest
+ * and linear; only the bar's FEEL is curved. K sets the steepness (bigger =
+ * more early boost). barFill(0)=0, barFill(1)=1. */
+const COVERAGE_BAR_K = 30;
+const barFill = (cov: number): number =>
+  Math.log(1 + COVERAGE_BAR_K * cov) / Math.log(1 + COVERAGE_BAR_K);
 
 /** THE COVERAGE LADDER (plans/22 §0.5 north star + §9 step 7): the frost row
  * is NOT a checkbox at the floor — it is the CLIMB toward a perfect cake.
@@ -438,7 +448,7 @@ function coverageLadder(
   const stars =
     current >= star3 ? 3 : current >= star2 ? 2 : current >= floor ? 1 : 0;
   const starGlyph = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
-  const filled = Math.min(COVERAGE_BAR_W, Math.round(current * COVERAGE_BAR_W));
+  const filled = Math.min(COVERAGE_BAR_W, Math.round(barFill(current) * COVERAGE_BAR_W));
   const bar = "█".repeat(filled) + "░".repeat(COVERAGE_BAR_W - filled);
   const nudge =
     stars === 0

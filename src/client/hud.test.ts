@@ -320,6 +320,10 @@ describe("hudLines", () => {
     const l = hudLines(frostAt(0.1)).join("\n");
     expect(l).toContain("FROST THE CAKE ▸ 10%  ★☆☆");
     expect(l).toContain("keep frosting for ★★ at 18%");
+    // THE LOG BAR (visionary, §0.5): 10% must fill a SUBSTANTIAL chunk — a
+    // linear 30-wide bar would show ~3 blocks; the curve boosts it well past
+    // that so the floor never reads as a discouraging sliver.
+    expect((l.match(/█/g) ?? []).length).toBeGreaterThan(6);
     expect(l).toContain("✦ PERFECT 100%"); // the north star, always in view
     expect(l).not.toContain("FROST 8% OF THE CAKE"); // no more checkbox-at-floor
     // Below the floor: no stars, the humble entry gate named plainly.
