@@ -1,12 +1,19 @@
 # Plan 23 — DRESS THE CAKE / RELAX THE RULEBOOK
 
-**Status: PROPOSAL, DRAFTED 2026-07-13 (twenty-fifth session) from the
-first playtest of the plans/22 redesign and the design discussion it
-opened. This is the design of record for the scoring RELAX; it does not
-yet build — the next session executes it. It extends plans/22 (the timing
-+ scoring redesign) and serves its §0.5 north star; where it and an older
+**Status: BUILT 2026-07-14 (twenty-sixth session). Drafted the
+twenty-fifth session from the first playtest of the plans/22 redesign; the
+§7 rulings were pinned in discussion and executed this session. This is the
+design of record for the scoring RELAX. It extends plans/22 (the timing +
+scoring redesign) and serves its §0.5 north star; where it and an older
 scoring law disagree, this is the newer truth and names what it
-supersedes.**
+supersedes. THE §7 RULINGS, as built (see §7 for the detail): dressing lifts
+STARS (via IMPRESS = coverage + dressing); the floor stays 0.08 and is the
+SOLE zero; Gate 2 / REFUSED RETIRED; the impress formula = coverage +
+bounded dressing (SPRINKLE_IMPRESS / CHERRY_IMPRESS = 0.04 each, provisional);
+waste DROPPED; neatness CUT from the grade; the cherry lifts stars AND keeps
+its flourish coin bonus (different currencies). The verdict re-tone shipped
+(the comedy of the gap). Mess is captured for step 9 (the realm's favor), not
+in the grade.**
 
 ---
 

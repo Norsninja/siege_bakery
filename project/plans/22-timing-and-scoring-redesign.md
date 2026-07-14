@@ -401,13 +401,15 @@ handoff vocabulary:
    Carries the §0.5 "reward continuous past 3★" ruling — coins keep climbing
    with coverage toward the perfect cake, uncapped by the top star.
 
-**RESHAPED BY plans/23** (the "dress the cake / relax the rulebook" pass,
-drafted the twenty-fifth session): the scoring RELAX — the two-gate model
-collapses to one low frosting floor + an additive impress-and-dress score
-(dressing lifts the grade, missing it never zeroes you); waste/mess drop as
-penalties. It reshapes steps 8–9 (serve floor-gates on the one floor; the
-realm's favor grows to hold softened-mess-as-mood + the coin drip). Build
-plans/23 BEFORE or ALONGSIDE steps 8–9 — it changes the grade they pay out.
+**RESHAPED BY plans/23** (the "dress the cake / relax the rulebook" pass) —
+BUILT 2026-07-14 (twenty-sixth session): the two-gate model collapsed to one
+frosting floor + an additive IMPRESS = coverage + dressing (stars); Gate 2 /
+REFUSED, waste, and neatness retired from the grade; mess captured for the
+realm's favor (step 9), not the grade; the verdict re-toned to the comedy of
+the gap. So steps 8–9 now pay out on the relaxed grade: **step 8 (serve)**
+floor-gates on the ONE floor; **step 9 (the realm's favor)** carries the
+softened mess (mood, not stars), the coin drip, and the continuous-past-3★
+reward.
 
 Each step is a session-sized slice.
 
