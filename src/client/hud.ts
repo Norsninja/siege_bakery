@@ -418,6 +418,42 @@ export interface HudView {
   lastShot: LastShot | null;
 }
 
+const COVERAGE_BAR_W = 30;
+
+/** THE COVERAGE LADDER (plans/22 §0.5 north star + §9 step 7): the frost row
+ * is NOT a checkbox at the floor — it is the CLIMB toward a perfect cake.
+ * The player always sees where he is, which star is next, and how far the
+ * WHOLE cake still is: the empty stretch of bar is the giant's longing, the
+ * futility made visible (the north star on screen). The floor is base camp,
+ * the stars are milestones, and PERFECT (100%) is the goal nobody reaches.
+ * Absolute coverage (step 4); the star tiers ride the order. */
+function coverageLadder(
+  current: number,
+  floor: number,
+  star2: number,
+  star3: number,
+): string[] {
+  const p = (f: number): number => Math.round(f * 100);
+  const pct = Math.floor(current * 100); // floor — never claim done early
+  const stars =
+    current >= star3 ? 3 : current >= star2 ? 2 : current >= floor ? 1 : 0;
+  const starGlyph = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
+  const filled = Math.min(COVERAGE_BAR_W, Math.round(current * COVERAGE_BAR_W));
+  const bar = "█".repeat(filled) + "░".repeat(COVERAGE_BAR_W - filled);
+  const nudge =
+    stars === 0
+      ? `frost ${p(floor)}% to serve the giant at all`
+      : stars === 1
+        ? `passing — keep frosting for ★★ at ${p(star2)}%`
+        : stars === 2
+          ? `so close — ★★★ at ${p(star3)}%`
+          : `magnificent — now chase the perfect cake, the coins climb with it`;
+  return [
+    `  FROST THE CAKE ▸ ${pct}%  ${starGlyph}  ·  ${nudge}`,
+    `  ▐${bar}▌  pass ${p(floor)}%  ★★ ${p(star2)}%  ★★★ ${p(star3)}%  ✦ PERFECT 100%`,
+  ];
+}
+
 export function hudLines(v: HudView): string[] {
   // Signed since the unwind (plans/14): -N% is a click being let out.
   const crankPct = Math.round((v.crankTicks / CRANK_TICKS_PER_CLICK) * 100);
@@ -476,9 +512,20 @@ export function hudLines(v: HudView): string[] {
               // runs to the buzzer now — plans/22 step 3; the finish-it
               // window it used to swap in was deleted in step 5.)
               `PATRON ${v.run.rung} · THE ORDER · ${clock}${lone}   [${who}]`,
-              ...v.checks.map(
-                (c) =>
-                  `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,
+              // The frost row is the COVERAGE LADDER now (plans/22 §0.5 north
+              // star): a climb toward the perfect cake, not a checkbox at the
+              // floor. Every other row stays a plain checklist line.
+              ...v.checks.flatMap((c) =>
+                c.req.kind === "frost-coverage"
+                  ? coverageLadder(
+                      c.current,
+                      c.req.floorCoverage,
+                      v.order.star2Coverage,
+                      v.order.star3Coverage,
+                    )
+                  : [
+                      `  ${c.met ? "✓" : "✗"} ${describeRequirement(c.req, v.topTier)} · ${describeProgress(c)}`,
+                    ],
               ),
               // THE GOLDEN ROW: the revealed desire — style, never a
               // requirement (it renders only once the patron names it).

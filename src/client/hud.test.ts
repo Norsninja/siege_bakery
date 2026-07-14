@@ -303,6 +303,36 @@ describe("hudLines", () => {
     expect(lines[1]).toBe("  ✗ 3 × cherry ON the cake · 1/3");
   });
 
+  it("THE COVERAGE LADDER (plans/22 §0.5): the frost row is a CLIMB, not a checkbox at the floor", () => {
+    const frostAt = (current: number) =>
+      view({
+        checks: [
+          {
+            req: { kind: "frost-coverage" as const, floorCoverage: 0.08 },
+            current,
+            target: 0.08,
+            met: current >= 0.08,
+          },
+        ],
+      });
+    // 10% (the playtest number): 1★, passing, and PLAINLY pointed at the
+    // next star — the "done at the floor" feeling the ladder exists to kill.
+    const l = hudLines(frostAt(0.1)).join("\n");
+    expect(l).toContain("FROST THE CAKE ▸ 10%  ★☆☆");
+    expect(l).toContain("keep frosting for ★★ at 18%");
+    expect(l).toContain("✦ PERFECT 100%"); // the north star, always in view
+    expect(l).not.toContain("FROST 8% OF THE CAKE"); // no more checkbox-at-floor
+    // Below the floor: no stars, the humble entry gate named plainly.
+    const below = hudLines(frostAt(0.03)).join("\n");
+    expect(below).toContain("☆☆☆");
+    expect(below).toContain("frost 8% to serve the giant at all");
+    // Past the top star: the ladder points BEYOND 3★ at the perfect cake —
+    // the reward keeps climbing (§0.5), it never says "done".
+    const top = hudLines(frostAt(0.4)).join("\n");
+    expect(top).toContain("★★★");
+    expect(top).toContain("chase the perfect cake");
+  });
+
   it("THE LONE HERO tag (plans/13 §5): a hands-1 ticket wears it; a duo's (or unstamped) never", () => {
     const lone = hudLines(
       view({ order: createOrder([], 71 * 60, { hands: 1 }) }),
